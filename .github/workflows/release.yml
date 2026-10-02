@@ -57,6 +57,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - run: node scripts/check-release.mjs
       - run: npm ci
       - run: npm run android:add && npm run android:sync

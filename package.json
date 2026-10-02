@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test --test-isolation=none test/*.test.ts",
     "desktop": "electron desktop/main.cjs",
-    "desktop:build": "npm run build && electron-builder --win nsis",
+    "desktop:build": "npm run build && electron-builder --win nsis --publish never",
     "android:sync": "npm run build && cap sync android",
     "android:add": "cap add android",
     "check:privacy": "node scripts/check-privacy.mjs",

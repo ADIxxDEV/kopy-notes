@@ -759,4 +759,3 @@ function SaveBadge({ state }: { state: "saved" | "saving" | "dirty" }) {
   const s = map[state];
   return <span className={`hidden text-xs sm:block ${s.cls}`}>{s.text}</span>;
 }
-

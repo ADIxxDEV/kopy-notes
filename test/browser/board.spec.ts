@@ -27,7 +27,7 @@ test('drawings survive page changes and refresh; tools stay on the board',async(
 test('recording saves video or reports unavailable capture without an empty download',async({page})=>{
   await board(page);await page.getByLabel('Lesson details').click();let filename='';page.on('download',download=>{filename=download.suggestedFilename();});
   await page.getByRole('button',{name:'Record class',exact:true}).click();await expect(page.getByRole('button',{name:'Stop recording',exact:true})).toBeVisible();await page.waitForTimeout(1200);await page.getByRole('button',{name:'Stop recording',exact:true}).click();
-  await expect.poll(async()=>filename||await page.getByRole('alert').textContent().catch(()=>''),{timeout:10000}).toBeTruthy();
+  await expect.poll(async()=>filename||(await page.getByRole('alert').allTextContents()).join(' '),{timeout:10000}).toBeTruthy();
   if(filename)expect(filename).toMatch(/\.(webm|mp4)$/);else await expect(page.getByRole('alert')).toContainText('no video frames');
 });
 test('compact portrait and wide boards keep page and pen controls accessible',async({page})=>{
@@ -117,6 +117,7 @@ test('slide handles reorder persistently while the active slide stays selected',
   const from=await page.getByLabel('Reorder slide 1').boundingBox(),to=await page.locator('.kn-slide-row').last().boundingBox();
   await page.mouse.move(from!.x+from!.width/2,from!.y+from!.height/2);await page.mouse.down();await page.mouse.move(to!.x+60,to!.y+to!.height/2,{steps:12});await page.mouse.up();
   await expect.poll(()=>page.locator('.kn-slide-row').first().getAttribute('data-slide-id')).not.toBe(before[0]);
+  await expect(page.locator('.kn-slides-list')).toHaveAttribute('aria-busy','false');
   const after=await page.locator('.kn-slide-row').evaluateAll(rows=>rows.map(row=>(row as HTMLElement).dataset.slideId));
   await page.reload();await expect(page.locator('.kn-slide-row')).toHaveCount(3);
   expect(await page.locator('.kn-slide-row').evaluateAll(rows=>rows.map(row=>(row as HTMLElement).dataset.slideId))).toEqual(after);
@@ -133,6 +134,7 @@ test('shape palette creates editable filled shapes and keeps their styles after 
   await expect.poll(()=>page.evaluate(async()=>{const mod=await import('/src/lib/local-store.ts' as string);const res=await mod.localRequest('/api/pages/page-test');const {page:p}=await res.json();return p.objects.find((o:any)=>o.kind==='shape');})).toMatchObject({shape:'triangle',filled:true,fillColor:'#ff8800',dash:'dashed'});
   await page.getByRole('button',{name:'Select',exact:true}).click();await page.mouse.click(500,275);
   await page.getByText('Style',{exact:true}).click();await page.getByLabel('Selected shape fill color').fill('#00aacc');
+  await expect.poll(()=>page.evaluate(async()=>{const mod=await import('/src/lib/local-store.ts' as string);const {page:p}=await(await mod.localRequest('/api/pages/page-test')).json();return p.objects.find((o:any)=>o.kind==='shape').fillColor;})).toBe('#00aacc');
   await page.reload();
   expect(await page.evaluate(async()=>{const mod=await import('/src/lib/local-store.ts' as string);const res=await mod.localRequest('/api/pages/page-test');const {page:p}=await res.json();return p.objects.find((o:any)=>o.kind==='shape').fillColor;})).toBe('#00aacc');
 });

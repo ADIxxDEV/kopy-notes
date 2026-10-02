@@ -14,4 +14,3 @@ test('portrait/right import placement, lock, rotation and fit controls persist',
   await page.reload();await expect(page.getByRole('button',{name:'Previous page',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Next page',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Close slides',exact:true})).toBeVisible();
   const after=await read();expect(after.media[0]).toEqual(before.media[0]);await page.screenshot({path:'test-results/document-placement.png'});
 });
-

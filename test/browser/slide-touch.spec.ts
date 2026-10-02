@@ -23,6 +23,7 @@ test('native touch long press reorders slides and a normal tap still navigates',
   const after=await page.locator('.kn-slide-row').evaluateAll(rows=>rows.map(row=>(row as HTMLElement).dataset.slideId));
   const second=await page.locator('.kn-slide-preview').nth(1).boundingBox();
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:second!.x+40,y:second!.y+30,id:2}]});
+  await page.waitForTimeout(80);
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await expect(page.locator('.kn-slide-row.is-active')).toHaveAttribute('data-slide-id',after[1]!);
   await page.reload();await expect(page.locator('.kn-slide-row')).toHaveCount(3);
