@@ -65,6 +65,7 @@ export function SlidesPanel({pages,activePageId,onGo,onReorder,onClose,onAdd,onD
   const finish=(event:PointerEvent<HTMLElement>,cancel=false)=>{
     if(timer.current)clearTimeout(timer.current);const d=drag.current;if(!d||d.pointerId!==event.pointerId)return;d.cleanup?.();drag.current=null;setDragId(null);
     if(d.element.hasPointerCapture(d.pointerId))d.element.releasePointerCapture(d.pointerId);
+    if(event.pointerType==='touch'&&!d.active&&!d.scrolling&&!cancel){event.preventDefault();suppressClick.current=true;setTimeout(()=>{suppressClick.current=false;},100);onGo(pages.findIndex(page=>page.id===d.id));return;}
     if(d.active||d.scrolling){event.preventDefault();suppressClick.current=true;setTimeout(()=>{suppressClick.current=false;},100);if(d.active){if(cancel){const ids=pages.map(page=>page.id);orderRef.current=ids;setOrder(ids);}else void commit(orderRef.current);}}
   };
   return <aside className="kn-slides-panel pointer-events-auto" aria-label="Slides">
