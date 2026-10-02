@@ -1,0 +1,10 @@
+.direct-instrument .geometry-surface { overflow: visible; filter: none; }
+.direct-instrument .instrument-grip { pointer-events: all; touch-action: none; cursor: grab; outline: none; }
+.direct-instrument .instrument-hit { fill: transparent; stroke: none; }
+.direct-instrument .instrument-grip-disc { fill: var(--color-panel,#fff); stroke: var(--guide-ink,#153848); stroke-opacity: .6; stroke-width: 1; }
+.direct-instrument .instrument-grip path { fill: none; stroke: var(--guide-ink,#153848); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.direct-instrument .instrument-grip:hover .instrument-grip-disc,.direct-instrument .instrument-grip:focus-visible .instrument-grip-disc,.direct-instrument .instrument-grip.is-active .instrument-grip-disc { fill: color-mix(in srgb, var(--color-brand,#5b62e8) 25%, var(--color-panel,#fff)); stroke: var(--color-brand,#5b62e8); stroke-opacity: 1; stroke-width: 2; }
+.direct-instrument .instrument-grip.is-active { cursor: grabbing; }
+.direct-instrument .instrument-close { cursor: pointer; }
+.direct-instrument .instrument-measure { pointer-events: none; paint-order: stroke; stroke: var(--color-panel,#fff); stroke-width: 2px; stroke-linejoin: round; }
+.direct-instrument .instrument-arc-preview { fill: none; stroke: var(--color-brand,#5b62e8); stroke-width: 3; pointer-events: none; }

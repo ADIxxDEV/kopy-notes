@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+const lock=JSON.parse(fs.readFileSync(path.join(root,'package-lock.json'),'utf8'));
+const version=pkg.version;
+if(!/^\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?$/.test(version))throw new Error('Use a semantic version in package.json.');
+if(lock.version!==version||lock.packages[''].version!==version)throw new Error('Package and lockfile versions differ.');
+if(!fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8').includes(`## ${version} `))throw new Error('Add a changelog heading for the current version.');
+if(process.env.GITHUB_REF?.startsWith('refs/tags/')&&process.env.GITHUB_REF!==`refs/tags/v${version}`)throw new Error('The release tag must match package.json version.');
+console.log(`Version metadata verified: ${version}`);

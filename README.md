@@ -1,0 +1,64 @@
+<img src="public/logo.svg" alt="Kopy Notes" width="520" />
+
+# Kopy Notes
+
+**An open-source teaching whiteboard for browsers, Windows and Android smartboards.** Write, annotate documents, arrange slides and record lessons with an offline local library.
+
+[MIT license](LICENSE) · [Setup](docs/SETUP.md) · [Features](docs/FEATURE_MATRIX.md) · [Builds and releases](docs/RELEASE.md) · [Changelog](CHANGELOG.md)
+
+Version **0.2.0-dev.1 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+
+## Start teaching
+
+Use **Node.js 24** and npm:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open the displayed local URL, choose teaching defaults, and create a lesson. No account, subscription, paid API or IPEC service is required. Setup supports your own app name/icon, board pattern, background, default pen color, watermark, physical ruler calibration, backup folders and optional Ollama assistant.
+
+## Classroom tools
+
+- Pressure pen, highlighter, adjustable eraser, pulsing laser, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
+- Thirteen shapes; separate stroke/fill colors, thickness, solid/dashed/dotted lines, hatched/crosshatched fills and rounded rectangles.
+- Transparent ruler, set square, protractor and compass with attached move/rotate/stretch grips, edge tracing, angle adjustment and arc/circle sweeps.
+- Slide thumbnails, visible Previous/Next buttons, mouse/touch/keyboard reorder, duplicate/add/delete and durable page order.
+- Images, PDFs as slides or document objects, DOCX, editable basic PPTX and LibreOffice ODP slides. Landscape/portrait16:9,4:3 or custom import frames, nine anchors and independent margins. Lock, rotate, fit or align imported documents afterward.
+- Timers, calculator, function plots, subject diagrams, ideal buoyancy/displacement demonstration, camera snapshots, spotlight and magnifier.
+- Canvas recorder with optional microphone and pause/resume. Floating tools/other apps are excluded; encoded-video reliability still needs real-device verification.
+- Uncompressed editable .kopy documents, original attachments, legacy imports, autosave, three recovery generations and several synced backup folders.
+
+Complex Office master layouts, binary PPT, macros, charts, animations, OCR and interactive3D are not fully supported. Export complex presentations to PDF for faithful appearance. See the [feature matrix](docs/FEATURE_MATRIX.md).
+
+## Backup and integrations
+
+Connect a folder already synced by Google Drive, OneDrive, Dropbox or Nextcloud on supported desktop browsers. The provider app uploads it; Kopy does not claim direct OAuth or live collaborative editing. Canva/Drive/OneDrive links guide export/download and import. Optional AI contacts your Ollama server only when you press Send; lesson files are never uploaded automatically.
+
+Local storage belongs to this browser profile/origin. Clearing it removes the library. Keep external .kopy copies: [backups](docs/BACKUPS.md), [cloud folders](docs/CLOUD_BACKUPS.md), [file format](docs/KOPY_FORMAT.md).
+
+## Verify and build
+
+```sh
+npm test
+npm run build
+npm run check:privacy
+npm run check:release
+npx playwright install chromium
+npx playwright test
+```
+
+GitHub Actions validates the web and creates Windows installer and Android test APK artifacts. Security checks scan Git history with Gitleaks, check source/build privacy patterns and dependency advisories. Release tags must match the package version and changelog. Signed APK releases need stable Android keystore secrets; Windows installers are currently unsigned. Read [packaging](docs/PACKAGING.md) and [release setup](docs/RELEASE.md).
+
+Production dist runs on static HTTPS hosting and caches application code after first use. Camera/microphone require HTTPS or localhost. Development does not install the offline application cache.
+
+## Open source
+
+Original code and brand assets are MIT licensed. Fork, rename and modify the application. Runtime branding cannot change installed OS package identifiers; use build configuration for forks.
+
+- [Contributing](CONTRIBUTING.md), [security](SECURITY.md), [dependency notices](THIRD_PARTY.md)
+- [Customization](docs/CUSTOMIZATION.md), [brand assets](branding/README.md)
+- [Reference review](docs/NOTE3_REFERENCE.md), [roadmap](docs/ROADMAP.md)
+
+Maintained by [ADIxxDEV](https://github.com/ADIxxDEV) and contributors.

@@ -1,0 +1,34 @@
+name: Security and privacy
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '19 5 * * 1'
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install secret scanner
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz --output /tmp/gitleaks.tar.gz
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz' | sha256sum --check
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+      - name: Scan full Git history without printing secrets
+        run: /tmp/gitleaks git --redact=100 --no-banner .
+      - run: npm ci
+      - run: node scripts/check-release.mjs
+      - run: npm run build
+      - run: node scripts/check-privacy.mjs
+      - name: Check known dependency vulnerabilities
+        run: npm audit --audit-level=high

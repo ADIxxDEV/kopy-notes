@@ -1,0 +1,23 @@
+name: Bug report
+description: Report a reproducible classroom issue
+title: '[Bug]: '
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: What happened?
+      description: Include expected behavior and steps. Do not upload real student data, secrets or unredacted system paths.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 0.2.0-dev.1
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Platform and browser
+      placeholder: Windows11 / Edge or Android smartboard / APK

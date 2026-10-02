@@ -1,0 +1,23 @@
+.kn-shape-palette{position:absolute;bottom:3.8rem;left:50%;transform:translateX(-50%);width:min(360px,calc(100vw - 24px));max-height:calc(100dvh - 140px);overflow:auto;padding:14px;border:1px solid var(--color-line);border-radius:18px;background:var(--color-panel);color:var(--color-ink);box-shadow:0 14px 48px #0005;pointer-events:auto}
+.kn-shape-palette header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:14px}
+.kn-shape-palette header button{width:30px;height:30px;display:grid;place-items:center;border-radius:8px}
+.kn-shape-palette header button svg{width:18px;height:18px}
+.kn-shape-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.kn-shape-grid button{display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;min-height:61px;padding:7px 2px;border:1px solid var(--color-line);border-radius:10px;color:var(--color-ink);background:var(--color-panel-2)}
+.kn-shape-grid button svg{width:25px;height:25px;flex-shrink:0}
+.kn-shape-grid button span{font-size:10px;line-height:1.1;text-align:center}
+.kn-shape-grid button.is-active{background:var(--color-brand);color:#fff;border-color:var(--color-brand)}
+.kn-shape-grid button:hover{outline:2px solid var(--color-brand);outline-offset:-2px}
+.kn-shape-properties{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--color-line)}
+.kn-shape-properties label{display:flex;align-items:center;gap:7px;font-size:12px}
+.kn-shape-properties input[type=color]{width:30px;height:28px;border-radius:6px;background:transparent;border:1px solid var(--color-line);padding:2px}
+.kn-shape-properties input:disabled{opacity:.35}
+.kn-shape-properties input[type=checkbox]{accent-color:var(--color-brand)}
+.kn-shape-properties .kn-shape-width{grid-column:1/-1}
+.kn-shape-width input{flex:1;min-width:50px;accent-color:var(--color-brand)}
+.kn-shape-width output{min-width:30px;font-variant-numeric:tabular-nums}
+.kn-shape-properties select{padding:4px 8px;max-width:130px;border:1px solid var(--color-line);border-radius:7px;background:var(--color-panel-2);color:var(--color-ink)}
+.kn-shape-palette footer{font-size:11px;color:var(--color-muted);line-height:1.4;margin-top:12px}
+.kn-board .kn-shape-grid button{width:100%;height:auto;min-height:64px}
+.kn-board .kn-shape-palette header button{width:32px;height:32px}
+@media (max-height:560px){.kn-shape-grid{grid-template-columns:repeat(5,minmax(0,1fr))}.kn-shape-grid button{min-height:47px}.kn-shape-palette{padding:10px}}

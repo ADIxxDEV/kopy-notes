@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="104" viewBox="0 0 420 104">
+  <title>Kopy Notes — primary logo</title>
+  <desc>An original K monogram formed by a page and a pencil, beside a classic serif wordmark.</desc>
+  <g transform="translate(8 8) scale(.6875)">
+    <rect width="128" height="128" rx="28" fill="#183c36"/>
+    <path d="M36 22h44l18 18v60a6 6 0 0 1-6 6H36a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6Z" fill="#fff7e8"/>
+    <path d="M80 22v13a5 5 0 0 0 5 5h13Z" fill="#dcdac8"/>
+    <path d="M44 42h11v23l23-23h14L64 70l29 28H78L55 75v23H44Z" fill="#183c36"/>
+    <path d="m71 47 12-12 9 9-12 12Z" fill="#be8a37"/>
+    <path d="m69 49 2-2 9 9-2 2-12 3Z" fill="#183c36"/>
+    <path d="M41 112h46" stroke="#be8a37" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <text x="115" y="63" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="700" letter-spacing="-1.4" fill="#183c36">Kopy Notes</text>
+  <path d="M117 77h282" stroke="#be8a37" stroke-width="2"/>
+</svg>

@@ -1,0 +1,49 @@
+/* Independently drawn chrome following the supplied Note3 layout references. */
+@media(min-width:761px) and (max-width:1300px){.kn-board .board-toolbar{bottom:64px}.kn-board .treasure-panel{bottom:120px}}
+.selection-handle{position:fixed;width:16px;height:16px;border:2px solid white;background:var(--color-brand);border-radius:4px;z-index:29;box-shadow:0 1px 4px #0006}.resize-feedback{position:fixed;left:50%;top:155px;transform:translateX(-50%);background:var(--color-panel);padding:10px 14px;border-radius:10px;z-index:30;font-size:13px}
+:root { font-family: Arial, 'Noto Sans', sans-serif; color-scheme: dark; }
+body { margin:0; background:#131519; color:#f3f4f6; }
+.class-recorder { position:absolute;right:16px;top:76px;z-index:25;display:flex;align-items:center;gap:12px;background:#192125d9;color:#fff;padding:7px 12px;border-radius:7px;font-size:13px; }
+.class-recorder label{display:flex;align-items:center;gap:5px}.class-recorder button{padding:6px 10px;border:1px solid #677782;border-radius:5px}.class-recorder .record-active{background:#ad2837}.class-recorder p{position:absolute;right:0;top:48px;width:260px;background:#fff;color:#a51d2e;padding:12px;border-radius:6px}
+button,input,select { font:inherit; } button { touch-action:manipulation; }
+.kn-dialog[open] { display:grid;place-items:center; } .kn-dialog > div { color:var(--color-ink); }
+.kn-board { --color-panel:#eeeeec; --color-panel-2:#dfdfdc; --color-elevated:#d2d7d9; --color-line:#adb1b2; --color-line-2:#818b91; --color-ink:#172026; --color-muted:#4c5962; --color-faint:#60707b; --color-base-2:#f5f5f2;  color:#172026; }
+.kn-board .board-toolbar > div:last-child, .kn-board .page-toolbar > div, .kn-board .menu-dock > div { background:linear-gradient(#fafaf7,#d1d4d2); border:1px solid #838b8c; border-radius:12px 12px 0 0; box-shadow:0 0 7px #0006; padding:3px; }
+.kn-board .menu-dock > div { flex-direction:row; }
+.kn-board .menu-dock { position:absolute; left:0; bottom:0; z-index:30; }
+.kn-board .board-toolbar { position:absolute; bottom:0; left:50%; transform:translateX(-50%); z-index:30; }
+.kn-board .page-toolbar { position:absolute; bottom:0; right:0; z-index:30; }
+.kn-board .board-toolbar button { width:44px; height:44px; border-radius:6px; }
+.kn-board .treasure-panel { position:absolute; inset:0 auto 52px 0; width:244px; border:1px solid #353535; border-radius:0 0 8px 0; background:#171717; color:#f4f4f4; z-index:35; }
+.kn-board .treasure-panel > div:nth-child(2) button { color:#f2f2f2; background:linear-gradient(#5c789b,#c4d9ed); border:3px solid #e3e4e5; box-shadow:inset 0 0 0 2px #6b8fba; border-radius:6px; min-height:70px; padding:7px 2px; font-size:11px; line-height:1.25; }
+.kn-board .treasure-panel h2 { color:white; }
+.kn-board .treasure-panel .text-faint { color:#b8c1c9; }
+.kn-board .treasure-panel > div:first-child { background:linear-gradient(#303030,#090909); }
+.kn-board .board-header { position:absolute; top:12px; right:16px; left:auto; z-index:25; max-width:60%; border:0; background:#192125b3; color:white; border-radius:7px; }
+.kn-board .board-header input { color:white; max-width:200px; }
+.kn-board .board-header .text-muted,.kn-board .board-header .text-faint { color:#e2e7eb; }
+.board-meta {position:absolute;right:16px;top:12px;z-index:25;color:white;text-align:right;} .board-meta summary{padding:4px;cursor:pointer;font-size:16px;list-style:none;} .board-meta[open] .board-header{position:relative;top:auto;right:auto;max-width:min(750px,95vw);margin-top:6px;} .board-meta[open] summary{font-size:13px;} .kn-board .board-header input{width:160px;}
+.class-recorder {top:49px;} .board-meta[open] {z-index:26;}
+@media(max-width:1100px) { .kn-board .menu-dock button {width:36px;height:42px;} .kn-board .menu-dock button:nth-child(n+4){display:none;} .kn-board .board-toolbar button{width:39px;} }
+@media(max-width:760px) { .kn-board .board-toolbar {bottom:50px;} .kn-board .board-toolbar button{width:34px;height:42px;} .kn-board .board-toolbar > div:last-child {gap:0;} .kn-board .board-toolbar .mx-1{margin:0 2px;} .kn-board .treasure-panel {bottom:102px;width:min(244px,85vw);} .kn-board .board-header{max-width:95%;} }
+@media(prefers-reduced-motion:reduce) { .kn-pop,.kn-fade { animation:none!important; } * {scroll-behavior:auto!important;} }
+
+/* Teaching controls: writing below, navigation at the sides, capture above. */
+.kn-board .page-edge {position:fixed;top:45dvh;background:var(--color-panel);border:1px solid var(--color-line);box-shadow:0 3px 15px #0002;opacity:.85;}
+.kn-board .page-edge[aria-label="Previous page"]{left:12px}
+.kn-board .page-edge[aria-label="Next page"]{right:12px}
+.kn-board .page-edge:disabled{opacity:.25}
+.kn-board .page-toolbar>div{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.kn-board .treasure-panel>div:nth-child(2) button{background:color-mix(in srgb,var(--color-brand) 65%,#1b2837);border:1px solid #ffffff45;box-shadow:none;color:#fff}
+.geometry-overlay{position:fixed;inset:0;z-index:28;pointer-events:none}.geometry-surface{position:absolute;inset:0;pointer-events:none;background:transparent!important;filter:drop-shadow(0 0 1px #ffffffa0)}.geometry-controls{position:absolute;pointer-events:auto;display:flex;gap:3px;align-items:center;padding:4px;background:var(--color-panel);border:1px solid var(--color-line);border-radius:10px;box-shadow:0 2px 8px #0002}.geometry-controls button{min-height:38px;padding:5px 9px;border-radius:6px;font-size:13px}.geometry-controls button:hover{background:var(--color-elevated)}.geometry-options{position:absolute;top:52px;left:0;width:260px;max-height:210px;overflow:auto;padding:14px;background:var(--color-panel);border:1px solid var(--color-line);border-radius:12px;box-shadow:0 5px 20px #0003}.geometry-options label{display:grid;gap:4px;margin-bottom:10px;font-size:12px}.geometry-options p{font-size:11px;line-height:1.5}.geometry-options input{width:100%;accent-color:var(--color-brand)}
+.kn-board .class-recorder{top:12px;left:50%;right:auto;transform:translateX(-50%);background:var(--color-panel);color:var(--color-ink);border:1px solid var(--color-line);border-radius:16px;box-shadow:0 3px 16px #0002;gap:8px;white-space:nowrap;}
+.class-recorder button{min-height:38px;display:flex;gap:8px;align-items:center}.class-recorder .record-active{background:#9f2534;color:white}.record-dot{width:10px;height:10px;background:#d03948;border-radius:50%}.record-square{width:10px;height:10px;background:white;border-radius:2px}.record-time{font-variant-numeric:tabular-nums;}
+.kn-board svg{flex-shrink:0}.geometry-lab svg,.science-lab svg{overflow:hidden;border-radius:10px;background:#f5f9fc;color:#172b3a}
+.geometry-lab label,.science-lab label{display:grid;gap:6px;margin:12px 0;font-size:13px}.geometry-lab input,.science-lab input{width:100%;accent-color:var(--color-brand)}
+.lab-action{background:var(--color-brand);color:white;padding:10px 12px;border-radius:8px;font-size:13px;min-height:40px}.geometry-lab p,.science-lab p{font-size:12px;line-height:1.5;margin:10px 0;color:var(--color-muted)}
+.recovery-control{position:absolute;top:12px;left:12px;z-index:32;font-size:13px}.recovery-control>button{padding:10px 14px;background:var(--color-panel);border:1px solid var(--color-line);border-radius:12px;box-shadow:0 3px 15px #0002;}
+.recovery-panel{margin-top:8px;width:min(390px,calc(100vw - 24px));max-height:70dvh;overflow:auto;background:var(--color-panel);color:var(--color-ink);padding:18px;border-radius:14px;border:1px solid var(--color-line);box-shadow:0 12px 40px #0003}.recovery-panel h2{font-size:17px;font-weight:600}.recovery-panel p{font-size:12px;line-height:1.6;margin:10px 0}.recovery-panel button{padding:8px;border:1px solid var(--color-line);border-radius:8px;min-height:40px}.recovery-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;font-size:12px}
+@media(max-width:760px){.kn-board .class-recorder{top:58px;max-width:calc(100vw - 24px);gap:5px}.kn-board .page-edge{top:42dvh}.kn-board .treasure-panel{top:110px}.class-recorder button{padding:6px;}.kn-board .board-toolbar .kn-pop{max-width:calc(100vw - 20px)}}
+@media(min-width:761px) and (max-width:1300px){.kn-board .board-toolbar{bottom:64px}.kn-board .treasure-panel{bottom:120px}}
+
+.local-assistant-launch{position:absolute;top:64px;right:14px;z-index:26;padding:9px 13px;background:var(--color-panel);color:var(--color-ink);border:1px solid var(--color-line);border-radius:10px;font-size:12px}
