@@ -17,7 +17,7 @@ npm ci
 npm run dev
 ```
 
-Open the displayed local URL, choose teaching defaults, and create a lesson. No account, subscription, paid API or IPEC service is required. Setup supports your own app name/icon, board pattern, background, default pen color, watermark, physical ruler calibration, backup folders and optional Ollama assistant.
+Open the displayed local URL, choose teaching defaults, and create a lesson. No account, subscription, paid API or other service is required. Setup supports your own app name/icon, board pattern, background, default pen color, watermark, physical ruler calibration, backup folders and optional Ollama assistant.
 
 ## Classroom tools
 
