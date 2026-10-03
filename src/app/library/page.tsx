@@ -200,7 +200,9 @@ function NotebookCard({
   onOpen: () => void;
   onDelete: () => void;
 }) {
+  const [confirmDelete,setConfirmDelete]=useState(false);
   return (
+    <>
     <div className="group relative overflow-hidden rounded-2xl border border-line bg-panel transition hover:border-line-2">
       <button onClick={onOpen} className="kn-focus block w-full text-left">
         <div className="relative h-32 w-full" style={{ background: notebook.coverColor }}>
@@ -223,7 +225,7 @@ function NotebookCard({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          if (confirm(`Delete "${notebook.title}"? This cannot be undone.`)) onDelete();
+          setConfirmDelete(true);
         }}
         className="kn-focus absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg bg-black/40 text-white/80 opacity-0 backdrop-blur transition group-hover:opacity-100 hover:bg-brand-darker hover:text-white"
         aria-label="Delete"
@@ -231,6 +233,8 @@ function NotebookCard({
         <Icon name="trash" className="h-4 w-4" />
       </button>
     </div>
+    {confirmDelete&&<Modal title="Delete lesson" onClose={()=>setConfirmDelete(false)}><p className="text-sm">Delete ?{notebook.title}?? A recovery snapshot is saved before removal; keep an external backup for important lessons.</p><div className="mt-5 flex justify-end gap-2"><button className="rounded-lg border border-line px-4 py-2" onClick={()=>setConfirmDelete(false)}>Keep lesson</button><button className="rounded-lg bg-brand px-4 py-2 text-white" onClick={()=>{setConfirmDelete(false);onDelete();}}>Delete lesson</button></div></Modal>}
+    </>
   );
 }
 

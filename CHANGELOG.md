@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-dev.2 | 2026-10-03
+
+- Public development releases automatically include Android test APK, unsigned Windows installer, web ZIP and checksums.
+- Contributor profiles, screenshot previews and clearer download links in the README.
+- Interactive offline periodic table, custom board colors and saved board presets.
+- Visible Hand tool for panning into extra board space.
+- Import file selection first, consistent field spacing, immediate placement validation and themed controls/scrollbars.
+- Menus remain reachable on short screens; keyboard editing stays separate from board shortcuts.
+
+
+Validation: 28 data tests, 2 release metadata tests and 25 Edge browser checks passed. TypeScript, production build, privacy scan and version metadata checks passed. Native release builds are checked separately by GitHub Actions; physical smartboard validation remains pending.
+
 ## 0.2.0-dev.1 — 2026-10-02 — public development preview
 
 - Development release open to community contributions; native/device verification remains pending.

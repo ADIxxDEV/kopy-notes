@@ -990,16 +990,18 @@ export function useWhiteboard(options: {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === "Space") spaceHeld.current = true;
+      if ((e.target as HTMLElement)?.closest?.("input, textarea, select, [contenteditable=\"true\"], dialog[open]")) return;
+      if (e.code === "Space") { e.preventDefault(); spaceHeld.current = true; }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") spaceHeld.current = false;
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKeyUp);
+    const release=()=>{spaceHeld.current=false;};window.addEventListener("blur",release);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("keyup", onKeyUp);window.removeEventListener("blur",release);
     };
   }, []);
 

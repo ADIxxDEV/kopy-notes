@@ -110,15 +110,18 @@ export function FileMenu({
   return (
     <div
       ref={ref}
-      className="kn-pop absolute bottom-24 left-6 z-40 w-56 overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
+      aria-label="File menu"
+      style={{flexDirection:'column'}}
+      className="kn-pop absolute bottom-24 left-6 z-40 flex max-h-[calc(100dvh-104px)] w-56 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
     >
-      <div className="border-b border-line bg-panel-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
+      <div className="shrink-0 border-b border-line bg-panel-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
         {appName}
       </div>
-      <div className="p-1.5">
+      <div className="kn-scroll min-h-0 overflow-y-auto overscroll-contain p-1.5">
         {FILE_ITEMS.map((item) => (
           <button
             key={item.id}
+            style={{display:'flex',width:'100%',height:'auto',minHeight:40}}
             onClick={() => {
               onAction(item.id);
               onClose();

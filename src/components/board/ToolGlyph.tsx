@@ -14,6 +14,7 @@ export const TOOL_GLYPH_PATHS: Record<string, string> = {
   graph: "M5 3v25h24M3 17h26M16 3v25M5 23c4 0 6-15 10-15s6 15 14 15",
   solids: "M16 3 29 10v13l-13 7L3 23V10zM3 10l13 7 13-7M16 17v13",
   chemistry: "M12 3h8m-6 0v10L5 26q-1 3 3 3h16q4 0 3-3L18 13V3M10 20h12M12 24h1m5 1h1",
+  periodic: "M3 4h6v24H3zM9 16h14v12H9zM23 4h6v24h-6zM3 10h6m14 0h6M3 22h26M16 16v12",
   physics: "M3 16h7m12 0h7M16 5a11 11 0 1 0 0 22 11 11 0 1 0 0-22M9 9l14 14m0-14L9 23",
   camera: "M3 9h7l3-4h6l3 4h7v19H3zM11 18a5 5 0 1 0 10 0 5 5 0 1 0-10 0",
   curtain: "M3 4h26v23H3zM3 12h26M8 4v8m5-8v8m6-8v8m5-8v8M16 12v10m-3-3 3 3 3-3",

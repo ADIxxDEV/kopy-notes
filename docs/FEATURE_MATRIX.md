@@ -2,15 +2,15 @@
 
 Reference: supplied screenshots in `Downloads/Video/note3`, [official Note3 product](https://prestigio-solutions.com/product/note3-interactive-whiteboard-software), and [Note3 user guide v1.0.2](https://prod-cdn.prod.asbis.io/s3/cms/document/80/bc/80bcca968eba8ea466cacaa276a34a27/note3_user_guide.pdf). These describe the desired workflows, not permission to redistribute vendor assets. The proprietary app was not executed. Screenshots identify the reference layout; the experimental ZIP is not the UI specification.
 
-| Area | 0.2.0-dev.1 implementation | Remaining parity work |
+| Area | 0.2.0-dev.2 implementation | Remaining parity work |
 | --- | --- | --- |
-| Board | Green/dark/paper backgrounds, grid/dots/lines; flexible screen sizes | Subject-specific independent workspaces, background image gallery |
+| Board | Green/dark/paper backgrounds, grid/dots/lines; flexible screen sizes, visible Hand/panning, custom defaults and saved presets | Subject-specific independent workspaces, background image gallery |
 | Writing | Pressure-rendered pen, coalesced samples, highlighter, shape recognition, pen-only touch rejection, optional wide-contact eraser, fading laser | Hardware testing of pressure/palm signals, textured pens, multi-user writing, OCR |
 | Editing | Multi-object marquee/Shift selection, group move/resize, editable text, duplicate/delete/recolor | Persistent groups, locks, layers, hyperlinks, animation, drag-to-clone |
 | Geometry | Transparent instruments with attached move/rotate/resize handles; ruler/set-square tracing, adjustable protractor ray, compass arc/circle sweeps; screen-pixel scales and optional physical calibration | Calibration hardware validation and touch hardware validation |
 | Shapes | Thirteen figures, independent stroke/fill colors, thickness and line patterns, existing-shape styling | Vertex editing and editable angle annotations |
 | Mathematics | Safe function plots and insertable solid diagrams | Handwritten equations, editable 3D objects, 3D coordinates, formula typesetting |
-| Subjects | Diagram library and interactive ideal water displacement/buoyancy experiment with snapshots | Fluid dynamics, circuit simulation, periodic table, broader subject libraries |
+| Subjects | 118-element offline periodic table with search/details/card insertion, diagram library and interactive ideal water displacement/buoyancy experiment with snapshots | Fluid dynamics, circuit simulation, broader subject libraries |
 | Timing | Countdown, stopwatch and analog clock | Alarm actions, persistent countdown during closure, calendar |
 | Presentation | Spotlight, magnifier, curtain, present mode | Separate preparation/desktop modes, desktop annotation, region capture |
 | Recording | Top-center board recorder, optional microphone, pause/resume and elapsed time | Encoded-video hardware validation, disk streaming for long sessions, desktop/native capture |

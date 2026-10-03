@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/Icon";
 
 // A draggable floating panel used by the treasure-box tools (calculator, timer,
@@ -24,9 +24,31 @@ export function FloatingWindow({
   children: ReactNode;
   accent?: string;
 }) {
-  const actualWidth = Math.min(width, window.innerWidth - 16);
-  const [pos, setPos] = useState({ x: Math.max(4, Math.min(initialX, window.innerWidth - actualWidth - 8)), y: Math.max(4, Math.min(initialY, window.innerHeight - 240)) });
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({width:window.innerWidth,height:window.innerHeight});
+  const actualWidth = Math.min(width, viewport.width - 16);
+  const [pos, setPos] = useState({ x: Math.max(8, Math.min(initialX, window.innerWidth - actualWidth - 8)), y: Math.max(8, initialY) });
   const drag = useRef<{ dx: number; dy: number } | null>(null);
+
+  function constrain(position: {x:number;y:number}) {
+    const height = panelRef.current?.offsetHeight ?? 0;
+    return {x:Math.max(8,Math.min(position.x,window.innerWidth-actualWidth-8)),y:Math.max(8,Math.min(position.y,window.innerHeight-height-8))};
+  }
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const clamp = () => setPos(previous => {
+      const next = constrain(previous);
+      return next.x===previous.x && next.y===previous.y ? previous : next;
+    });
+    const resize = () => {setViewport({width:window.innerWidth,height:window.innerHeight});clamp();};
+    const observer = new ResizeObserver(clamp);
+    observer.observe(panel);
+    window.addEventListener('resize',resize);
+    clamp();
+    return () => {observer.disconnect();window.removeEventListener('resize',resize);};
+  }, [actualWidth]);
 
   function onHeaderPointerDown(e: React.PointerEvent) {
     if ((e.target as HTMLElement).closest('button')) return;
@@ -35,9 +57,7 @@ export function FloatingWindow({
   }
   function onHeaderPointerMove(e: React.PointerEvent) {
     if (!drag.current) return;
-    const x = Math.max(4, Math.min(window.innerWidth - actualWidth - 8, e.clientX - drag.current.dx));
-    const y = Math.max(4, Math.min(window.innerHeight - 60, e.clientY - drag.current.dy));
-    setPos({ x, y });
+    setPos(constrain({x:e.clientX-drag.current.dx,y:e.clientY-drag.current.dy}));
   }
   function onHeaderPointerUp() {
     drag.current = null;
@@ -45,8 +65,11 @@ export function FloatingWindow({
 
   return (
     <div
+      ref={panelRef}
+      role="region"
+      aria-label={title}
       className="kn-pop fixed z-50 overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
-      style={{ left: pos.x, top: pos.y, width: actualWidth, maxHeight: 'calc(100dvh - 110px)', overflowY: 'auto', boxShadow: accent ? `0 18px 50px -18px ${accent}` : undefined }}
+      style={{ left: pos.x, top: pos.y, width: actualWidth, maxHeight: 'calc(100dvh - 16px)', overflowY: 'auto', boxShadow: accent ? `0 18px 50px -18px ${accent}` : undefined }}
     >
       <div
         onPointerDown={onHeaderPointerDown}
@@ -54,7 +77,7 @@ export function FloatingWindow({
         onPointerUp={onHeaderPointerUp}
         onPointerCancel={onHeaderPointerUp}
         style={{touchAction:'none'}}
-        className="flex cursor-grab active:cursor-grabbing items-center justify-between gap-2 border-b border-line bg-panel-2 px-3 py-2"
+        className="sticky top-0 z-10 flex cursor-grab active:cursor-grabbing items-center justify-between gap-2 border-b border-line bg-panel-2 px-3 py-2"
       >
         <div className="flex items-center gap-2 text-sm font-semibold">
           {icon && <span className="text-base leading-none">{icon}</span>}

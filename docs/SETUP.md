@@ -23,3 +23,13 @@ Install Ollama and a model locally. Enable the assistant and enter the server UR
 ## GitHub artifacts
 
 Build and test creates web files, an unsigned Windows installer and debug APK. Security and privacy performs redacted history scanning, source/build checks and npm audit. Do not call unsigned/test artifacts production trusted. Stable signing secrets and release tags are described in RELEASE.md.
+
+## Board presets and navigation
+
+Choose a built-in board preset in Setup or Settings, adjust custom background/ink colors and pattern, then name and save your combination. Up to 12 personal presets are stored locally. Save Settings or press Start teaching to persist edits. New lessons use these defaults; existing pages keep their backgrounds.
+
+The Hand button pans the board with a mouse, finger or stylus. Choose Pen again to write in the newly visible area. Open Lesson details and press Reset board view to return to the original position; Fit content brings all objects into view. Holding Space temporarily pans with the mouse, while two-finger pan/pinch remains available.
+
+## Periodic table
+
+Open Tools ? Periodic table or Chemistry. All 118 identities are bundled for offline use. Search a name, symbol, atomic number or family; select an element to see details and insert its card on the board. Names and symbols follow [IUPAC's 2022 table](https://iupac.org/wp-content/uploads/2022/07/IUPAC_Periodic_Table-04May22_CRA.pdf). Family grouping is conventional and labelled accordingly; atomic masses are not included.

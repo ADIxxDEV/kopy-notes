@@ -4,9 +4,25 @@
 
 **An open-source teaching whiteboard for browsers, Windows and Android smartboards.** Write, annotate documents, arrange slides and record lessons with an offline local library.
 
-[MIT license](LICENSE) · [Setup](docs/SETUP.md) · [Features](docs/FEATURE_MATRIX.md) · [Builds and releases](docs/RELEASE.md) · [Changelog](CHANGELOG.md)
+[**Try the web preview**](https://kopy-notes.netlify.app) | [MIT license](LICENSE) · [Setup](docs/SETUP.md) · [Features](docs/FEATURE_MATRIX.md) · [Builds and releases](docs/RELEASE.md) · [Changelog](CHANGELOG.md)
 
-Version **0.2.0-dev.1 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+Version **0.2.0-dev.2 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+
+## Download the development version
+
+[**Download APK, Windows EXE and web ZIP**](https://github.com/ADIxxDEV/kopy-notes/releases). Version tags automatically publish development prereleases with checksums and source code. Development APKs use a test/debug signature; Windows installers are unsigned. Native builds pass CI, but real smartboard validation is still needed.
+
+## Screenshots
+
+Actual application screens with synthetic teaching examples:
+
+![Kopy Notes teaching board with shapes and tools](docs/screenshots/teaching-board.png)
+
+| Import a document | Explore the periodic table |
+| --- | --- |
+| ![Import settings and placement preview](docs/screenshots/import-panel.png) | ![Interactive periodic table](docs/screenshots/periodic-table.png) |
+
+![Board defaults and saved presets](docs/screenshots/board-presets.png)
 
 ## Start teaching
 
@@ -24,8 +40,11 @@ Open the displayed local URL, choose teaching defaults, and create a lesson. No 
 - Pressure pen, highlighter, adjustable eraser, pulsing laser, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
 - Thirteen shapes; separate stroke/fill colors, thickness, solid/dashed/dotted lines, hatched/crosshatched fills and rounded rectangles.
 - Transparent ruler, set square, protractor and compass with attached move/rotate/stretch grips, edge tracing, angle adjustment and arc/circle sweeps.
+- Hand tool for panning into extra board space; original-position reset, zoom and fit-to-content.
 - Slide thumbnails, visible Previous/Next buttons, mouse/touch/keyboard reorder, duplicate/add/delete and durable page order.
 - Images, PDFs as slides or document objects, DOCX, editable basic PPTX and LibreOffice ODP slides. Landscape/portrait16:9,4:3 or custom import frames, nine anchors and independent margins. Lock, rotate, fit or align imported documents afterward.
+- Named board presets, custom default background/ink colors, patterns and reusable saved combinations.
+- Searchable offline periodic table with all 118 elements, family colors, details and element-card insertion.
 - Timers, calculator, function plots, subject diagrams, ideal buoyancy/displacement demonstration, camera snapshots, spotlight and magnifier.
 - Canvas recorder with optional microphone and pause/resume. Floating tools/other apps are excluded; encoded-video reliability still needs real-device verification.
 - Uncompressed editable .kopy documents, original attachments, legacy imports, autosave, three recovery generations and several synced backup folders.
@@ -49,7 +68,7 @@ npx playwright install chromium
 npx playwright test
 ```
 
-GitHub Actions validates the web and creates Windows installer and Android test APK artifacts. Security checks scan Git history with Gitleaks, check source/build privacy patterns and dependency advisories. Release tags must match the package version and changelog. Signed APK releases need stable Android keystore secrets; Windows installers are currently unsigned. Read [packaging](docs/PACKAGING.md) and [release setup](docs/RELEASE.md).
+GitHub Actions validates the web and builds Windows installer and Android test APK artifacts. Matching development version tags automatically publish these under Releases alongside the web ZIP and checksums. Security checks scan Git history with Gitleaks, check source/build privacy patterns and dependency advisories. Release tags must match the package version and changelog. Stable signed APK builds need Android keystore secrets; development tags publish explicitly labelled debug APKs without secrets; Windows installers are currently unsigned. Read [packaging](docs/PACKAGING.md) and [release setup](docs/RELEASE.md).
 
 Production dist runs on static HTTPS hosting and caches application code after first use. Camera/microphone require HTTPS or localhost. Development does not install the offline application cache.
 
@@ -62,3 +81,15 @@ Original code and brand assets are MIT licensed. Fork, rename and modify the app
 - [Reference review](docs/NOTE3_REFERENCE.md), [roadmap](docs/ROADMAP.md)
 
 Maintained by [ADIxxDEV](https://github.com/ADIxxDEV) and contributors.
+
+## Contributors
+
+Thanks to everyone improving Kopy Notes. Public contributor profiles update automatically from GitHub commit contributions. Documentation, tests, accessibility, classroom feedback and code improvements are all welcome. Use [Issues](https://github.com/ADIxxDEV/kopy-notes/issues), [Discussions](https://github.com/ADIxxDEV/kopy-notes/discussions) or submit a pull request; see [Contributing](CONTRIBUTING.md).
+
+<!-- CONTRIBUTORS:START -->
+<p>
+<a href="https://github.com/ADIxxDEV"><img src="https://avatars.githubusercontent.com/u/128614541?s=80" width="64" height="64" alt="ADIxxDEV" title="ADIxxDEV" /></a>
+</p>
+
+[ADIxxDEV](https://github.com/ADIxxDEV)
+<!-- CONTRIBUTORS:END -->

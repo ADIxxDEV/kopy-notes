@@ -370,8 +370,13 @@ export default function BoardPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const typing =
-        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      const typing = !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void flushSave().catch(() => push("Autosave failed. Your edits are still in memory. Free storage and try again.", "error"));
+        return;
+      }
+      if (e.defaultPrevented || typing || document.querySelector('dialog[open]')) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         if (e.shiftKey) wb.redo();
@@ -383,12 +388,6 @@ export default function BoardPage() {
         wb.redo();
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        void flushSave().catch(() => push("Autosave failed. Your edits are still in memory. Free storage and try again.", "error"));
-        return;
-      }
-      if (typing) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         if (wb.selection) {
           e.preventDefault();
@@ -493,6 +492,7 @@ export default function BoardPage() {
             </button>
             <button
               onClick={wb.resetView}
+              aria-label="Reset board view" title="Return to the original board position"
               className="kn-focus rounded-lg px-2 py-1 text-xs tabular-nums text-muted hover:bg-elevated hover:text-ink"
             >
               {Math.round(wb.view.scale * 100)}%

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScienceLab } from './ScienceLab';
 import { FloatingWindow } from './FloatingWindow';
+import { PeriodicTable } from './PeriodicTable';
 
-export type SubjectTool = 'graph'|'solids'|'chemistry'|'physics'|'camera'|'curtain';
+export type SubjectTool = 'graph'|'solids'|'chemistry'|'periodic'|'physics'|'camera'|'curtain';
 const drawings: Record<string,string> = {
   Cube:'<path d="M70 120 170 70 270 120 170 175zM70 120v130l100 50 100-50V120M170 175v125"/>',
   Cylinder:'<ellipse cx="170" cy="100" rx="90" ry="30"/><path d="M80 100v170c0 40 180 40 180 0V100"/><path stroke-dasharray="6 5" d="M80 270c0-40 180-40 180 0"/>',
@@ -39,9 +40,10 @@ export function SubjectTools({tool,onClose,onInsert}:{tool:SubjectTool;onClose:(
       for(let px=0;px<640;px++){const y=200-Number(compiled.evaluate({x:(px-320)/32}))*32;if(!Number.isFinite(y)||Math.abs(y)>10000){previous=undefined;continue;}if(previous===undefined||Math.abs(y-previous)>100)ctx.moveTo(px,y);else ctx.lineTo(px,y);previous=y;}ctx.stroke();ctx.fillStyle='#172026';ctx.font='16px Arial';ctx.fillText(`y = ${formula}`,15,25);
     }catch(e){setError(e instanceof Error?e.message:'Could not draw this function');}finally{setBusy(false);}
   }
-  const title={graph:'Function drawing',solids:'3D shapes',chemistry:'Chemistry',physics:'Physics',camera:'Document camera',curtain:'Screen curtain'}[tool];
+  const title={graph:'Function drawing',solids:'3D shapes',chemistry:'Chemistry',periodic:'Periodic table',physics:'Physics',camera:'Document camera',curtain:'Screen curtain'}[tool];
   const labels=tool==='solids'?['Cube','Cylinder','Cone','Sphere','Pyramid']:tool==='chemistry'?['Beaker','Flask','Test tube','Funnel','Atom']:['Resistor','Battery','Lamp','Lens'];
-  if(tool==='chemistry'||tool==='physics')return <FloatingWindow title="Science lab · buoyancy" initialX={260} initialY={60} width={390} onClose={onClose}><ScienceLab onInsert={onInsert}/><details><summary>Diagram library</summary><div className="grid grid-cols-3 gap-2">{labels.map(label=><button key={label} className="lab-action" onClick={()=>void onInsert('data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="360" viewBox="0 0 340 360"><g fill="none" stroke="#142b39" stroke-width="4">${drawings[label]}</g></svg>`),340,360)}>{label}</button>)}</div></details></FloatingWindow>;
+  if(tool==='periodic')return <FloatingWindow title="Chemistry · periodic table" initialX={120} initialY={45} width={1050} onClose={onClose}><PeriodicTable onInsert={onInsert}/></FloatingWindow>;
+  if(tool==='chemistry'||tool==='physics')return <FloatingWindow title={tool==='chemistry'?'Chemistry · periodic table':'Science lab · buoyancy'} initialX={tool==='chemistry'?120:260} initialY={45} width={tool==='chemistry'?1050:390} onClose={onClose}>{tool==='chemistry'?<PeriodicTable onInsert={onInsert}/>:<ScienceLab onInsert={onInsert}/>}<details><summary>Diagram library</summary><div className="grid grid-cols-3 gap-2">{labels.map(label=><button key={label} className="lab-action" onClick={()=>void onInsert('data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="360" viewBox="0 0 340 360"><g fill="none" stroke="#142b39" stroke-width="4">${drawings[label]}</g></svg>`),340,360)}>{label}</button>)}</div></details></FloatingWindow>;
   if(tool==='curtain')return <Curtain onClose={onClose}/>;
   return <FloatingWindow title={title} initialX={260} initialY={70} width={tool==='graph'?520:380} onClose={onClose}>
     {tool==='graph'?<><form onSubmit={e=>{e.preventDefault();void plot();}} className="flex gap-2"><input aria-label="Function of x" value={formula} onChange={e=>setFormula(e.target.value)} className="kn-focus min-w-0 flex-1 rounded border border-line p-2"/><button disabled={busy} className="kn-focus rounded bg-brand px-3 text-white">Plot</button></form><canvas ref={canvas} width={640} height={400} className="my-3 w-full bg-white"/><button onClick={()=>canvas.current&&void onInsert(canvas.current.toDataURL(),640,400)} className="kn-focus rounded bg-brand px-4 py-2 text-white">Insert on board</button></>:

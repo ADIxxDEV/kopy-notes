@@ -40,7 +40,7 @@ export function ImportPanel({
   const [framePreset,setFramePreset]=useState('16:9');
   const [previewSize,setPreviewSize]=useState({width:600,height:900});
   useEffect(()=>{let cancelled=false;const file=picked.find(p=>p.kind==='image')?.file;setPreviewSize({width:600,height:900});if(file)void imageSize(file).then(d=>{if(!cancelled)setPreviewSize({width:d.w,height:d.h});}).catch(()=>{});return()=>{cancelled=true;};},[picked]);
-  let placementPreview:ReturnType<typeof placeImportedMedia>|undefined;try{placementPreview=placeImportedMedia(previewSize,layout,{x:layout.frameWidth/2,y:layout.frameHeight/2});}catch{/* Validation appears when importing. */}
+  let placementError='';let placementPreview:ReturnType<typeof placeImportedMedia>|undefined;try{placementPreview=placeImportedMedia(previewSize,layout,{x:layout.frameWidth/2,y:layout.frameHeight/2});}catch(error){placementError=error instanceof Error?error.message:'Check the frame and margins.';}
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
 
@@ -162,22 +162,8 @@ export function ImportPanel({
       title="Import to board"
       icon={<Icon name="import" className="h-5 w-5 text-brand-light" />}
       onClose={onClose}
+      width={620}
     >
-      <label className="mb-4 block text-sm">PDF import mode<select aria-label="PDF import mode" value={pdfMode} onChange={e=>setPdfMode(e.target.value)} className="ml-2 rounded border border-line p-2"><option value="pages">One board page per PDF page</option><option value="object">PDF object on current page</option></select></label>
-      <fieldset disabled={busy} className="mb-4 rounded-xl border border-line p-4"><legend className="px-2 text-sm font-semibold">Placement before import</legend>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <label>Size<select aria-label="Import size" value={layout.sizing} onChange={e=>setLayout(v=>({...v,sizing:e.target.value as ImportLayout['sizing']}))} className="mt-1 block w-full rounded border border-line p-2"><option value="fit">Fit frame, preserve proportions</option><option value="original">Original size</option></select></label>
-          <label>Frame<select aria-label="Import frame" value={framePreset} onChange={e=>{setFramePreset(e.target.value);if(e.target.value!=='custom')setLayout(v=>({...v,...orientImportFrame(e.target.value==='16:9'?1280:1024,e.target.value==='16:9'?720:768,v.frameWidth>=v.frameHeight?'landscape':'portrait')}));}} className="mt-1 block w-full rounded border border-line p-2"><option value="16:9">Widescreen 16:9 / 9:16</option><option value="4:3">Classic 4:3 / 3:4</option><option value="custom">Custom frame</option></select></label>
-          <label className="col-span-2">Page orientation<select aria-label="Import page orientation" value={layout.frameWidth>=layout.frameHeight?'landscape':'portrait'} onChange={e=>setLayout(v=>({...v,...orientImportFrame(v.frameWidth,v.frameHeight,e.target.value as 'portrait'|'landscape')}))} className="ml-2 rounded border border-line p-2"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select><span className="ml-2 text-xs text-muted">{layout.frameWidth} × {layout.frameHeight} px</span></label>
-          {framePreset==='custom'&&<><label>Width (px)<input aria-label="Import frame width" type="number" min="200" max="16000" value={layout.frameWidth} onChange={e=>setLayout(v=>({...v,frameWidth:Number(e.target.value)}))} className="mt-1 w-full rounded border border-line p-2"/></label><label>Height (px)<input aria-label="Import frame height" type="number" min="200" max="16000" value={layout.frameHeight} onChange={e=>setLayout(v=>({...v,frameHeight:Number(e.target.value)}))} className="mt-1 w-full rounded border border-line p-2"/></label></>}
-          <label className="col-span-2">Alignment<select aria-label="Import alignment" value={layout.alignment} onChange={e=>setLayout(v=>({...v,alignment:e.target.value as ImportLayout['alignment']}))} className="ml-2 rounded border border-line p-2">{(['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'] as const).map(anchor=><option key={anchor} value={anchor}>{anchor==='center'?'Centered':anchor.replaceAll('-',' ').replace(/^\w/,c=>c.toUpperCase())}</option>)}</select></label>
-        </div>
-        <p className="mb-2 mt-3 text-xs font-medium">Margins (mm)</p><div className="grid grid-cols-4 gap-2">{(['top','right','bottom','left'] as const).map(edge=><label key={edge} className="text-xs capitalize">{edge}<input aria-label={`Import ${edge} margin`} type="number" min="0" max="1000" step="1" value={layout.margins[edge]} onChange={e=>setLayout(v=>({...v,margins:{...v.margins,[edge]:Number(e.target.value)}}))} className="mt-1 w-full rounded border border-line p-2"/></label>)}</div>
-        <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" aria-label="Lock imported document" checked={layout.locked??false} onChange={e=>setLayout(v=>({...v,locked:e.target.checked}))}/>Fix document in place</label><p className="mt-1 text-xs text-muted">Prevents accidental dragging and resizing while writing. Select the document and unlock it to reposition.</p>
-        {placementPreview&&<figure className="mt-3"><svg aria-label="Import placement preview" viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`} className="mx-auto max-h-36 w-full rounded border border-line" style={{aspectRatio:`${layout.frameWidth}/${layout.frameHeight}`,background:'var(--color-elevated)'}}><rect x={placementPreview.x} y={placementPreview.y} width={placementPreview.width} height={placementPreview.height} fill="var(--color-brand)" fillOpacity=".25" stroke="var(--color-brand)" strokeWidth={Math.max(layout.frameWidth,layout.frameHeight)/150}/></svg><figcaption className="mt-1 text-center text-xs text-muted">{picked.some(p=>p.kind==='image')?'Image proportions preview':'Placement preview · portrait document example'}</figcaption></figure>}
-        <p className="mt-3 text-xs leading-relaxed text-muted">Fit keeps the entire file visible without stretching. Page orientation changes the frame, not the document’s original orientation. Original size uses image pixels, PDF dimensions at 96 dpi, or the DOCX rendering size. Margins use 96 dpi for digital layout; they do not measure your physical board. Multiple files share this placement.</p>
-      </fieldset>
-      <ImportSources/>
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -189,6 +175,7 @@ export function ImportPanel({
           setDragging(false);
           addFiles(e.dataTransfer.files);
         }}
+        role="button" tabIndex={0} aria-label="Choose import files" onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();inputRef.current?.click();}}}
         className={`mb-4 grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-8 text-center transition ${
           dragging ? "border-brand bg-brand/10" : "border-line hover:border-line-2"
         }`}
@@ -237,6 +224,22 @@ export function ImportPanel({
         </div>
       )}
 
+      <label className="mb-4 block text-sm">PDF import mode<select aria-label="PDF import mode" value={pdfMode} onChange={e=>setPdfMode(e.target.value)} className="mt-1 block w-full rounded border border-line p-2"><option value="pages">One board page per PDF page</option><option value="object">PDF object on current page</option></select></label>
+      {placementError&&<p role="alert" className="mb-3 rounded-lg border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-200">{placementError}</p>}
+      <fieldset disabled={busy} className="mb-4 rounded-xl border border-line p-4"><legend className="px-2 text-sm font-semibold">Placement before import</legend>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <label>Size<select aria-label="Import size" value={layout.sizing} onChange={e=>setLayout(v=>({...v,sizing:e.target.value as ImportLayout['sizing']}))} className="mt-1 block w-full rounded border border-line p-2"><option value="fit">Fit frame, preserve proportions</option><option value="original">Original size</option></select></label>
+          <label>Frame<select aria-label="Import frame" value={framePreset} onChange={e=>{setFramePreset(e.target.value);if(e.target.value!=='custom')setLayout(v=>({...v,...orientImportFrame(e.target.value==='16:9'?1280:1024,e.target.value==='16:9'?720:768,v.frameWidth>=v.frameHeight?'landscape':'portrait')}));}} className="mt-1 block w-full rounded border border-line p-2"><option value="16:9">Widescreen 16:9 / 9:16</option><option value="4:3">Classic 4:3 / 3:4</option><option value="custom">Custom frame</option></select></label>
+          <label >Page orientation<select aria-label="Import page orientation" value={layout.frameWidth>=layout.frameHeight?'landscape':'portrait'} onChange={e=>setLayout(v=>({...v,...orientImportFrame(v.frameWidth,v.frameHeight,e.target.value as 'portrait'|'landscape')}))} className="mt-1 block w-full rounded border border-line p-2"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select><span className="mt-1 block text-xs text-muted">{layout.frameWidth} × {layout.frameHeight} px</span></label>
+          {framePreset==='custom'&&<><label>Width (px)<input aria-label="Import frame width" type="number" min="200" max="16000" value={layout.frameWidth} onChange={e=>setLayout(v=>({...v,frameWidth:Number(e.target.value)}))} className="mt-1 w-full rounded border border-line p-2"/></label><label>Height (px)<input aria-label="Import frame height" type="number" min="200" max="16000" value={layout.frameHeight} onChange={e=>setLayout(v=>({...v,frameHeight:Number(e.target.value)}))} className="mt-1 w-full rounded border border-line p-2"/></label></>}
+          <label >Alignment<select aria-label="Import alignment" value={layout.alignment} onChange={e=>setLayout(v=>({...v,alignment:e.target.value as ImportLayout['alignment']}))} className="mt-1 block w-full rounded border border-line p-2">{(['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'] as const).map(anchor=><option key={anchor} value={anchor}>{anchor==='center'?'Centered':anchor.replaceAll('-',' ').replace(/^\w/,c=>c.toUpperCase())}</option>)}</select></label>
+        </div>
+        <p className="mb-2 mt-3 text-xs font-medium">Margins (mm)</p><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{(['top','right','bottom','left'] as const).map(edge=><label key={edge} className="text-xs capitalize">{edge}<input aria-label={`Import ${edge} margin`} type="number" min="0" max="1000" step="1" value={layout.margins[edge]} onChange={e=>setLayout(v=>({...v,margins:{...v.margins,[edge]:Number(e.target.value)}}))} className="mt-1 w-full rounded border border-line p-2"/></label>)}</div>
+        <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" aria-label="Lock imported document" checked={layout.locked??false} onChange={e=>setLayout(v=>({...v,locked:e.target.checked}))}/>Fix document in place</label><p className="mt-1 text-xs text-muted">Prevents accidental dragging and resizing while writing. Select the document and unlock it to reposition.</p>
+        {placementPreview&&<figure className="mt-3"><svg aria-label="Import placement preview" viewBox={`0 0 ${layout.frameWidth} ${layout.frameHeight}`} className="mx-auto max-h-36 w-full rounded border border-line" style={{aspectRatio:`${layout.frameWidth}/${layout.frameHeight}`,background:'var(--color-elevated)'}}><rect x={layout.margins.left*96/25.4} y={layout.margins.top*96/25.4} width={layout.frameWidth-(layout.margins.left+layout.margins.right)*96/25.4} height={layout.frameHeight-(layout.margins.top+layout.margins.bottom)*96/25.4} fill="none" stroke="var(--color-muted)" strokeDasharray="8 6" strokeWidth="2"/><rect x={placementPreview.x} y={placementPreview.y} width={placementPreview.width} height={placementPreview.height} fill="var(--color-brand)" fillOpacity=".25" stroke="var(--color-brand)" strokeWidth={Math.max(layout.frameWidth,layout.frameHeight)/150}/></svg><figcaption className="mt-1 text-center text-xs text-muted">{picked.some(p=>p.kind==='image')?'Image proportions preview':'Placement preview · portrait document example'}</figcaption></figure>}
+        <p className="mt-3 text-xs leading-relaxed text-muted">Fit keeps the entire file visible without stretching. Page orientation changes the frame, not the document’s original orientation. Original size uses image pixels, PDF dimensions at 96 dpi, or the DOCX rendering size. Margins use 96 dpi for digital layout; they do not measure your physical board. Multiple files share this placement.</p>
+      </fieldset>
+      <ImportSources/>
       <div className="flex justify-end gap-2">
         <button
           onClick={onClose}
@@ -246,7 +249,7 @@ export function ImportPanel({
         </button>
         <button
           onClick={uploadAll}
-          disabled={busy || picked.filter((p) => p.kind !== "unsupported").length === 0}
+          disabled={busy || !!placementError || picked.filter((p) => p.kind !== "unsupported").length === 0}
           className="kn-focus rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
         >
           {busy ? "Importing…" : "Import"}

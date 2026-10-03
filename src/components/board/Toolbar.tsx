@@ -12,6 +12,7 @@ import {
 
 const MAIN_TOOLS: { id: ActiveTool; icon: IconName; label: string }[] = [
   { id: "select", icon: "select", label: "Select" },
+  { id: "pan", icon: "hand", label: "Hand" },
   { id: "pen", icon: "pen", label: "Pen" },
   { id: "highlighter", icon: "highlighter", label: "Highlighter" },
   { id: "eraser", icon: "eraser", label: "Eraser" },
@@ -67,9 +68,10 @@ export function Toolbar({
 
   return (
     <>
+      {tool==='pan'&&<p role="status" className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-panel px-3 py-2 text-xs text-muted">Hand: drag to move ? use Reset board view to return</p>}
       {/* Pen / eraser options floating above the toolbar */}
       {isPen && optionsOpen && (
-        <div className="kn-pop absolute bottom-24 left-1/2 w-[330px] -translate-x-1/2 rounded-2xl border border-line bg-panel/95 p-3 shadow-2xl backdrop-blur">
+        <div aria-label="Pen options" className="kn-pop kn-scroll absolute bottom-24 left-1/2 max-h-[calc(100dvh-168px)] w-[330px] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-panel/95 p-3 shadow-2xl backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wide text-muted">
               {tool === "highlighter" ? "Highlighter" : "Pen"}
@@ -126,7 +128,7 @@ export function Toolbar({
       )}
 
       {tool === "eraser" && optionsOpen && (
-        <div className="kn-pop absolute bottom-24 left-1/2 w-[260px] -translate-x-1/2 rounded-2xl border border-line bg-panel/95 p-3 shadow-2xl backdrop-blur">
+        <div aria-label="Eraser options" className="kn-pop kn-scroll absolute bottom-24 left-1/2 max-h-[calc(100dvh-168px)] w-[260px] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-panel/95 p-3 shadow-2xl backdrop-blur">
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Eraser size</div>
           <div className="flex items-center gap-3">
             <input
@@ -143,7 +145,7 @@ export function Toolbar({
         </div>
       )}
 
-      <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-2xl backdrop-blur">
+      <div className="pointer-events-auto flex max-w-[calc(100vw-24px)] flex-wrap items-center justify-center gap-1 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-2xl backdrop-blur">
         {MAIN_TOOLS.map((t) => (
           <ToolButton
             key={t.id}
