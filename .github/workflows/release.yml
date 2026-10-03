@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci && npm test && npm run build
+      - run: npm ci && npm audit --audit-level=high && npm test && npm run build
       - run: node scripts/check-privacy.mjs
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test

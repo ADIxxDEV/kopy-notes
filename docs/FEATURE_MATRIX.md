@@ -2,7 +2,7 @@
 
 Reference: supplied screenshots in `Downloads/Video/note3`, [official Note3 product](https://prestigio-solutions.com/product/note3-interactive-whiteboard-software), and [Note3 user guide v1.0.2](https://prod-cdn.prod.asbis.io/s3/cms/document/80/bc/80bcca968eba8ea466cacaa276a34a27/note3_user_guide.pdf). These describe the desired workflows, not permission to redistribute vendor assets. The proprietary app was not executed. Screenshots identify the reference layout; the experimental ZIP is not the UI specification.
 
-| Area | 0.2.0-dev.2 implementation | Remaining parity work |
+| Area | 0.2.0-dev.3 implementation | Remaining parity work |
 | --- | --- | --- |
 | Board | Green/dark/paper backgrounds, grid/dots/lines; flexible screen sizes, visible Hand/panning, custom defaults and saved presets | Subject-specific independent workspaces, background image gallery |
 | Writing | Pressure-rendered pen, coalesced samples, highlighter, shape recognition, pen-only touch rejection, optional wide-contact eraser, fading laser | Hardware testing of pressure/palm signals, textured pens, multi-user writing, OCR |

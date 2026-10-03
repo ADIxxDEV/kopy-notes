@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0-dev.3 | 2026-10-03
+
+- Pin compatible packaging tools that remove vulnerable HTTP-cache and legacy UUID dependency chains.
+- Require the dependency audit to pass inside the release workflow before downloads can be published.
+- Supersedes dev.2; teaching features are unchanged.
+
+Validation: npm audit reports zero vulnerabilities. The release workflow rebuilds Android, Windows and web packages with the corrected lockfile.
+
+
 ## 0.2.0-dev.2 | 2026-10-03
 
 - Public development releases automatically include Android test APK, unsigned Windows installer, web ZIP and checksums.

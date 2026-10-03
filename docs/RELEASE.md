@@ -30,3 +30,7 @@ Update version metadata and changelog, commit, and push a matching stable tag. M
 Download SHA256SUMS.txt, the APK, EXE and web ZIP into one directory. On systems with sha256sum, run `sha256sum -c SHA256SUMS.txt`. In PowerShell, use `Get-FileHash -Algorithm SHA256 <filename>` and compare each result with SHA256SUMS.txt. Checksums detect changed bytes; they do not imply a signed or store approved application.
 
 CI also supplies unsigned Windows and debug Android test artifacts under Actions. Runtime icon/name customization cannot rename the OS launcher/package after installation; customize build assets and IDs for a fork.
+
+## Packaging dependency pins
+
+Use Node 24 as in the workflows. The scoped app-builder-lib override selects @electron/get 5.1.0, whose native fetch downloader removes the affected HTTP-cache dependency chain. Capacitor CLI 8.4.3 remains on the compatible 8.x line and avoids the legacy UUID chain; Android core stays 8.5.2. Review these pins when upgrading, run npm audit, and verify fresh native builds. The release web job must pass the high-severity audit before publishing.
