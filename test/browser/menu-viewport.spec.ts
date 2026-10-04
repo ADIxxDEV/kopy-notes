@@ -57,6 +57,10 @@ test('floating tools preserve normal position and remain contained after drag an
   await board(page);await page.getByRole('button',{name:'Treasure box',exact:true}).click();
   await page.getByRole('button',{name:'Calculator',exact:true}).click();
   const calculator=page.getByRole('region',{name:'Calculator',exact:true});await contained(calculator,page);
+  await expect(calculator).toHaveAttribute('data-window-mode','docked');
+  await expect.poll(async()=>{const r=(await calculator.boundingBox())!,width=page.viewportSize()!.width;return Math.min(Math.abs(r.x),Math.abs(width-r.x-r.width));}).toBeLessThan(1);
+  await calculator.getByRole('button',{name:'Float Calculator',exact:true}).click();
+  await expect(calculator).toHaveAttribute('data-window-mode','floating');
   await expect.poll(async()=>(await calculator.boundingBox())?.y).toBe(90);
   const heading=calculator.locator(':scope > div').first();const box=(await heading.boundingBox())!;
   await page.mouse.move(box.x+70,box.y+15);await page.mouse.down();await page.mouse.move(1200,710,{steps:10});await page.mouse.up();await contained(calculator,page);

@@ -116,4 +116,5 @@ button,input,select { font:inherit; } button { touch-action:manipulation; }
 
 .kn-anchored-popover>.kn-tool-options,.kn-anchored-popover>.kn-shape-palette{position:relative!important;inset:auto!important;transform:none!important;translate:none!important;margin:0!important;max-height:calc(100dvh - 24px)!important;max-width:calc(100vw - 24px)!important;overflow-y:auto}
 .kn-board .board-meta{top:env(safe-area-inset-top,0px);right:calc(52px + env(safe-area-inset-right,0px))}
+.kn-board .teaching-controls{z-index:80}
 @media(max-width:1500px){.kn-board .kn-slides-panel{left:auto;right:env(safe-area-inset-right,0px);top:64px;bottom:128px}.kn-board .board-toolbar .kn-main-tools{max-height:calc(100dvh - 240px)}.kn-page-navigation .kn-page-side{top:auto;bottom:calc(64px + env(safe-area-inset-bottom,0px));min-height:48px}}

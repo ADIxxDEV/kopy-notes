@@ -3,7 +3,7 @@ import {test,expect,type Page} from '@playwright/test';
 async function containedAboveTools(page:Page){
   await expect.poll(()=>page.getByRole('region',{name:'Edit selection',exact:true}).evaluate(panel=>{
     const bounds=panel.getBoundingClientRect();
-    const bottom=Math.min(innerHeight,...Array.from(document.querySelectorAll('.board-toolbar,.page-toolbar,.menu-dock')).map(toolbar=>toolbar.getBoundingClientRect()).filter(rect=>rect.width&&rect.height).map(rect=>rect.top));
+    const bottom=Math.min(innerHeight,...Array.from(document.querySelectorAll('.board-toolbar,.page-toolbar,.menu-dock')).map(toolbar=>toolbar.getBoundingClientRect()).filter(rect=>rect.width&&rect.height&&rect.width>=rect.height).map(rect=>rect.top));
     return bounds.left>=0&&bounds.top>=0&&bounds.right<=innerWidth+.5&&bounds.bottom<=bottom;
   })).toBe(true);
 }

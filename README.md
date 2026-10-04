@@ -6,7 +6,7 @@
 
 [**Try the web preview**](https://kopy-notes.netlify.app) | [MIT license](LICENSE) · [Setup](docs/SETUP.md) · [Features](docs/FEATURE_MATRIX.md) · [Builds and releases](docs/RELEASE.md) · [Changelog](CHANGELOG.md)
 
-Version **0.2.0-dev.3 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+Version **0.2.0-dev.4 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
 
 ## Download the development version
 
@@ -37,15 +37,16 @@ Open the displayed local URL, choose teaching defaults, and create a lesson. No 
 
 ## Classroom tools
 
-- Pressure pen, highlighter, adjustable eraser, pulsing laser, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
+- Normal, paint and crayon pens, highlighter, partial/whole-object erasing, blinking laser, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
 - Thirteen shapes; separate stroke/fill colors, thickness, solid/dashed/dotted lines, hatched/crosshatched fills and rounded rectangles.
 - Transparent ruler, set square, protractor and compass with attached move/rotate/stretch grips, edge tracing, angle adjustment and arc/circle sweeps.
 - Hand tool for panning into extra board space; original-position reset, zoom and fit-to-content.
 - Slide thumbnails, visible Previous/Next buttons, mouse/touch/keyboard reorder, duplicate/add/delete and durable page order.
 - Images, PDFs as slides or document objects, DOCX, editable basic PPTX and LibreOffice ODP slides. Landscape/portrait16:9,4:3 or custom import frames, nine anchors and independent margins. Lock, rotate, fit or align imported documents afterward.
+- Edge-docked controls with optional floating mode, individually movable buttons/panels, named layouts and import/export: [control layouts](docs/CONTROL_LAYOUTS.md).
 - Named board presets, custom default background/ink colors, patterns and reusable saved combinations.
 - Searchable offline periodic table with all 118 elements, family colors, details and element-card insertion.
-- Timers, calculator, function plots, subject diagrams, ideal buoyancy/displacement demonstration, camera snapshots, spotlight and magnifier.
+- Scientific calculator with DEG/RAD, graph presets and configurable ranges, timers, subject diagrams, ideal buoyancy/displacement demonstration, camera snapshots, spotlight and magnifier.
 - Canvas recorder with optional microphone and pause/resume. Floating tools/other apps are excluded; encoded-video reliability still needs real-device verification.
 - Uncompressed editable .kopy documents, original attachments, legacy imports, autosave, three recovery generations and several synced backup folders.
 
