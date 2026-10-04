@@ -7,6 +7,7 @@ export type StrokeObject = {
   id: string;
   kind: "stroke";
   tool: PenTool;
+  brush?: 'normal' | 'paint' | 'crayon';
   color: string;
   width: number;
   points: Point[];

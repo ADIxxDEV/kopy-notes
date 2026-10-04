@@ -9,6 +9,8 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  device-checks:
+    uses: ./.github/workflows/device-checks.yml
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -120,7 +122,7 @@ jobs:
           path: release/*.apk
           if-no-files-found: error
   publish:
-    needs: [prepare, web, windows, android]
+    needs: [prepare, web, windows, android, device-checks]
     runs-on: ubuntu-latest
     permissions:
       contents: write

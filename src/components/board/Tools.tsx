@@ -2,131 +2,64 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { compileTeachingExpression, formatMathNumber, type AngleMode } from '@/lib/teaching-math';
+import './TeachingMath.css';
 
 // ------------------------------- Calculator --------------------------------
 
 export function Calculator() {
-  const [display, setDisplay] = useState("0");
-  const [prev, setPrev] = useState<number | null>(null);
-  const [op, setOp] = useState<string | null>(null);
-  const [fresh, setFresh] = useState(true);
-
-  function input(digit: string) {
-    setDisplay((d) => {
-      if (fresh) return digit;
-      return d === "0" ? digit : d + digit;
-    });
-    setFresh(false);
+  const [expression,setExpression]=useState('');
+  const [scientific,setScientific]=useState(false),[angleMode,setAngleMode]=useState<AngleMode>('DEG');
+  const [answer,setAnswer]=useState(0),[complete,setComplete]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const [history,setHistory]=useState<{expression:string;result:string;angleMode:AngleMode}[]>([]);
+  const input=useRef<HTMLInputElement>(null);
+  function insert(value:string,operator=false) {
+    const field=input.current;
+    const base=complete&&!operator?'':expression;
+    const start=complete?base.length:(field?.selectionStart??base.length),end=complete?base.length:(field?.selectionEnd??base.length);
+    const next=base.slice(0,start)+value+base.slice(end);
+    if(next.length>240)return;
+    setExpression(next);setComplete(false);setError('');
+    requestAnimationFrame(()=>{field?.focus();field?.setSelectionRange(start+value.length,start+value.length);});
   }
-  function dot() {
-    setDisplay((d) => (d.includes(".") ? d : d + "."));
-    setFresh(false);
+  function functionKey(name:string) {
+    if(complete){setExpression(`${name}(${expression})`);setComplete(false);setError('');input.current?.focus();}
+    else insert(`${name}(`);
   }
-  function compute(a: number, b: number, operator: string): number {
-    switch (operator) {
-      case "+":
-        return a + b;
-      case "-":
-        return a - b;
-      case "×":
-        return a * b;
-      case "÷":
-        return b === 0 ? NaN : a / b;
-      default:
-        return b;
-    }
+  async function equals() {
+    if(busy)return;setBusy(true);setError('');
+    const submitted=expression;
+    try {
+      const evaluate=await compileTeachingExpression(submitted,{angleMode,answer});
+      const result=evaluate(),formatted=formatMathNumber(result);
+      setAnswer(result);setExpression(formatted);setComplete(true);
+      setHistory(previous=>[{expression:submitted,result:formatted,angleMode},...previous].slice(0,6));
+      requestAnimationFrame(()=>{input.current?.focus();input.current?.select();});
+    }catch(failure){setError(failure instanceof Error?failure.message:'Could not calculate this expression.');}
+    finally{setBusy(false);}
   }
-  function choose(operator: string) {
-    const cur = parseFloat(display);
-    if (prev != null && op && !fresh) {
-      const result = compute(prev, cur, op);
-      setPrev(result);
-      setDisplay(String(Number(result.toFixed(8))));
-    } else {
-      setPrev(cur);
-    }
-    setOp(operator);
-    setFresh(true);
-  }
-  function equals() {
-    if (prev == null || !op) return;
-    const result = compute(prev, parseFloat(display), op);
-    setDisplay(Number.isFinite(result) ? String(Number(result.toFixed(8))) : "Error");
-    setPrev(null);
-    setOp(null);
-    setFresh(true);
-  }
-  function clear() {
-    setDisplay("0");
-    setPrev(null);
-    setOp(null);
-    setFresh(true);
-  }
-
-  const keys = ["7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "-", "0", ".", "=", "+"];
-
-  return (
-    <div className="w-[236px]">
-      <div className="mb-2 truncate rounded-lg bg-base-2 px-3 py-3 text-right text-2xl font-semibold tabular-nums">
-        {display}
-      </div>
-      <div className="grid grid-cols-4 gap-1.5">
-        <button
-          onClick={clear}
-          className="kn-focus col-span-2 rounded-lg bg-brand-dark py-2.5 text-sm font-semibold text-white hover:bg-brand"
-        >
-          C
-        </button>
-        <button
-          onClick={() => choose("÷")}
-          className="kn-focus rounded-lg bg-elevated py-2.5 text-sm hover:bg-line"
-        >
-          ÷
-        </button>
-        <button
-          onClick={() => choose("×")}
-          className="kn-focus rounded-lg bg-elevated py-2.5 text-sm hover:bg-line"
-        >
-          ×
-        </button>
-        {keys.map((k) =>
-          k === "=" ? (
-            <button
-              key={k}
-              onClick={equals}
-              className="kn-focus rounded-lg bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-dark"
-            >
-              =
-            </button>
-          ) : ["+", "-", "×", "÷"].includes(k) ? (
-            <button
-              key={k}
-              onClick={() => choose(k)}
-              className="kn-focus rounded-lg bg-elevated py-2.5 text-sm hover:bg-line"
-            >
-              {k}
-            </button>
-          ) : k === "." ? (
-            <button
-              key={k}
-              onClick={dot}
-              className="kn-focus rounded-lg bg-panel-2 py-2.5 text-sm hover:bg-elevated"
-            >
-              .
-            </button>
-          ) : (
-            <button
-              key={k}
-              onClick={() => input(k)}
-              className="kn-focus rounded-lg bg-panel-2 py-2.5 text-sm font-medium hover:bg-elevated"
-            >
-              {k}
-            </button>
-          ),
-        )}
-      </div>
+  function clear(){setExpression('');setComplete(false);setError('');input.current?.focus();}
+  function backspace(){const field=input.current;const start=field?.selectionStart??expression.length,end=field?.selectionEnd??expression.length;setExpression(expression.slice(0,start===end?Math.max(0,start-1):start)+expression.slice(end));setComplete(false);setError('');requestAnimationFrame(()=>{field?.focus();const caret=start===end?Math.max(0,start-1):start;field?.setSelectionRange(caret,caret);});}
+  return <section className="teaching-calculator" aria-label="Teaching calculator" onKeyDown={event=>{
+    event.stopPropagation();
+    if(event.target!==input.current)return;
+    if(event.key==='Enter'||event.key==='='){event.preventDefault();void equals();}
+    else if(event.key==='Escape'){event.preventDefault();clear();}
+    else if(complete&&['+','-','*','/','^'].includes(event.key)){event.preventDefault();insert(event.key,true);}
+  }}>
+    <div className="math-mode-switch" aria-label="Calculator mode"><button className="kn-focus" aria-pressed={!scientific} onClick={()=>setScientific(false)}>Basic</button><button className="kn-focus" aria-pressed={scientific} onClick={()=>setScientific(true)}>Scientific</button></div>
+    {scientific&&<div className="math-mode-switch" aria-label="Angle unit"><button className="kn-focus" aria-pressed={angleMode==='DEG'} onClick={()=>setAngleMode('DEG')}>DEG</button><button className="kn-focus" aria-pressed={angleMode==='RAD'} onClick={()=>setAngleMode('RAD')}>RAD</button></div>}
+    <label className="calculator-expression">Expression<input ref={input} aria-label="Calculator expression" className="kn-focus" autoComplete="off" spellCheck={false} maxLength={240} value={expression} placeholder="0" onChange={event=>{setExpression(event.target.value);setComplete(false);setError('');}}/></label>
+    <output className="calculator-answer" aria-live="polite">{complete?`Result: ${expression}`:`Ans: ${formatMathNumber(answer)}`}</output>
+    {error&&<p role="alert" className="teaching-math-error">{error}</p>}
+    {scientific&&<div className="calculator-scientific-keys">{['sin','cos','tan','sqrt','asin','acos','atan','abs','log','ln','exp','factorial'].map(name=><button key={name} className="kn-focus" onClick={()=>functionKey(name)}>{name==='factorial'?'n!':name}</button>)}{[['π','pi'],['e','e'],['x²','^2'],['xʸ','^']].map(([label,value])=><button key={label} className="kn-focus" onClick={()=>insert(value,value.startsWith('^'))}>{label}</button>)}</div>}
+    <div className="calculator-keypad"><button className="kn-focus" onClick={clear}>C</button><button className="kn-focus" aria-label="Calculator backspace" onClick={backspace}>⌫</button><button className="kn-focus" onClick={()=>insert('(')}>(</button><button className="kn-focus" onClick={()=>insert(')',true)}>)</button>
+      {['7','8','9','÷','4','5','6','×','1','2','3','-','0','.','=','+'].map(key=><button key={key} disabled={key==='='&&busy} className={`kn-focus ${key==='='?'calculator-equals':''}`} aria-label={key==='='?'Calculate':key} onClick={()=>key==='='?void equals():insert(key==='×'?'*':key==='÷'?'/':key,['+','-','×','÷'].includes(key))}>{key==='='&&busy?'…':key}</button>)}
+      <button className="kn-focus" onClick={()=>insert('ans')}>Ans</button><button className="kn-focus" title="Divide the preceding value by 100" onClick={()=>insert('/100',true)}>%</button><button className="kn-focus calculator-sign" onClick={()=>{setExpression(expression?`-(${expression})`:'-');setComplete(false);setError('');input.current?.focus();}}>±</button>
     </div>
-  );
+    {scientific&&<p className="teaching-math-hint">Trig uses {angleMode==='DEG'?'degrees':'radians'}. log = base 10; ln = natural log. Close parentheses before =.</p>}
+    {history.length>0&&<details className="calculator-history"><summary>History</summary><ol>{history.map((entry,index)=><li key={index}><button className="kn-focus" onClick={()=>{setExpression(entry.expression);setAngleMode(entry.angleMode);setComplete(false);setError('');input.current?.focus();}}><span>{entry.expression} = <strong>{entry.result}</strong></span><small>{entry.angleMode}</small></button></li>)}</ol><button className="kn-focus" onClick={()=>setHistory([])}>Clear history</button></details>}
+  </section>;
 }
 
 // -------------------------------- Timer ------------------------------------

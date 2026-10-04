@@ -10,7 +10,7 @@ import Board from '@/app/board/[id]/page';
 import '@/app/globals.css';
 import '@/app/reference-ui.css';
 if (import.meta.env.PROD && /^https?:$/.test(location.protocol) && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => { void navigator.serviceWorker.register('./sw.js').catch(error => console.warn('Offline cache could not initialize', error)); });
+  window.addEventListener('load', () => { void navigator.serviceWorker.register('./sw.js').catch(error => import.meta.env.DEV && console.warn('Offline cache could not initialize', error)); });
 }
 function App() {
   const location = useLocation();

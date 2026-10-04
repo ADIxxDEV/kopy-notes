@@ -30,6 +30,7 @@ export type ActiveTool =
   | "text";
 
 export type Pen = {
+  brush?: 'normal' | 'paint' | 'crayon';
   color: string;
   size: number;
   opacity: number;
@@ -43,6 +44,7 @@ export type Pen = {
   pressure?: boolean;
   touchMode?: "draw" | "reject" | "palm-erase" | "pan";
   gestureMode?: "pan-zoom" | "pan" | "off";
+  eraserMode?: "object" | "ink";
 };
 
 export const PEN_TOOLS: ActiveTool[] = ["pen", "highlighter", "marker"];

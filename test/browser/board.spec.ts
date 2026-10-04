@@ -26,6 +26,7 @@ test('drawings survive page changes and refresh; tools stay on the board',async(
 });
 test('recording saves video or reports unavailable capture without an empty download',async({page})=>{
   await board(page);await page.getByLabel('Lesson details').click();let filename='';page.on('download',download=>{filename=download.suggestedFilename();});
+  await page.getByRole('button',{name:'Teaching controls',exact:true}).click();await page.getByLabel('Show recording controls').check();await page.getByRole('button',{name:'Done',exact:true}).click();
   await page.getByRole('button',{name:'Record class',exact:true}).click();await expect(page.getByRole('button',{name:'Stop recording',exact:true})).toBeVisible();await page.waitForTimeout(1200);await page.getByRole('button',{name:'Stop recording',exact:true}).click();
   await expect.poll(async()=>filename||(await page.getByRole('alert').allTextContents()).join(' '),{timeout:10000}).toBeTruthy();
   if(filename)expect(filename).toMatch(/\.(webm|mp4)$/);else await expect(page.getByRole('alert')).toContainText('no video frames');
@@ -37,6 +38,7 @@ test('compact portrait and wide boards keep page and pen controls accessible',as
 test('geometry, science, pressure controls and backup recovery work together',async({page})=>{
   await board(page);await page.getByLabel('Lesson details').click();
   await page.getByRole('button',{name:'Pen',exact:true}).click();
+  await page.getByText('Writing & touch',{exact:true}).click();
   await expect(page.getByLabel('Pen pressure')).toBeChecked();
   await page.getByLabel('Touch behavior').selectOption('reject');
   await page.getByRole('button',{name:'Pen',exact:true}).click();
@@ -57,6 +59,7 @@ test('geometry, science, pressure controls and backup recovery work together',as
   await page.getByRole('button',{name:'Treasure box',exact:true}).click();
   const previous=await page.getByRole('button',{name:'Previous page',exact:true}).boundingBox();
   expect(previous?.x).toBeGreaterThan(0);expect(previous?.y).toBeGreaterThan(500);
+  await page.getByRole('button',{name:'Teaching controls',exact:true}).click();await page.getByLabel('Show backup controls').check();await page.getByRole('button',{name:'Done',exact:true}).click();
   await page.getByRole('button',{name:'Backups',exact:true}).click();
   await page.getByRole('button',{name:'Back up now',exact:true}).click();
   await expect(page.getByRole('button',{name:'Restore as copy',exact:true}).first()).toBeVisible();

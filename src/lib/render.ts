@@ -47,6 +47,29 @@ export function drawStroke(ctx: CanvasRenderingContext2D, stroke: StrokeObject) 
   ctx.strokeStyle = stroke.color;
   ctx.lineWidth = stroke.width;
 
+  if(stroke.tool==='pen'&&(stroke.brush==='paint'||stroke.brush==='crayon')){
+    // Deterministic bristles: redraws and exports keep the same texture.
+    const crayon=stroke.brush==='crayon',count=crayon?7:5;
+    for(let strand=0;strand<count;strand++){
+      ctx.globalAlpha=inheritedAlpha*(crayon?.28:.34);
+      ctx.lineWidth=Math.max(.35,stroke.width/(crayon?9:4));
+      if(crayon)ctx.setLineDash([Math.max(.6,stroke.width*.22),Math.max(.4,stroke.width*.14)]);
+      ctx.lineDashOffset=strand*.73;
+      ctx.beginPath();
+      for(let i=0;i<pts.length;i++){
+        const p=pts[i],previous=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+1)];
+        const angle=Math.atan2(next.y-previous.y,next.x-previous.x)+Math.PI/2;
+        const pressure=p.p===undefined?1:.2+.8*p.p;
+        const offset=(strand/(count-1)-.5)*stroke.width*.8*pressure;
+        const x=p.x+Math.cos(angle)*offset,y=p.y+Math.sin(angle)*offset;
+        if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+        if(pts.length===1){ctx.fillStyle=stroke.color;ctx.fillRect(x,y,Math.max(.5,stroke.width/5),Math.max(.5,stroke.width/5));}
+      }
+      ctx.stroke();
+    }
+    ctx.restore();return;
+  }
+
   if (stroke.tool === "pen" && pts.some(p => p.p !== undefined)) {
     ctx.fillStyle = stroke.color;
     for (let i = 0; i < pts.length; i++) {

@@ -36,7 +36,7 @@ export function TreasureBox({
       </div>
 
       <div className="kn-scroll flex-1 overflow-y-auto p-3">
-        <div className="mb-3 grid grid-cols-3 gap-2">{([['graph','Function'],['solids','3D shapes'],['chemistry','Chemistry'],['periodic','Periodic table'],['physics','Physics'],['camera','Camera'],['curtain','Curtain']] as [SubjectTool,string][]).map(([tool,label])=><button key={tool} onClick={()=>onSubjectTool(tool)} className="kn-focus p-2 text-xs"><span className="mx-auto mb-2 block w-fit"><ToolGlyph id={tool}/></span>{label}</button>)}</div>
+        <div className="mb-3 grid grid-cols-3 gap-2">{([['graph','Graphs'],['handwriting','Handwriting'],['solids','3D shapes'],['chemistry','Chemistry'],['periodic','Periodic table'],['physics','Physics'],['camera','Camera'],['curtain','Curtain'],['classroom','Picker & dice']] as [SubjectTool,string][]).map(([tool,label])=><button key={tool} onClick={()=>onSubjectTool(tool)} className="kn-focus p-2 text-xs"><span className="mx-auto mb-2 block w-fit"><ToolGlyph id={tool}/></span>{label}</button>)}</div>
         {groups.map((group) => (
           <div key={group} className="mb-4">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">

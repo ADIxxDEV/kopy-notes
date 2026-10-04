@@ -24,3 +24,16 @@ test('Office XML external entities are rejected before creating slides',async({p
   const result=await page.evaluate(async(encoded)=>{const{localRequest}=await import('/src/lib/local-store.ts' as string),{importOfficeSlides}=await import('/src/lib/office-slides.ts' as string);const{notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:'{"title":"Rejected Office"}'})).json();let error='';try{await importOfficeSlides(notebook.id,new File([Uint8Array.from(atob(encoded),c=>c.charCodeAt(0))],'bad.odp'));}catch(cause){error=String(cause);}return{error,...await(await localRequest(`/api/notebooks/${notebook.id}`)).json()};},await archive.generateAsync({type:'base64'}));
   expect(result.error).toContain('Unsupported or oversized Office XML');expect(result.pages).toHaveLength(1);expect(result.pages[0].objects).toHaveLength(0);
 });
+
+test('flattened slides contain one saved image and no editable text objects',async({page})=>{
+  const archive=new JSZip();archive.file('content.xml','<office:document-content xmlns:office="urn:office" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:text="urn:text" xmlns:svg="urn:svg"><draw:page><draw:frame svg:x="1cm" svg:y="1cm" svg:width="10cm" svg:height="3cm"><text:p>Flatten me</text:p></draw:frame></draw:page></office:document-content>');
+  await page.goto('/');
+  const result=await page.evaluate(async(encoded)=>{
+    const {localRequest,database}=await import('/src/lib/local-store.ts' as string),{importOfficeSlides}=await import('/src/lib/office-slides.ts' as string);
+    const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Flat slides'})})).json();
+    await importOfficeSlides(notebook.id,new File([Uint8Array.from(atob(encoded),c=>c.charCodeAt(0))],'slides.odp'),true,undefined,'flattened');
+    const {pages}=await(await localRequest(`/api/notebooks/${notebook.id}`)).json();const db=await database();const asset=await db.get('assets',pages[0].media[0].assetId);db.close();
+    return {objects:pages[0].objects,media:pages[0].media,size:asset.blob.size,type:asset.blob.type};
+  },await archive.generateAsync({type:'base64'}));
+  expect(result.objects).toHaveLength(0);expect(result.media).toHaveLength(1);expect(result.type).toBe('image/png');expect(result.size).toBeGreaterThan(100);
+});

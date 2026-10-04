@@ -71,8 +71,15 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
             result = json({pages:ordered});
           }
         } else if (parts[3] === 'pages' && method === 'POST') {
-          const page: Page = {id:crypto.randomUUID(),notebookId:id,position:(pages.at(-1)?.position ?? -1)+1,background:color(body.background,'#83d131'),pattern:patterns.includes(String(body.pattern))?String(body.pattern):'none',objects:[],media:[],createdAt:now,updatedAt:now};
-          await tx.objectStore('pages').add(page); await tx.objectStore('notebooks').put({...notebook,pageCount:pages.length+1,updatedAt:now}); result=json({page},201);
+          const after=body.afterPageId;
+          const insertion=after===undefined?pages.length:pages.findIndex(page=>page.id===after)+1;
+          if(after!==undefined&&(typeof after!=='string'||insertion===0))result=json({error:'The current slide does not belong to this lesson'},400);
+          else {
+            const page: Page = {id:crypto.randomUUID(),notebookId:id,position:insertion,background:color(body.background,'#83d131'),pattern:patterns.includes(String(body.pattern))?String(body.pattern):'none',objects:[],media:[],createdAt:now,updatedAt:now};
+            const ordered=[...pages];ordered.splice(insertion,0,page);
+            for(let position=0;position<ordered.length;position++){ordered[position]={...ordered[position],position};await tx.objectStore('pages').put(ordered[position]);}
+            await tx.objectStore('notebooks').put({...notebook,pageCount:ordered.length,updatedAt:now});result=json({page,pages:ordered},201);
+          }
         } else if (method === 'PUT') {
           const updated={...notebook,title:text(body.title,notebook.title),subject:text(body.subject,notebook.subject,60),coverColor:color(body.coverColor,notebook.coverColor),updatedAt:now};
           await tx.objectStore('notebooks').put(updated); result=json({notebook:updated});

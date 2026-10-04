@@ -50,7 +50,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date(data.profile.updatedAt),
       });
     } catch (error) {
-      console.error("Failed to load profile", error);
+      import.meta.env.DEV && console.error("Failed to load profile", error);
       // Keep defaults so the UI never crashes on a transient failure.
     } finally {
       setLoading(false);
@@ -102,7 +102,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           updatedAt: new Date(data.profile.updatedAt),
         });
       } catch (error) {
-        console.error("Failed to update profile", error);
+        import.meta.env.DEV && console.error("Failed to update profile", error);
         // Revert optimistic change by reloading authoritative state.
         await reload();
         throw new Error("Settings could not be saved. Check available local storage.");

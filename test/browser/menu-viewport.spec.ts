@@ -40,13 +40,14 @@ test('field undo and select keys leave board ink and active tool intact',async({
   await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeEnabled();
   await page.getByLabel('Lesson details').click();
   await page.getByRole('button',{name:'Pen',exact:true}).click();
+  await page.getByText('Writing & touch',{exact:true}).click();
   const touch=page.getByLabel('Touch behavior');await touch.focus();await touch.press('e');
   await expect(page.getByRole('button',{name:'Pen',exact:true})).toHaveAttribute('aria-pressed','true');
   await page.getByRole('button',{name:'Import file',exact:true}).click();
   const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Close',exact:true}).focus();await page.keyboard.press('Control+z');
   await dialog.getByRole('button',{name:'Close',exact:true}).click();
   await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeEnabled();
-  await page.getByRole('button',{name:'Pen',exact:true}).click();
+  if(await page.getByLabel('Pen options').count())await page.getByRole('button',{name:'Pen',exact:true}).click();
   await expect(page.getByLabel('Pen options')).toHaveCount(0);
   await page.locator('canvas').first().click({position:{x:700,y:400}});
   await page.keyboard.press('Control+z');await expect(page.getByRole('button',{name:'Redo',exact:true})).toBeEnabled();

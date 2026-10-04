@@ -13,7 +13,7 @@ function path(base:string,target:string){const parts=base.split('/');parts.pop()
 function unit(value:string){const match=/^(-?[\d.]+)(cm|mm|in|pt|px)?$/.exec(value);if(!match||!Number.isFinite(Number(match[1])))return 0;const factor={cm:96/2.54,mm:96/25.4,in:96,pt:96/72,px:1}[match[2]||'px']!;return Number(match[1])*factor;}
 type Slide={objects:BoardObject[];media:MediaItem[];width:number;height:number;background:string};
 const imageTypes:Record<string,string>={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'};
-export async function importOfficeSlides(notebookId:string,file:File,replaceEmptyFirst=false,placement?:{layout:ImportLayout;center:{x:number;y:number}}):Promise<{count:number;warnings:string[]}>{
+export async function importOfficeSlides(notebookId:string,file:File,replaceEmptyFirst=false,placement?:{layout:ImportLayout;center:{x:number;y:number}},mode:'editable'|'flattened'='editable'):Promise<{count:number;warnings:string[]}>{
   if(file.size>25*1024*1024)throw new Error('Choose a presentation under 25 MB.');
   const extension=file.name.split('.').pop()?.toLowerCase();if(extension!=='pptx'&&extension!=='odp')throw new Error('Use PPTX or LibreOffice ODP. Export old PPT presentations to PDF.');
   const zip=await JSZip.loadAsync(await file.arrayBuffer());
@@ -52,6 +52,29 @@ export async function importOfficeSlides(notebookId:string,file:File,replaceEmpt
   }
   if(slides.some(slide=>slide.objects.length+slide.media.length>10000))throw new Error('A slide has too many objects.');
   if(slides.some(slide=>![slide.width,slide.height].every(value=>Number.isFinite(value)&&value>=1&&value<=16000)||slide.objects.some(object=>object.kind==='text'&&object.text.length>100000)))throw new Error('The presentation has unsupported dimensions or excessive text.');
+  if(mode==='flattened'){
+    const {drawObject}=await import('./render');
+    await document.fonts?.ready;
+    const flattened=[] as typeof assets;
+    for(const slide of slides){
+      const canvas=document.createElement('canvas'),scale=Math.min(2,2400/Math.max(slide.width,slide.height),Math.sqrt(4_000_000/(slide.width*slide.height)));
+      canvas.width=Math.max(1,Math.round(slide.width*scale));canvas.height=Math.max(1,Math.round(slide.height*scale));
+      const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Could not render slide.');
+      try{
+        ctx.scale(scale,scale);ctx.fillStyle=slide.background;ctx.fillRect(0,0,slide.width,slide.height);
+        for(const item of slide.media){
+          const asset=assets.find(a=>a.id===item.assetId);if(!asset)throw new Error('Slide image missing.');
+          const url=URL.createObjectURL(asset.blob);
+          try{const img=new Image();img.src=url;await img.decode();ctx.save();ctx.translate(item.x+item.width/2,item.y+item.height/2);ctx.rotate(item.rotation);ctx.drawImage(img,-item.width/2,-item.height/2,item.width,item.height);ctx.restore();}finally{URL.revokeObjectURL(url);}
+        }
+        for(const object of slide.objects)drawObject(ctx,object);
+        const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not flatten slide.')),'image/png'));
+        const id=uid();flattened.push({id,notebookId,name:`slide-${flattened.length+1}.png`,mimeType:'image/png',blob});
+        slide.objects=[];slide.media=[{id:uid(),kind:'image',assetId:id,x:0,y:0,width:slide.width,height:slide.height,rotation:0,pageNumber:1}];
+      }finally{canvas.width=0;canvas.height=0;}
+    }
+    assets.splice(0,assets.length,...flattened);
+  }
   const now=new Date();const converted=slides.map(slide=>{
     const box=placement?placeImportedMedia(slide,placement.layout,placement.center):{x:0,y:0,width:slide.width,height:slide.height,frame:{x:0,y:0,width:slide.width,height:slide.height}},scale=box.width/slide.width;
     const objects=slide.objects.map(object=>object.kind==='text'?{...object,x:box.x+object.x*scale,y:box.y+object.y*scale,fontSize:object.fontSize*scale}:object.kind==='shape'?{...object,x:box.x+object.x*scale,y:box.y+object.y*scale,w:object.w*scale,h:object.h*scale,width:object.width*scale}:object);

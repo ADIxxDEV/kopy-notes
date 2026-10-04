@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0-dev.4 | 2026-10-04
+
+- Tablet touch cancellation fixes, responsive controls, fullscreen with an iOS focus-view fallback.
+- Drag individual controls and panels, resize or hide them, save named layouts and import/export presets.
+- Normal, paint and crayon brushes; blinking laser; compact pen settings and contextual selection controls.
+- Editable or flattened PPTX/ODP import, simpler import settings and complete lesson PDF export.
+- Scientific calculator, graph presets/ranges, optional Ollama vision handwriting transcription.
+- Partial ink erasing, insert pages after the current slide, optional recorder/live comments and custom toolbar placement.
+- Browser/device regression workflow; themes remain coming soon.
+
+Limitations: presentation conversion supports basic elements, not exact PowerPoint rendering. Handwriting recognition needs a configured vision model. Browser emulation does not replace physical iPad testing.
+
+
 ## 0.2.0-dev.3 | 2026-10-03
 
 - Pin compatible packaging tools that remove vulnerable HTTP-cache and legacy UUID dependency chains.

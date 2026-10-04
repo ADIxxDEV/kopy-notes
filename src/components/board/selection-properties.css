@@ -1,8 +1,27 @@
-.selection-actions{max-width:calc(100vw - 24px);flex-wrap:wrap;justify-content:center;row-gap:4px}
-.selection-properties{position:relative;font-size:13px}
-.selection-properties summary{cursor:pointer;padding:9px 12px;border:1px solid var(--color-line);border-radius:8px;list-style:none}
-.selection-properties>div{position:absolute;top:calc(100% + 8px);right:0;width:230px;display:grid;gap:12px;padding:16px;background:var(--color-panel);border:1px solid var(--color-line);border-radius:12px;box-shadow:0 8px 24px #0003}
-.selection-properties label{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.selection-properties input[type=range]{width:105px}.selection-properties input[type=color]{width:38px;height:32px;padding:2px;border-radius:6px}.selection-properties select{max-width:110px}
-
-.selection-properties button{min-height:36px;padding:6px 9px;border:1px solid var(--color-line);border-radius:7px;font-size:12px}.selection-properties button:disabled{opacity:.4}.document-align{display:flex;justify-content:space-between;gap:4px}.selection-properties small{font-size:11px;line-height:1.5;color:var(--color-muted)}
+.selection-actions{position:fixed;z-index:31;display:flex;flex-direction:column;width:336px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 132px);overflow:hidden;border:1px solid var(--color-line);border-radius:14px;background:var(--color-panel);color:var(--color-ink);box-shadow:0 8px 28px #0003;font-size:13px}
+.selection-heading{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px 4px 14px;border-bottom:1px solid var(--color-line);font-weight:600}
+.selection-actions button,.selection-properties summary{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:44px;min-height:44px;padding:8px;border:1px solid transparent;border-radius:8px;font-size:12px;touch-action:manipulation}
+.selection-actions button:hover:not(:disabled),.selection-properties summary:hover{background:var(--color-elevated)}
+.selection-actions button:disabled{opacity:.4}
+.selection-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px}
+.selection-primary,.selection-pdf-navigation{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px}
+.selection-primary button{border-color:var(--color-line);background:var(--color-panel-2)}
+.selection-edit-text{flex-basis:100%}
+.selection-actions .selection-delete{color:#bd354d}
+.selection-colors{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-line)}
+.selection-colors button{padding:8px}
+.selection-colors button span{display:block;width:26px;height:26px;border-radius:50%;border:1px solid var(--color-muted);box-shadow:inset 0 0 0 1px #ffffff38}
+.selection-colors button[aria-pressed=true]{border-color:var(--color-brand);background:var(--color-elevated)}
+.selection-properties{font-size:13px;margin-top:8px;border-top:1px solid var(--color-line);padding-top:8px}
+.selection-properties summary{display:flex;justify-content:space-between;width:100%;padding:8px 12px;border-color:var(--color-line);list-style:none;font-weight:600;cursor:pointer}
+.selection-properties summary::-webkit-details-marker{display:none}
+.selection-properties summary::after{content:'+';font-size:18px;font-weight:400}
+.selection-properties[open] summary::after{content:'−'}
+.selection-properties>div{display:grid;gap:12px;padding:12px 4px 4px}
+.selection-properties label{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.selection-properties input[type=range]{width:130px;max-width:50%;min-height:44px}
+.selection-properties input[type=color]{width:44px;height:44px;padding:3px;border:1px solid var(--color-line);border-radius:8px;flex-shrink:0}
+.selection-properties select{width:160px;max-width:60%;min-height:44px}
+.selection-properties button{border-color:var(--color-line);background:var(--color-panel-2)}
+.document-align{display:flex;justify-content:space-between;gap:6px}.document-align button{flex:1}
+.selection-properties small{font-size:11px;line-height:1.5;color:var(--color-muted)}

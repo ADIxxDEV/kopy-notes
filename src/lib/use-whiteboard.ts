@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {mediaBounds,placeMediaInFrame} from "@/lib/media-layout";
+import {eraseInk} from '@/lib/erase-ink';
 import { nearbyEdge, projectToEdge, type GuideEdge } from "@/lib/guide-geometry";
 import type { BoardObject, MediaItem, Point, ShapeObject, StrokeObject, TextObject } from "@/db/schema";
 import {
@@ -89,6 +90,7 @@ export function useWhiteboard(options: {
   const eraserSizeRef = useRef(eraserSize);
   const activePen = useRef<number | null>(null);
   const gestureRadius = useRef(24);
+  const lastErasePoint=useRef<Point|null>(null);
   const guideEdges = useRef(new Map<string,GuideEdge[]>());
   const drawingEdge = useRef<GuideEdge | undefined>(undefined);
   const backgroundRef = useRef(background);
@@ -263,7 +265,7 @@ export function useWhiteboard(options: {
     const head=laserHead.current;
     if(head&&(now-head.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser'))){
       const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const pulse=reduced?1:.75+.25*Math.sin(now/110);
+      const pulse=reduced?1:(now%700<400?1:.12);
       ctx.save();ctx.globalAlpha=(modeRef.current==='draw'&&toolRef.current==='laser'?1:Math.min(1,(1200-(now-head.last))/300))*pulse;ctx.shadowColor='#ff244b';ctx.shadowBlur=18;
       ctx.fillStyle='#ff244b';ctx.beginPath();ctx.arc(head.point.x,head.point.y,7/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff3db';ctx.beginPath();ctx.arc(head.point.x,head.point.y,2.5/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.restore();
     }
@@ -545,8 +547,9 @@ export function useWhiteboard(options: {
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      if (e.pointerType === "touch" && (activePen.current !== null || penRef.current.touchMode === "reject")) return;
-      if(e.pointerType==='touch'&&Math.max(e.width,e.height)>=35&&penRef.current.touchMode!=='palm-erase')return;
+      // Contact size alone is not a reliable palm signal on iPad/large touchscreens.
+      // Reject touches while a stylus is active; let explicit Hand/Select work in pen-only mode.
+      if (e.pointerType === "touch" && (activePen.current !== null || (penRef.current.touchMode === "reject" && !['pan','select'].includes(toolRef.current)))) return;
       if(e.pointerType==='touch'&&pointers.current.size>=1&&penRef.current.gestureMode==='off')return;
       if(pointers.current.size>=2)return;
       if (e.pointerType === "pen") {
@@ -554,7 +557,7 @@ export function useWhiteboard(options: {
         pointers.current.clear(); draft.current = null; pinch.current = null; eraseWorking.current = null;
       }
       if (pointers.current.size && e.pointerType !== "touch") return;
-      canvas.setPointerCapture?.(e.pointerId);
+      try { canvas.setPointerCapture?.(e.pointerId); } catch { /* A cancelled native pointer may already have gone. */ }
       pointers.current.set(e.pointerId, {
         x: e.clientX,
         y: e.clientY,
@@ -615,7 +618,10 @@ export function useWhiteboard(options: {
       if (t === "eraser" || palmErase || (e.pointerType === "pen" && (e.button === 5 || (e.buttons & 32) !== 0))) {
         gestureRadius.current = palmErase ? Math.max(e.width, e.height) / (2 * viewRef.current.scale) : eraserSizeRef.current;
         modeRef.current = "erase";
-        eraseWorking.current = objectsRef.current.filter(o => !objectHitByEraser(o, world, gestureRadius.current));
+        lastErasePoint.current=world;
+        eraseWorking.current = penRef.current.eraserMode==='ink'
+          ? eraseInk(objectsRef.current,world,world,gestureRadius.current)
+          : objectsRef.current.filter(o => !objectHitByEraser(o, world, gestureRadius.current));
         eraseCenterRef.current = world;
         scheduleRender();
         return;
@@ -637,6 +643,7 @@ export function useWhiteboard(options: {
           id: uid(),
           kind: "stroke",
           tool: t,
+          brush: t==='pen' ? p.brush : undefined,
           color: p.color,
           width: p.size,
           points: [{...world, p: e.pointerType === "pen" && p.pressure ? Math.max(0.05, e.pressure) : undefined}],
@@ -729,9 +736,16 @@ export function useWhiteboard(options: {
         const world = screenToWorld(e.clientX, e.clientY);
         eraseCenterRef.current = world;
         const r = gestureRadius.current;
-        eraseWorking.current = eraseWorking.current.filter(
-          (o) => !objectHitByEraser(o, world, r),
-        );
+        const previous=lastErasePoint.current??world;
+        if(penRef.current.eraserMode==='ink')eraseWorking.current=eraseInk(eraseWorking.current,previous,world,r);
+        else {
+          const steps=Math.max(1,Math.ceil(dist(previous,world)/Math.max(1,r/2)));
+          eraseWorking.current=eraseWorking.current.filter(object=>{
+            for(let i=0;i<=steps;i++)if(objectHitByEraser(object,{x:previous.x+(world.x-previous.x)*i/steps,y:previous.y+(world.y-previous.y)*i/steps},r))return false;
+            return true;
+          });
+        }
+        lastErasePoint.current=world;
         scheduleRender();
         return;
       }
@@ -776,7 +790,7 @@ export function useWhiteboard(options: {
       if (activePen.current === e.pointerId) activePen.current = null;
       pointers.current.delete(e.pointerId);
       const canvas = canvasRef.current;
-      canvas?.releasePointerCapture?.(e.pointerId);
+      try { if(canvas?.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId); } catch { /* Native cancellation may release capture first. */ }
 
       if (modeRef.current === "pinch") {
         if (pointers.current.size < 2) {
@@ -802,10 +816,8 @@ export function useWhiteboard(options: {
       }
 
       if (modeRef.current === "maybe-text") {
-        const moved = Math.hypot(e.clientX - (pointers.current.get(e.pointerId)?.sx ?? e.clientX), 0);
         const start = panStart.current;
         const travel = start ? Math.hypot(e.clientX - start.sx, e.clientY - start.sy) : 0;
-        void moved;
         panStart.current = null;
         modeRef.current = "idle";
         if (travel < 6) {
@@ -963,6 +975,28 @@ export function useWhiteboard(options: {
 
   // ------------------------------- export ----------------------------------
 
+  const cancelGesture = useCallback(() => {
+    pointers.current.clear(); activePen.current = null;
+    draft.current = null; pinch.current = null; panStart.current = null;
+    eraseWorking.current = null; eraseCenterRef.current = null;
+    lastErasePoint.current=null;
+    marquee.current = null; drawingEdge.current = undefined;
+    if (moveOriginal.current) {
+      objectsRef.current = moveOriginal.current.objects; mediaRef.current = moveOriginal.current.media;
+      setObjectsState(objectsRef.current); setMediaState(mediaRef.current);
+      moveOriginal.current = null;
+    }
+    moveState.current = null; modeRef.current = 'idle'; scheduleRender();
+  }, [scheduleRender]);
+  const onPointerCancel = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (pointers.current.has(event.pointerId) || activePen.current === event.pointerId) cancelGesture();
+  }, [cancelGesture]);
+  useEffect(() => {
+    const hidden = () => { if(document.hidden) cancelGesture(); };
+    window.addEventListener('blur', cancelGesture); document.addEventListener('visibilitychange', hidden);
+    return () => { window.removeEventListener('blur', cancelGesture); document.removeEventListener('visibilitychange', hidden); };
+  }, [cancelGesture]);
+
   const exportPNG = useCallback((): string | null => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -1067,6 +1101,12 @@ export function useWhiteboard(options: {
     selectedIds,selectionBounds:selectionBounds(),resizeSelected,
     selectAll:()=>{setTool('select');selectIds([...objectsRef.current.map(o=>o.id),...mediaRef.current.map(m=>m.id)]);scheduleRender();},
     editingText,
+    editSelectedText: () => {
+      const object = objectsRef.current.find(item=>item.id===selectedIdsRef.current[0]);
+      if(object?.kind !== 'text') return;
+      const screen=worldToScreen(object.x,object.y);
+      setEditingText({id:object.id,screenX:screen.x,screenY:screen.y,value:object.text});
+    },
     commitText,
     cancelText,
     undo,
@@ -1099,6 +1139,7 @@ export function useWhiteboard(options: {
     onPointerDown,
     onPointerMove,
     onPointerUp,
+    onPointerCancel,
     onWheel,
     loadPdf,
   };

@@ -4,6 +4,14 @@ import assert from 'node:assert/strict';
 import {localRequest} from '../src/lib/local-store';
 import {exportLesson,importLesson} from '../src/lib/lesson-bundle';
 const write=(path:string,data:unknown,method='POST')=>localRequest(path,{method,body:JSON.stringify(data)});
+test('new slides insert after the current slide atomically and reject foreign anchors',async()=>{
+  const {notebook}=await(await write('/api/notebooks',{title:'Insert slides'})).json();const path=`/api/notebooks/${notebook.id}`;
+  const {pages:first}=await(await localRequest(path)).json();const {page:last}=await(await write(`${path}/pages`,{})).json();
+  const {page:middle}=await(await write(`${path}/pages`,{afterPageId:first[0].id})).json();
+  const {pages}=await(await localRequest(path)).json();assert.deepEqual(pages.map((p:{id:string})=>p.id),[first[0].id,middle.id,last.id]);assert.deepEqual(pages.map((p:{position:number})=>p.position),[0,1,2]);
+  assert.equal((await write(`${path}/pages`,{afterPageId:'not-this-lesson'})).status,400);
+  assert.equal((await(await localRequest(path)).json()).pages.length,3);
+});
 test('slide reorder is durable, rejects incomplete or foreign IDs, and survives portable export',async()=>{
   const {notebook}=await (await write('/api/notebooks',{title:'Slide ordering'})).json();
   const path=`/api/notebooks/${notebook.id}`;

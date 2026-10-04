@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Icon, type IconName } from "@/components/Icon";
 
 export type DockId =
@@ -33,10 +33,14 @@ export function LeftDock({
   onExit: () => void;
 }) {
   return (
-    <div className="pointer-events-auto flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-xl backdrop-blur">
+    <div className="kn-dock pointer-events-auto flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-xl backdrop-blur">
       {DOCK.map((d) => (
         <button
           key={d.id}
+          type="button"
+          data-dock-action={d.id}
+          aria-expanded={active===d.id}
+          style={{minWidth:44,minHeight:44}}
           onClick={() => onOpen(d.id)}
           title={d.label}
           aria-label={d.label}
@@ -49,6 +53,8 @@ export function LeftDock({
       ))}
       <div className="my-0.5 h-px w-8 bg-line" />
       <button
+        type="button"
+        style={{minWidth:44,minHeight:44}}
         onClick={onTogglePresent}
         title={presenting ? "Exit presentation" : "Present"}
         aria-label="Present"
@@ -59,6 +65,8 @@ export function LeftDock({
         <Icon name="board" className="h-5 w-5" />
       </button>
       <button
+        type="button"
+        style={{minWidth:44,minHeight:44}}
         onClick={onExit}
         title="Back to library"
         aria-label="Back to library"
@@ -79,9 +87,16 @@ const FILE_ITEMS: { id: string; label: string; icon: IconName }[] = [
   { id: "export", label: "Export", icon: "export" },
   { id: "print", label: "Print", icon: "print" },
   { id: "settings", label: "Settings", icon: "settings" },
+  { id: "themes", label: "Themes — coming soon", icon: "board" },
   { id: "help", label: "Help", icon: "help" },
   { id: "about", label: "About", icon: "eye" },
   { id: "exit", label: "Exit to library", icon: "back" },
+];
+
+const FILE_GROUPS=[
+  {label:'Lesson',ids:['new','open','save','saveas']},
+  {label:'Import & share',ids:['import','export','print']},
+  {label:'Application',ids:['settings','themes','help','about','exit']},
 ];
 
 export function FileMenu({
@@ -96,14 +111,16 @@ export function FileMenu({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onDown = (e: MouseEvent) => {
+    const onDown = (e: PointerEvent) => {
+      if((e.target as Element).closest('[data-dock-action="file"]'))return;
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
-    // delay so the opening click doesn't immediately close it
-    const id = window.setTimeout(() => document.addEventListener("mousedown", onDown), 0);
+    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose();};
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener('keydown',onKey);
     return () => {
-      window.clearTimeout(id);
-      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener('keydown',onKey);
     };
   }, [onClose]);
 
@@ -111,17 +128,22 @@ export function FileMenu({
     <div
       ref={ref}
       aria-label="File menu"
-      style={{flexDirection:'column'}}
-      className="kn-pop absolute bottom-24 left-6 z-40 flex max-h-[calc(100dvh-104px)] w-56 flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
+      className="kn-file-menu kn-pop absolute bottom-24 left-3 z-40 flex w-64 max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
+      role="region"
+      style={{flexDirection:'column',maxHeight:'calc(100dvh - 104px - env(safe-area-inset-bottom, 0px))'}}
     >
       <div className="shrink-0 border-b border-line bg-panel-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
         {appName}
       </div>
       <div className="kn-scroll min-h-0 overflow-y-auto overscroll-contain p-1.5">
-        {FILE_ITEMS.map((item) => (
+        {FILE_GROUPS.map(group=><section key={group.label} aria-label={group.label} className="kn-file-menu-group border-b border-line py-1 last:border-0">
+          <h3 className="px-3 py-2 text-xs font-semibold text-muted">{group.label}</h3>
+          {FILE_ITEMS.filter(item=>group.ids.includes(item.id)).map((item) => (
           <button
             key={item.id}
-            style={{display:'flex',width:'100%',height:'auto',minHeight:40}}
+            disabled={item.id==='themes'}
+            type="button"
+            style={{display:'flex',width:'100%',height:'auto',minHeight:44}}
             onClick={() => {
               onAction(item.id);
               onClose();
@@ -131,7 +153,7 @@ export function FileMenu({
             <Icon name={item.icon} className="h-4 w-4 text-muted" />
             {item.label}
           </button>
-        ))}
+        ))}</section>)}
       </div>
     </div>
   );

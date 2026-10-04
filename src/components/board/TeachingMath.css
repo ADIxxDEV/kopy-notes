@@ -1,0 +1,15 @@
+.teaching-calculator{width:100%;min-width:0;display:grid;gap:10px}
+.math-mode-switch{display:flex;gap:4px;padding:3px;border:1px solid var(--color-line);border-radius:10px}
+.math-mode-switch button{flex:1;min-height:44px;border-radius:7px;font-size:13px}
+.math-mode-switch button[aria-pressed=true]{background:var(--color-brand);color:white}
+.calculator-expression{display:grid;gap:6px;font-size:12px;color:var(--color-muted)}
+.calculator-expression input{width:100%;min-width:0;min-height:48px;padding:10px;border:1px solid var(--color-line);border-radius:10px;background:var(--color-base);color:var(--color-ink);font:20px ui-monospace,monospace}
+.calculator-answer{font-size:13px;overflow-wrap:anywhere;text-align:right}
+.calculator-keypad,.calculator-scientific-keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.calculator-keypad button,.calculator-scientific-keys button{min-width:0;min-height:44px;border:1px solid var(--color-line);border-radius:9px;background:var(--color-panel-2);font-size:16px}
+.calculator-scientific-keys button{font-size:12px}
+.calculator-keypad .calculator-equals{background:var(--color-brand);color:white}.calculator-sign{grid-column:span 2}
+.teaching-math-error{color:var(--color-ink);border-left:3px solid #ef4444;padding:8px;font-size:13px}
+.teaching-math-hint{font-size:11px;color:var(--color-muted);line-height:1.5}
+.calculator-history summary{min-height:44px;padding:12px 0;cursor:pointer;font-size:13px}
+.calculator-history ol{list-style:none;padding:0}.calculator-history li button{display:flex;justify-content:space-between;gap:8px;width:100%;min-height:44px;text-align:left;font-size:12px;overflow-wrap:anywhere}.calculator-history small{color:var(--color-muted)}

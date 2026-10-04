@@ -158,6 +158,7 @@ const BASIC_DOC_CSS = `
 export async function renderDocxToCanvas(
   assetId: string,
   targetW: number,
+  options: {cache?: boolean; maxPixels?: number; maxDimension?: number} = {},
 ): Promise<HTMLCanvasElement | null> {
   try {
     const mammoth = await getMammoth();
@@ -176,13 +177,15 @@ export async function renderDocxToCanvas(
     try{
       const doc=frame.contentDocument!;
       doc.open();doc.write('<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;color:#111;background:#fff">'+BASIC_DOC_CSS+`<div class="kn-doc">${html}</div>`+'</body></html>');doc.close();
-      await Promise.all(Array.from(doc.images).map(image=>image.decode().catch(()=>{})));
+      await Promise.all(Array.from(doc.images).map(image=>options.cache===false?image.decode():image.decode().catch(()=>{})));
+      if(doc.fonts)await doc.fonts.ready;
       const height=Math.max(doc.body.scrollHeight,400);if(height>12000)throw new Error('DOCX is too long for one canvas. Export it as PDF for separate pages.');
       frame.style.height=`${height}px`;
       const {default:html2canvas}=await import('html2canvas');
-      canvas=await html2canvas(doc.body,{backgroundColor:'#ffffff',width:targetW,height,scale:1,useCORS:false,logging:false});
+      const scale=Math.min(1,Math.sqrt((options.maxPixels??Infinity)/(targetW*height)),(options.maxDimension??Infinity)/Math.max(targetW,height));
+      canvas=await html2canvas(doc.body,{backgroundColor:'#ffffff',width:targetW,height,scale,useCORS:false,logging:false});
     }finally{frame.remove();}
-    docxCanvasCache.set(assetId, canvas);
+    if(options.cache!==false)docxCanvasCache.set(assetId, canvas);
     return canvas;
   } catch (error) {
     console.error("DOCX render failed", error);

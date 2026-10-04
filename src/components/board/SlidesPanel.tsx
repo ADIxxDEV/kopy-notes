@@ -48,6 +48,9 @@ export function SlidesPanel({pages,activePageId,onGo,onReorder,onClose,onAdd,onD
   };
   const begin=(event:PointerEvent<HTMLElement>,id:string,handle=false)=>{
     if(busy||event.button!==0)return;if(!handle&&event.pointerType!=='touch')return;
+    // Nested actions keep their native click; only the preview starts navigation/reorder.
+    if(!handle && !(event.target as Element).closest('.kn-slide-preview'))return;
+    if(drag.current)return;
     suppressClick.current=false;
     drag.current={id,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,active:false,scrolling:false,scrollTop:event.currentTarget.closest('.kn-slides-list')?.scrollTop||0,element:event.currentTarget};
     if(handle){event.preventDefault();activate();}else timer.current=setTimeout(activate,450);
@@ -63,7 +66,7 @@ export function SlidesPanel({pages,activePageId,onGo,onReorder,onClose,onAdd,onD
   };
   const commit=async(ids:string[])=>{setBusy(true);try{await onReorder(ids);setAnnouncement('Slide order saved');}catch{const original=pages.map(page=>page.id);orderRef.current=original;setOrder(original);setAnnouncement('Could not save slide order. Please try again.');}finally{setBusy(false);}};
   const finish=(event:PointerEvent<HTMLElement>,cancel=false)=>{
-    if(timer.current)clearTimeout(timer.current);const d=drag.current;if(!d||d.pointerId!==event.pointerId)return;d.cleanup?.();drag.current=null;setDragId(null);
+    const d=drag.current;if(!d||d.pointerId!==event.pointerId)return;if(timer.current)clearTimeout(timer.current);d.cleanup?.();drag.current=null;setDragId(null);
     if(d.element.hasPointerCapture(d.pointerId))d.element.releasePointerCapture(d.pointerId);
     if(event.pointerType==='touch'&&!d.active&&!d.scrolling&&!cancel){event.preventDefault();suppressClick.current=true;setTimeout(()=>{suppressClick.current=false;},100);onGo(pages.findIndex(page=>page.id===d.id));return;}
     if(d.active||d.scrolling){event.preventDefault();suppressClick.current=true;setTimeout(()=>{suppressClick.current=false;},100);if(d.active){if(cancel){const ids=pages.map(page=>page.id);orderRef.current=ids;setOrder(ids);}else void commit(orderRef.current);}}

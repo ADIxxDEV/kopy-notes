@@ -23,27 +23,28 @@ export function Modal({
   width?: number;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => { dialog.current?.showModal(); }, []);
+  useEffect(() => { const element=dialog.current;if(element&&!element.open)element.showModal();return()=>{if(element?.open)element.close();}; }, []);
   return (
-    <dialog ref={dialog} onCancel={onClose} aria-label={title} className="kn-dialog kn-fade fixed inset-0 z-[60] m-0 h-full max-h-none w-full max-w-none bg-transparent p-4 text-ink backdrop:bg-black/60">
+    <dialog ref={dialog} onCancel={onClose} onClick={event=>{if(event.target===event.currentTarget)onClose();}} aria-label={title} className="kn-dialog kn-fade fixed inset-0 z-[60] m-0 max-h-none w-full max-w-none bg-transparent text-ink backdrop:bg-black/60" style={{height:'100dvh',padding:'max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))'}}>
       <div
-        className="kn-pop max-h-[86dvh] w-full overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
-        style={{ maxWidth: width }}
+        className="kn-modal-card kn-pop flex w-full flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
+        style={{ maxWidth: width,maxHeight:'calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)))' }}
       >
-        <div className="flex items-center justify-between border-b border-line bg-panel-2 px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-panel-2 px-5 py-3">
           <div className="flex items-center gap-2.5">
             {icon}
             <h2 className="text-base font-semibold">{title}</h2>
           </div>
           <button
             onClick={onClose}
-            className="kn-focus grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-elevated hover:text-ink"
+            type="button"
+            className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-lg text-muted hover:bg-elevated hover:text-ink"
             aria-label="Close"
           >
             <Icon name="close" className="h-5 w-5" />
           </button>
         </div>
-        <div className="kn-scroll max-h-[calc(86dvh-60px)] overflow-y-auto p-5">{children}</div>
+        <div className="kn-modal-body kn-scroll min-h-0 overflow-y-auto overscroll-contain p-5">{children}</div>
       </div>
     </dialog>
   );

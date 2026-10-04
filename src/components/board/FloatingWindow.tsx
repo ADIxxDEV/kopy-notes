@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/Icon";
 
 // A draggable floating panel used by the treasure-box tools (calculator, timer,
@@ -25,14 +25,17 @@ export function FloatingWindow({
   accent?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const panelId=`panel-${title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)}`;
+  const [floating,setFloating]=useState(()=>{try{const p=JSON.parse(localStorage.getItem('kopy-control-layout-v1')||'null')?.current?.[panelId];return p? p.floating!==false:false;}catch{return false;}});
   const [viewport, setViewport] = useState({width:window.innerWidth,height:window.innerHeight});
   const actualWidth = Math.min(width, viewport.width - 16);
-  const [pos, setPos] = useState({ x: Math.max(8, Math.min(initialX, window.innerWidth - actualWidth - 8)), y: Math.max(8, initialY) });
+  const [pos, setPos] = useState({ x: floating?Math.max(8,Math.min(initialX,window.innerWidth-actualWidth-8)):(initialX+actualWidth/2<window.innerWidth/2?0:window.innerWidth-actualWidth), y: Math.max(8, initialY) });
   const drag = useRef<{ dx: number; dy: number } | null>(null);
 
   function constrain(position: {x:number;y:number}) {
     const height = panelRef.current?.offsetHeight ?? 0;
-    return {x:Math.max(8,Math.min(position.x,window.innerWidth-actualWidth-8)),y:Math.max(8,Math.min(position.y,window.innerHeight-height-8))};
+    const x=floating?Math.max(8,Math.min(position.x,window.innerWidth-actualWidth-8)):(position.x+actualWidth/2<window.innerWidth/2?0:window.innerWidth-actualWidth);
+    return {x,y:Math.max(8,Math.min(position.y,window.innerHeight-height-8))};
   }
 
   useLayoutEffect(() => {
@@ -48,7 +51,8 @@ export function FloatingWindow({
     window.addEventListener('resize',resize);
     clamp();
     return () => {observer.disconnect();window.removeEventListener('resize',resize);};
-  }, [actualWidth]);
+  }, [actualWidth,floating]);
+  useEffect(()=>{const changed=(event:Event)=>{const positions=(event as CustomEvent).detail;setFloating(positions?.[panelId]?.floating!==false&&!!positions?.[panelId]);};window.addEventListener('kopy-layout-updated',changed);return()=>window.removeEventListener('kopy-layout-updated',changed);},[panelId]);
 
   function onHeaderPointerDown(e: React.PointerEvent) {
     if ((e.target as HTMLElement).closest('button')) return;
@@ -59,7 +63,11 @@ export function FloatingWindow({
     if (!drag.current) return;
     setPos(constrain({x:e.clientX-drag.current.dx,y:e.clientY-drag.current.dy}));
   }
-  function onHeaderPointerUp() {
+  function onHeaderPointerUp(cancelled=false) {
+    if(drag.current&&!cancelled&&panelRef.current){
+      const rect=panelRef.current.getBoundingClientRect();
+      window.dispatchEvent(new CustomEvent('kopy-panel-position',{detail:{title,x:rect.x,y:rect.y,width:rect.width,height:rect.height,floating}}));
+    }
     drag.current = null;
   }
 
@@ -68,14 +76,16 @@ export function FloatingWindow({
       ref={panelRef}
       role="region"
       aria-label={title}
+      data-layout-panel={title}
+      data-window-mode={floating?'floating':'docked'}
       className="kn-pop fixed z-50 overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
       style={{ left: pos.x, top: pos.y, width: actualWidth, maxHeight: 'calc(100dvh - 16px)', overflowY: 'auto', boxShadow: accent ? `0 18px 50px -18px ${accent}` : undefined }}
     >
       <div
         onPointerDown={onHeaderPointerDown}
         onPointerMove={onHeaderPointerMove}
-        onPointerUp={onHeaderPointerUp}
-        onPointerCancel={onHeaderPointerUp}
+        onPointerUp={()=>onHeaderPointerUp()}
+        onPointerCancel={()=>onHeaderPointerUp(true)}
         style={{touchAction:'none'}}
         className="sticky top-0 z-10 flex cursor-grab active:cursor-grabbing items-center justify-between gap-2 border-b border-line bg-panel-2 px-3 py-2"
       >
@@ -84,8 +94,13 @@ export function FloatingWindow({
           <span>{title}</span>
         </div>
         <button
+          type="button" aria-label={floating?`Dock ${title}`:`Float ${title}`} title={floating?'Dock to edge':'Make floating'}
+          className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted hover:bg-elevated"
+          onClick={()=>{const next=!floating;setFloating(next);const rect=panelRef.current!.getBoundingClientRect();const x=next?Math.max(8,Math.min(rect.x+24,innerWidth-rect.width-8)):(rect.x+rect.width/2<innerWidth/2?0:innerWidth-rect.width);setPos(p=>({...p,x}));window.dispatchEvent(new CustomEvent('kopy-panel-position',{detail:{title,x,y:rect.y,width:rect.width,height:rect.height,floating:next}}));}}
+        ><Icon name={floating?'layers':'select'} className="h-4 w-4"/></button>
+        <button
           onClick={onClose}
-          className="kn-focus grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-elevated hover:text-ink"
+          className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted hover:bg-elevated hover:text-ink"
           aria-label="Close"
         >
           <Icon name="close" className="h-4 w-4" />

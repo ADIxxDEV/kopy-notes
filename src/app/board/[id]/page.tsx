@@ -1,9 +1,14 @@
+import {ControlLayoutEditor} from '@/components/board/ControlLayoutEditor';
+import {BoardFullscreen} from '@/components/board/BoardFullscreen';
 "use client";
 import { LocalAssistant } from "@/components/board/LocalAssistant";
 import { ResizeHandles } from "@/components/board/ResizeHandles";
 import { RecoveryPanel } from "@/components/board/RecoveryPanel";
 import { GeometryOverlay } from "@/components/board/GeometryOverlay";
 import { ClassRecorder } from "@/components/board/ClassRecorder";
+import { TeachingControls } from "@/components/board/TeachingControls";
+import { LiveComments } from "@/components/board/LiveComments";
+import { exportLessonPDF, type PDFScope, type ExportProgress } from "@/lib/lesson-export";
 import { SubjectTools, type SubjectTool } from "@/components/board/SubjectTools";
 import { exportLesson } from "@/lib/lesson-bundle";
 import { fileToBase64, uid } from "@/lib/constants";
@@ -62,10 +67,16 @@ export default function BoardPage() {
   const [saveState, setSaveState] = useState<"saved" | "saving" | "dirty">("saved");
   const [textValue, setTextValue] = useState("");
   const [recording, setRecording] = useState(false);
+  const [showRecorder,setShowRecorder]=useState(false);
+  const [showBackups,setShowBackups]=useState(false);
+  const [commentsOpen,setCommentsOpen]=useState(false);
+  const [toolbarLayout,setToolbarLayout]=useState<'bottom'|'left'|'right'>(()=>{try{const value=localStorage.getItem('kopy-toolbar-layout');return value==='left'||value==='right'?value:'bottom';}catch{return 'bottom';}});
+  useEffect(()=>{try{localStorage.setItem('kopy-toolbar-layout',toolbarLayout);}catch{/* Layout remains usable when storage is unavailable. */}},[toolbarLayout]);
   const [assistantOpen,setAssistantOpen]=useState(false);
   const [subjectTool, setSubjectTool] = useState<SubjectTool | null>(null);
 
   const pageIdRef = useRef<string | null>(null);
+  const addingPage=useRef(false);
   const frameRef=useRef<Page['importFrame']>(undefined);
   const bgRef = useRef(background);
   const patternRef = useRef(pattern);
@@ -195,20 +206,22 @@ export default function BoardPage() {
   );
 
   const addPage = useCallback(async () => {
-    await flushSave();
+    if(addingPage.current)return;
+    addingPage.current=true;
     try {
+      await flushSave();
       const res = await localRequest(`/api/notebooks/${id}/pages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ background: bgRef.current, pattern: patternRef.current }),
+        body: JSON.stringify({ background: bgRef.current, pattern: patternRef.current,afterPageId:pageIdRef.current }),
       });
-      const { page } = (await res.json()) as { page: Page };
-      const next = [...pages, page];
+      if(!res.ok)throw new Error('Could not add the slide');
+      const { page,pages:next } = (await res.json()) as { page: Page;pages:Page[] };
       setPages(next);
-      loadPageIntoBoard(next.length - 1, next);
+      loadPageIntoBoard(next.findIndex(item=>item.id===page.id), next);
     } catch {
       push("Could not add a page.", "error");
-    }
+    } finally {addingPage.current=false;}
   }, [pages, id, flushSave, loadPageIntoBoard, push]);
 
   const deletePage = useCallback(async () => {
@@ -271,23 +284,15 @@ export default function BoardPage() {
     if (url) download(url, `${notebook?.title ?? "page"}-p${index + 1}.png`);
   }, [wb, notebook, index]);
 
-  const exportPDF = useCallback(async () => {
-    const canvas = wb.renderToCanvas();
-    if (!canvas) return;
-    try {
-      const { jsPDF } = await import("jspdf");
-      const landscape = canvas.width >= canvas.height;
-      const pdf = new jsPDF({
-        orientation: landscape ? "landscape" : "portrait",
-        unit: "pt",
-        format: [canvas.width, canvas.height],
-      });
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
-      pdf.save(`${notebook?.title ?? "page"}-p${index + 1}.pdf`);
-    } catch {
-      push("PDF export failed.", "error");
-    }
-  }, [wb, notebook, index, push]);
+  const exportPDF = useCallback(async (scope:PDFScope,onProgress:(progress:ExportProgress)=>void) => {
+    await flushSave();
+    const response=await localRequest(`/api/notebooks/${id}`);
+    if(!response.ok)throw new Error('The lesson could not be read. Please try again.');
+    const data=await response.json() as {pages:Page[]};
+    const snapshot=data.pages.map(page=>page.id===pageIdRef.current?{...page,objects:wb.objects,media:wb.media,background:bgRef.current,pattern:patternRef.current,importFrame:frameRef.current}:page);
+    const chosen=scope==='all'?snapshot:snapshot.filter(page=>page.id===pageIdRef.current);
+    return exportLessonPDF(chosen,{title:notebook?.title??'lesson',scope,pageNumber:index+1,watermark:profile.watermark,onProgress});
+  }, [flushSave,id,wb.objects,wb.media,notebook,index,profile.watermark]);
 
   const exportJSON = useCallback(async () => {
     try { await flushSave(); const blob = await exportLesson(id); download(URL.createObjectURL(blob), `${notebook?.title ?? "lesson"}.kopy`); push("Editable lesson and files exported.", "success"); }
@@ -531,12 +536,14 @@ export default function BoardPage() {
           onPointerDown={wb.onPointerDown}
           onPointerMove={wb.onPointerMove}
           onPointerUp={wb.onPointerUp}
-          onPointerCancel={wb.onPointerUp}
+          onPointerCancel={wb.onPointerCancel}
+          onLostPointerCapture={wb.onPointerCancel}
         />
 
         {/* Selection actions */}
         {wb.selection && (
           <SelectionBar
+            anchor={wb.selectionBounds?{...wb.worldToScreen(wb.selectionBounds.x,wb.selectionBounds.y),width:wb.selectionBounds.w*wb.view.scale,height:wb.selectionBounds.h*wb.view.scale}:{x:12,y:100,width:0,height:0}}
             count={wb.selectedIds.length}
             onResize={wb.resizeSelected}
             onSelectAll={wb.selectAll}
@@ -555,6 +562,7 @@ export default function BoardPage() {
               }
             }}
             onDeselect={() => wb.setSelection(null)}
+            onEditText={wb.editSelectedText}
           />
         )}
 
@@ -579,8 +587,8 @@ export default function BoardPage() {
             placeholder="Type…"
             style={{
               position: "fixed",
-              left: wb.editingText.screenX,
-              top: wb.editingText.screenY,
+              left: Math.max(12,Math.min(wb.editingText.screenX,window.innerWidth-260)),
+              top: Math.max(72,Math.min(wb.editingText.screenY,(window.visualViewport?.height??window.innerHeight)-120)),
               fontSize: 28,
               color: wb.pen.color,
               background: "rgba(0,0,0,0.35)",
@@ -588,6 +596,7 @@ export default function BoardPage() {
               borderRadius: 8,
               padding: "2px 6px",
               minWidth: 220,
+              maxWidth: 'calc(100vw - 24px)',
               minHeight: 44,
               outline: "none",
               resize: "both",
@@ -596,11 +605,13 @@ export default function BoardPage() {
           />
         )}
 
-        <RecoveryPanel lessonId={id} flush={flushSave}/>
+        <ControlLayoutEditor/><BoardFullscreen/><TeachingControls onCustomize={()=>window.dispatchEvent(new Event('kopy-customize-controls'))} layout={toolbarLayout} onLayout={setToolbarLayout} recorder={showRecorder} backups={showBackups} comments={commentsOpen} recording={recording} onRecorder={setShowRecorder} onBackups={setShowBackups} onComments={setCommentsOpen}/>
+        <div hidden={!showBackups}><RecoveryPanel lessonId={id} flush={flushSave}/></div>
+        {commentsOpen&&<LiveComments onClose={()=>setCommentsOpen(false)}/>}
         {profile.ai?.enabled&&<button className="local-assistant-launch" onClick={()=>setAssistantOpen(value=>!value)} aria-label="Local assistant">AI assistant</button>}
         {assistantOpen&&<LocalAssistant onClose={()=>setAssistantOpen(false)} onInsert={text=>{const center=centerWorld();wb.addObjects([{id:uid(),kind:'text',x:center.x-220,y:center.y,text,color:wb.pen.color,fontSize:24,fontFamily:'Arial',bold:false}]);}}/>}
-        <ClassRecorder canvas={() => wb.canvasRef.current} title={notebook.title} onActive={setRecording}/>
-        {subjectTool && <SubjectTools tool={subjectTool} onClose={() => setSubjectTool(null)} onInsert={async (url,width,height) => {
+        <div hidden={!showRecorder&&!recording}><ClassRecorder canvas={() => wb.canvasRef.current} title={notebook.title} onActive={setRecording}/></div>
+        {subjectTool && <SubjectTools onInsertText={text=>{const center=centerWorld();wb.addObjects([{id:uid(),kind:'text',x:center.x-220,y:center.y,text,color:wb.pen.color,fontSize:24,fontFamily:'Arial',bold:false}]);}} tool={subjectTool} onClose={() => setSubjectTool(null)} onInsert={async (url,width,height) => {
           const blob = await (await fetch(url)).blob();
           const response = await localRequest('/api/assets', {method:'POST',body:JSON.stringify({notebookId:id,name:'Teaching diagram',mimeType:blob.type,dataBase64:await fileToBase64(blob)})});
           if (!response.ok) { push('Could not insert this diagram.', 'error'); return; }
@@ -669,7 +680,7 @@ export default function BoardPage() {
           onReorder={reorderPages} onClose={()=>setThumbsOpen(false)} onAdd={addPage} onDuplicate={duplicatePage}/>}
 
         {/* Bottom toolbar + page bar */}
-        <div className="board-toolbar">
+        <div className="board-toolbar" data-layout={toolbarLayout}>
           <Toolbar
             tool={wb.tool}
             setTool={wb.setTool}
@@ -740,6 +751,7 @@ export default function BoardPage() {
         <ExportPanel
           onClose={() => setModal(null)}
           pageTitle={`${notebook.title} · page ${index + 1}`}
+          pageCount={pages.length}
           onPNG={exportPNG}
           onPDF={exportPDF}
           onJSON={exportJSON}

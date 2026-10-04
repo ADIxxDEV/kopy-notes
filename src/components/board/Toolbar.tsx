@@ -1,6 +1,7 @@
+import {ToolPopover} from './ToolPopover';
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./ShapePalette.css";
 import { Icon, type IconName } from "@/components/Icon";
 import {
@@ -66,17 +67,25 @@ export function Toolbar({
   const isPen = tool === "pen" || tool === "highlighter" || tool === "marker";
   const isShape = SHAPES.some((s) => s.id === tool);
 
+  useEffect(()=>{
+    if(!shapeOpen&&!optionsOpen)return;
+    const outside=(event:PointerEvent)=>{if(!(event.target as Element).closest('[data-toolbar-surface]')){setShapeOpen(false);setOptionsOpen(false);}};
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setShapeOpen(false);setOptionsOpen(false);}};
+    document.addEventListener('pointerdown',outside);
+    document.addEventListener('keydown',escape);
+    return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape);};
+  },[shapeOpen,optionsOpen]);
+
   return (
     <>
-      {tool==='pan'&&<p role="status" className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-panel px-3 py-2 text-xs text-muted">Hand: drag to move ? use Reset board view to return</p>}
       {/* Pen / eraser options floating above the toolbar */}
-      {isPen && optionsOpen && (
-        <div aria-label="Pen options" className="kn-pop kn-scroll absolute bottom-24 left-1/2 max-h-[calc(100dvh-168px)] w-[330px] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-panel/95 p-3 shadow-2xl backdrop-blur">
+      {isPen && optionsOpen && (<ToolPopover anchor={tool==='highlighter'?'Highlighter':'Pen'}>
+        <div data-toolbar-surface aria-label="Pen options" className="kn-tool-options kn-pop kn-scroll absolute bottom-24 left-1/2 max-h-[calc(100dvh-168px)] w-[330px] max-w-[calc(100vw-24px)] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-panel/95 p-4 shadow-2xl backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wide text-muted">
               {tool === "highlighter" ? "Highlighter" : "Pen"}
             </span>
-            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted">
+            <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-muted">
               <input
                 type="checkbox"
                 checked={pen.smartShapes}
@@ -86,23 +95,17 @@ export function Toolbar({
               Smart shapes
             </label>
           </div>
-          <div className="mb-3 flex flex-wrap gap-3 text-xs">
-            <label><input type="checkbox" checked={pen.pressure !== false} onChange={e=>setPen({...pen,pressure:e.target.checked})}/> Pen pressure</label>
-            <label>Touch <select aria-label="Touch behavior" value={pen.touchMode ?? 'draw'} onChange={e=>setPen({...pen,touchMode:e.target.value as Pen['touchMode']})}><option value="draw">Finger drawing / ignore palm</option><option value="pan">Finger pans</option><option value="reject">Pen only / reject touch</option><option value="palm-erase">Wide touch erases</option></select></label>
-            <label>Two fingers <select aria-label="Two finger gesture" value={pen.gestureMode??'pan-zoom'} onChange={e=>setPen({...pen,gestureMode:e.target.value as Pen['gestureMode']})}><option value="pan-zoom">Pan + pinch zoom</option><option value="pan">Pan only</option><option value="off">Ignore second touch</option></select></label>
-            <label>Custom ink <input aria-label="Custom ink color" type="color" value={pen.color} onChange={e=>setPen({...pen,color:e.target.value})}/></label>
-            <p className="text-muted">One finger: draw. Two fingers: pan and pinch to zoom. Select: drag a box around multiple items; Shift-click adds or removes items. Hold Space to pan with a mouse.</p>
-            <p className="text-muted">Pressure needs a compatible stylus. Palm erase needs a device that reports touch contact size.</p>
-          </div>
-          <div className="mb-3 grid grid-cols-6 gap-1.5">
+          {tool==='pen'&&<div className="mb-3 grid grid-cols-3 gap-1" aria-label="Pen type">{(['normal','paint','crayon'] as const).map(brush=><button key={brush} type="button" aria-pressed={(pen.brush??'normal')===brush} onClick={()=>setPen({...pen,brush})} className={`min-h-11 rounded-lg border text-sm capitalize ${(pen.brush??'normal')===brush?'border-brand bg-brand/10':'border-line'}`}>{brush}</button>)}</div>}
+          <div className="mb-3 grid grid-cols-5 gap-1.5">
             {(tool === "highlighter" ? HIGHLIGHTER_COLORS : INK_COLORS).map((c) => (
               <button
                 key={c}
                 onClick={() => setPen({ ...pen, color: c })}
-                className={`h-7 w-full rounded-md border-2 transition ${
+                type="button"
+                className={`kn-ink-swatch h-11 w-full rounded-md border-2 transition ${
                   pen.color === c ? "scale-110 border-white" : "border-line"
                 }`}
-                style={{ background: c }}
+                style={{ background: c,minWidth:44,minHeight:44,width:'100%' }}
                 aria-label={`color ${c}`}
               />
             ))}
@@ -124,11 +127,18 @@ export function Toolbar({
               <span className="block rounded-full bg-black/0" style={{ width: pen.size, height: pen.size }} />
             </span>
           </div>
-        </div>
+<label className="mt-3 flex min-h-11 items-center justify-between text-sm">Custom color<input style={{width:44,height:44}} aria-label="Custom ink color" type="color" value={pen.color} onChange={e=>setPen({...pen,color:e.target.value})}/></label><details className="mt-3 border-t border-line pt-2"><summary className="min-h-11 cursor-pointer py-3 text-sm">Writing &amp; touch</summary>          <div className="mb-4 grid gap-3 text-sm">
+            <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={pen.pressure !== false} onChange={e=>setPen({...pen,pressure:e.target.checked})}/> Pen pressure</label>
+            <label className="grid gap-2">Touch <select className="w-full" style={{minHeight:44}} aria-label="Touch behavior" value={pen.touchMode ?? 'draw'} onChange={e=>setPen({...pen,touchMode:e.target.value as Pen['touchMode']})}><option value="draw">Finger drawing</option><option value="pan">Finger pans</option><option value="reject">Pen only / reject touch</option><option value="palm-erase">Wide touch erases</option></select></label>
+            <label className="grid gap-2">Two fingers <select className="w-full" style={{minHeight:44}} aria-label="Two finger gesture" value={pen.gestureMode??'pan-zoom'} onChange={e=>setPen({...pen,gestureMode:e.target.value as Pen['gestureMode']})}><option value="pan-zoom">Pan + pinch zoom</option><option value="pan">Pan only</option><option value="off">Ignore second touch</option></select></label>
+          </div>
+</details>
+        </div></ToolPopover>
       )}
 
-      {tool === "eraser" && optionsOpen && (
-        <div aria-label="Eraser options" className="kn-pop kn-scroll absolute bottom-24 left-1/2 max-h-[calc(100dvh-168px)] w-[260px] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-panel/95 p-3 shadow-2xl backdrop-blur">
+      {tool === "eraser" && optionsOpen && (<ToolPopover anchor="Eraser">
+        <div data-toolbar-surface aria-label="Eraser options" className="kn-tool-options kn-pop kn-scroll absolute bottom-24 left-1/2 max-h-[calc(100dvh-168px)] w-[260px] max-w-[calc(100vw-24px)] -translate-x-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-panel/95 p-4 shadow-2xl backdrop-blur">
+          <label className="mb-3 grid gap-2 text-sm">Erase<select aria-label="Eraser mode" value={pen.eraserMode??'object'} onChange={event=>setPen({...pen,eraserMode:event.target.value as Pen['eraserMode']})} style={{minHeight:44}}><option value="object">Whole objects</option><option value="ink">Partial ink</option></select></label>
           <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Eraser size</div>
           <div className="flex items-center gap-3">
             <input
@@ -142,10 +152,10 @@ export function Toolbar({
             />
             <span className="text-sm tabular-nums text-ink">{eraserSize}px</span>
           </div>
-        </div>
+        </div></ToolPopover>
       )}
 
-      <div className="pointer-events-auto flex max-w-[calc(100vw-24px)] flex-wrap items-center justify-center gap-1 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-2xl backdrop-blur">
+      <div data-toolbar-surface className="kn-main-tools pointer-events-auto flex max-w-[calc(100vw-24px)] flex-wrap items-center justify-center gap-1 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-2xl backdrop-blur">
         {MAIN_TOOLS.map((t) => (
           <ToolButton
             key={t.id}
@@ -164,9 +174,9 @@ export function Toolbar({
             icon="shapes"
             label="Shapes"
           />
-          {shapeOpen && (
+          {shapeOpen && (<ToolPopover anchor="Shapes">
             <section className="kn-shape-palette kn-pop" aria-label="Shape palette">
-              <header><strong>Shapes</strong><button type="button" aria-label="Close shape palette" onClick={()=>setShapeOpen(false)}><Icon name="close"/></button></header>
+              <header><strong>Shapes</strong><button type="button" style={{minWidth:44,minHeight:44}} aria-label="Close shape palette" onClick={()=>setShapeOpen(false)}><Icon name="close"/></button></header>
               <div className="kn-shape-grid">
                 {SHAPES.map(s=><button type="button" key={s.id} aria-label={s.label} aria-pressed={tool===s.id} title={s.label} onClick={()=>setTool(s.id)} className={tool===s.id?'is-active':''}><Icon name={s.icon}/><span>{s.label}</span></button>)}
               </div>
@@ -178,8 +188,7 @@ export function Toolbar({
                 <label className="kn-shape-style">Fill style <select aria-label="Shape fill style" disabled={!pen.shapeFill} value={pen.shapeFillStyle??'solid'} onChange={e=>setPen({...pen,shapeFillStyle:e.target.value as Pen['shapeFillStyle']})}><option value="solid">Solid</option><option value="hachure">Hatched</option><option value="crosshatch">Crosshatched</option></select></label>
                 <label className="kn-shape-width">Corners <input type="range" min="0" max="48" aria-label="Rectangle corner radius" value={pen.shapeRoundness??0} onChange={e=>setPen({...pen,shapeRoundness:Number(e.target.value)})}/><output>{pen.shapeRoundness??0}px</output></label>
               </div>
-              <footer>{isShape ? `${SHAPES.find(s=>s.id===tool)?.label}: drag on the board to draw.` : 'Choose a shape, then drag on the board.'} Corner radius applies to rectangles.</footer>
-            </section>
+            </section></ToolPopover>
           )}
         </div>
 
@@ -211,6 +220,8 @@ function ToolButton({
 }) {
   return (
     <button
+      type="button"
+      style={{minWidth:44,minHeight:44}}
       onClick={onClick}
       disabled={disabled}
       aria-pressed={active}
