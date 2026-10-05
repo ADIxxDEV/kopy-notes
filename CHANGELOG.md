@@ -4,7 +4,7 @@
 
 - Tablet touch cancellation fixes, responsive controls, fullscreen with an iOS focus-view fallback.
 - Drag individual controls and panels, resize or hide them, save named layouts and import/export presets.
-- Normal, paint and crayon brushes; blinking laser; compact pen settings and contextual selection controls.
+- Normal, paint and crayon brushes; synchronized blinking laser pointer and drawn trail that fades after release; compact pen settings and contextual selection controls.
 - Editable or flattened PPTX/ODP import, simpler import settings and complete lesson PDF export.
 - Scientific calculator, graph presets/ranges, optional Ollama vision handwriting transcription.
 - Partial ink erasing, insert pages after the current slide, optional recorder/live comments and custom toolbar placement.

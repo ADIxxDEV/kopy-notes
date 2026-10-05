@@ -82,7 +82,7 @@ test('partial eraser cuts handwriting and Undo restores it',async({page})=>{
 });
 
 test('live comments validate sources without loading third parties automatically',async({page})=>{
-  await board(page);await activate(page,page.getByRole('button',{name:'Teaching controls',exact:true}));await page.getByLabel('Show live comments').check();
+  await board(page);await activate(page,page.getByRole('button',{name:'Teaching controls',exact:true}));await activate(page,page.getByLabel('Show live comments'));
   const comments=page.getByRole('region',{name:'Live comments',exact:true});await expect(comments).toBeVisible();await expect(comments.locator('iframe')).toHaveCount(0);
   await comments.getByLabel('YouTube video ID or live URL').fill('javascript:alert(1)');await activate(page,comments.getByRole('button',{name:'Connect',exact:true}));await expect(comments.getByRole('alert')).toBeVisible();await expect(comments.locator('iframe')).toHaveCount(0);
   await contained(page,comments);await activate(page,comments.getByRole('button',{name:'Close',exact:true}));

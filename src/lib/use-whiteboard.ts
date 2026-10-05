@@ -239,10 +239,12 @@ export function useWhiteboard(options: {
       }
     }
 
-    // fading laser strokes
+    // The temporary trail and pointer blink together, then fade without saving ink.
     const now = performance.now();
+    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const pulse=reduced?1:(now%700<400?1:.12);
     if (lasers.current.length) {
-      const life = 900;
+      const life = 1800;
       lasers.current = lasers.current.filter((l) => now - l.born < life);
       for (const l of lasers.current) {
         const alpha = 1 - (now - l.born) / life;
@@ -255,7 +257,7 @@ export function useWhiteboard(options: {
           points: l.points,
         };
         ctx.save();
-        ctx.globalAlpha = Math.max(alpha, 0);
+        ctx.globalAlpha = Math.max(alpha, 0)*pulse;
         ctx.shadowColor = "#ff2d55"; ctx.shadowBlur = 12;
         drawStroke(ctx, stroke);
         ctx.restore();
@@ -264,8 +266,6 @@ export function useWhiteboard(options: {
 
     const head=laserHead.current;
     if(head&&(now-head.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser'))){
-      const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const pulse=reduced?1:(now%700<400?1:.12);
       ctx.save();ctx.globalAlpha=(modeRef.current==='draw'&&toolRef.current==='laser'?1:Math.min(1,(1200-(now-head.last))/300))*pulse;ctx.shadowColor='#ff244b';ctx.shadowBlur=18;
       ctx.fillStyle='#ff244b';ctx.beginPath();ctx.arc(head.point.x,head.point.y,7/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff3db';ctx.beginPath();ctx.arc(head.point.x,head.point.y,2.5/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.restore();
     }
