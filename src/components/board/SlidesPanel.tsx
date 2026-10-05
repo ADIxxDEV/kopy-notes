@@ -60,8 +60,12 @@ export function SlidesPanel({pages,activePageId,onGo,onReorder,onClose,onAdd,onD
     if(!d.active){if(Math.hypot(event.clientX-d.startX,event.clientY-d.startY)>9){if(timer.current)clearTimeout(timer.current);d.scrolling=true;}if(d.scrolling){event.preventDefault();const list=d.element.closest('.kn-slides-list');if(list)list.scrollTop=d.scrollTop+d.startY-event.clientY;}return;}
     event.preventDefault();
     const list=d.element.closest('.kn-slides-list');if(list){const rect=list.getBoundingClientRect();if(event.clientY<rect.top+40)list.scrollTop-=20;else if(event.clientY>rect.bottom-40)list.scrollTop+=20;}
-    const target=document.elementsFromPoint(event.clientX,event.clientY).map(element=>element.closest<HTMLElement>('[data-slide-id]')).find(element=>element&&element.dataset.slideId!==d.id);
-    if(!target)return;const ids=[...orderRef.current],from=ids.indexOf(d.id),to=ids.indexOf(target.dataset.slideId!);if(from<0||to<0)return;
+    if(!list)return;
+    // Use row centres, including clipped rows while auto-scrolling. Hit-testing a
+    // moving/captured row can miss the final drop slot on touch screens.
+    const rows=Array.from(list.querySelectorAll<HTMLElement>('[data-slide-id]')).filter(row=>row.dataset.slideId!==d.id);
+    const to=rows.filter(row=>{const r=row.getBoundingClientRect();return event.clientY>r.top+r.height/2;}).length;
+    const ids=[...orderRef.current],from=ids.indexOf(d.id);if(from<0||from===to)return;
     ids.splice(from,1);ids.splice(to,0,d.id);orderRef.current=ids;setOrder(ids);
   };
   const commit=async(ids:string[])=>{setBusy(true);try{await onReorder(ids);setAnnouncement('Slide order saved');}catch{const original=pages.map(page=>page.id);orderRef.current=original;setOrder(original);setAnnouncement('Could not save slide order. Please try again.');}finally{setBusy(false);}};

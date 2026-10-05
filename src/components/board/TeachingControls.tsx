@@ -23,7 +23,7 @@ export function TeachingControls({layout,onLayout,recorder,backups,comments,reco
       <fieldset className="toolbar-layout"><legend>Toolbar position</legend><div>{(['bottom','left','right'] as const).map(value=><button key={value} aria-label={`Dock ${value}`} aria-pressed={layout===value} onClick={()=>onLayout(value)}>{value[0].toUpperCase()+value.slice(1)}</button>)}</div></fieldset>
       <label><input type="checkbox" checked={recorder||recording} disabled={recording} onChange={e=>onRecorder(e.target.checked)}/>Show recording controls</label>
       {recording&&<small>Stop and save the recording before hiding its controls.</small>}
-      <label><input type="checkbox" checked={comments} onChange={e=>onComments(e.target.checked)}/>Show live comments</label>
+      <label><input type="checkbox" checked={comments} onChange={e=>{onComments(e.target.checked);if(e.target.checked)setOpen(false);}}/>Show live comments</label>
       <label><input type="checkbox" checked={backups} onChange={e=>onBackups(e.target.checked)}/>Show backup controls</label>
       <button onClick={()=>setOpen(false)}>Done</button>
     </section>}

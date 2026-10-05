@@ -133,6 +133,7 @@ test('shape palette creates editable filled shapes and keeps their styles after 
   await page.getByLabel('Fill shapes').check();
   await page.getByLabel('Shape fill color').fill('#ff8800');
   await page.getByLabel('Shape line style').selectOption('dashed');
+  await page.getByRole('button',{name:'Close shape palette',exact:true}).click();
   await page.mouse.move(420,200);await page.mouse.down();await page.mouse.move(580,340,{steps:8});await page.mouse.up();
   await expect.poll(()=>page.evaluate(async()=>{const mod=await import('/src/lib/local-store.ts' as string);const res=await mod.localRequest('/api/pages/page-test');const {page:p}=await res.json();return p.objects.find((o:any)=>o.kind==='shape');})).toMatchObject({shape:'triangle',filled:true,fillColor:'#ff8800',dash:'dashed'});
   await page.getByRole('button',{name:'Select',exact:true}).click();await page.mouse.click(500,275);

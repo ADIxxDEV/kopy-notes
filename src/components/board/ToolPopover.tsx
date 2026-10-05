@@ -14,7 +14,7 @@ export function ToolPopover({anchor,children}:{anchor:string;children:ReactNode}
       if(a.right+10+r.width<=innerWidth){x=a.right+10;y=a.y;}
       else if(a.left-r.width-10>=0){x=a.left-r.width-10;y=a.y;}
       else if(y<8)y=a.bottom+10;
-      const next={x:Math.max(8,Math.min(x,innerWidth-r.width-8)),y:Math.max(8,Math.min(y,innerHeight-r.height-8))};
+      const next={x:Math.max(8,Math.min(x,innerWidth-r.width-8)),y:Math.max(8,Math.min(y,innerHeight-r.height-80))};
       setPosition(previous=>previous?.x===next.x&&previous.y===next.y?previous:next);
     };
     const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(place);};

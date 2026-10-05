@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useRef,useState,type PointerEvent} from 'react';
+import {useCallback,useEffect,useLayoutEffect,useRef,useState,type PointerEvent} from 'react';
 import {createPortal} from 'react-dom';
 import {Icon} from '@/components/Icon';
 import {CONTROL_LAYOUT_KEY,emptyControlLayout,parseControlLayout,controlCoordinates,controlPositionAt,type ControlPositions,type ControlLayoutStore} from '@/lib/control-layout';
@@ -92,7 +92,7 @@ export function ControlLayoutEditor(){
     const resize=new ResizeObserver(schedule);resize.observe(board);
     return()=>{observer.disconnect();resize.disconnect();window.removeEventListener('resize',schedule);window.visualViewport?.removeEventListener('resize',schedule);cancelAnimationFrame(frame.current);for(const e of applied.current){e.style.removeProperty('translate');e.style.removeProperty('scale');e.removeAttribute('data-layout-custom');e.removeAttribute('data-layout-hidden');}};
   },[schedule]);
-  useEffect(schedule,[store,draft,open,schedule]);
+  useLayoutEffect(measure,[store,draft,open,measure]);
   function persist(next:ControlLayoutStore){
     try{localStorage.setItem(CONTROL_LAYOUT_KEY,JSON.stringify(next));setStore(next);window.dispatchEvent(new CustomEvent('kopy-layout-updated',{detail:next.current}));return true;}
     catch{setMessage('Storage is full or unavailable. Export your layout to keep a copy.');return false;}
