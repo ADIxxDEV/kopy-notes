@@ -12,6 +12,10 @@ PDF imports retain your selected page background and warm nearby pages. Interrup
 
 Portable [theme packs](docs/THEME_PACKS.md) include colors, custom icons and background images. Small screens use a horizontal pen family and a pinnable More menu. The Windows app shows a startup screen while loading the classroom.
 
+<a href="https://www.producthunt.com/products/kopy-notes?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-kopy-notes" target="_blank" rel="noopener noreferrer"><img alt="Kopy Notes on Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1269162&amp;theme=dark&amp;t=1791361195813"></a>
+
+Join [r/kopynotes on Reddit](https://www.reddit.com/r/kopynotes/) for classroom feedback, ideas and community discussions.
+
 ## Download the development version
 
 [**Download APK, Windows EXE and web ZIP**](https://github.com/ADIxxDEV/kopy-notes/releases). Version tags automatically publish development prereleases with checksums and source code. Development APKs use a test/debug signature; Windows installers are unsigned. Release workflows build the native packages; real smartboard validation is still needed.

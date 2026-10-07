@@ -1,3 +1,4 @@
+import {CommunityLinks} from '@/components/CommunityLinks';
 import {BackupConnections} from '@/components/BackupConnections';
 "use client";
 
@@ -96,7 +97,7 @@ export function SettingsPanel({
       <div className="space-y-5">
         {saveError&&<p role="alert" className="text-sm text-red-700">{saveError}</p>}
         <TeachingPreferences value={preferences} onChange={patch=>setPreferences(value=>({...value,...patch}))}/>
-        <BackupConnections/><ImportSources/>
+        <BackupConnections/><ImportSources/><CommunityLinks/>
         <Field label="App / profile name" hint="Shown everywhere in the app.">
           <input
             value={appName}

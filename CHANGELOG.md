@@ -2,6 +2,8 @@
 
 ## 0.2.0-dev.6 | 2026-10-07
 
+- Product Hunt and r/kopynotes community links in settings and setup; Product Hunt badge and Reddit community link in the GitHub README.
+
 - Keyboard persistence checks wait for the actual saved title before reloading, avoiding a race with the asynchronous database commit.
 - Floating tools reapply saved layout after viewport clamps settle, keeping panels inside the screen through repeated landscape and portrait resizing.
 
