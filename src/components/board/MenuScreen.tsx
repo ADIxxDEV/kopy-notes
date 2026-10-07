@@ -35,7 +35,7 @@ export function MenuScreen({title,icon,onClose,children,width}:{title:string;ico
     <header className="flex shrink-0 items-center gap-2 border-b border-line bg-panel-2 px-3 py-2">
       <button type="button" aria-label="Back to menu" onClick={onClose} className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-lg hover:bg-elevated"><Icon name="back"/></button>
       {icon}<h2 className="min-w-0 flex-1 text-sm font-semibold">{title}</h2>
-      <button type="button" aria-label="Close" onClick={onClose} className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-lg hover:bg-elevated"><Icon name="close"/></button>
+      <button type="button" aria-label="Close" onClick={()=>{onClose();window.dispatchEvent(new Event('kopy-close-file-menu'));}} className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-lg hover:bg-elevated"><Icon name="close"/></button>
     </header>
     <div className="kn-modal-body kn-scroll min-h-0 overflow-y-auto overscroll-contain p-4">{children}</div>
   </dialog>,root);

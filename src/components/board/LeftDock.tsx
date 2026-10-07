@@ -112,10 +112,10 @@ export function FileMenu({
   appName: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [position,setPosition]=useState<{x:number;y:number}|null>(null);
+  const [position,setPosition]=useState<{x:number;y:number;maxHeight:number}|null>(null);
   useLayoutEffect(()=>{
     let frame=0;const menu=ref.current,button=document.querySelector<HTMLElement>('[data-dock-action="file"]');
-    const place=()=>{if(!menu||!button)return;const a=button.getBoundingClientRect(),r=menu.getBoundingClientRect();const x=Math.max(8,Math.min(a.x,innerWidth-r.width-8)),y=Math.max(8,Math.min(a.y-r.height-4,innerHeight-r.height-8));setPosition(p=>p?.x===x&&p.y===y?p:{x,y});};
+    const place=()=>{if(!menu||!button)return;const a=button.getBoundingClientRect(),r=menu.getBoundingClientRect();const above=a.top-12,below=innerHeight-a.bottom-12,maxHeight=Math.max(80,Math.max(above,below));const x=Math.max(8,Math.min(a.x,innerWidth-r.width-8)),y=above>=below?Math.max(8,a.top-Math.min(r.height,maxHeight)-4):a.bottom+4;setPosition(p=>p?.x===x&&p.y===y&&p.maxHeight===maxHeight?p:{x,y,maxHeight});};
     const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(place);};
     const observer=new ResizeObserver(schedule);if(menu)observer.observe(menu);if(button)observer.observe(button);
     window.addEventListener('resize',schedule);window.addEventListener('kopy-popup-layout',schedule);window.addEventListener('kopy-layout-updated',schedule);schedule();
@@ -129,10 +129,10 @@ export function FileMenu({
     };
     const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!event.defaultPrevented)onClose();};
     document.addEventListener("pointerdown", onDown);
-    document.addEventListener('keydown',onKey);
+    document.addEventListener('keydown',onKey);window.addEventListener('kopy-close-file-menu',onClose);
     return () => {
       document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener('keydown',onKey);
+      document.removeEventListener('keydown',onKey);window.removeEventListener('kopy-close-file-menu',onClose);
     };
   }, [onClose]);
 
@@ -143,7 +143,7 @@ export function FileMenu({
       aria-label="File menu"
       className="kn-file-menu kn-pop absolute bottom-24 left-3 z-40 flex w-64 max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
       role="region"
-      style={{position:'fixed',zIndex:100,left:position?.x??8,top:position?.y??8,right:'auto',bottom:'auto',width:240,maxWidth:'calc(100vw - 16px)',maxHeight:'calc(100dvh - 16px)',visibility:position?'visible':'hidden'}}
+      style={{position:'fixed',zIndex:100,left:position?.x??8,top:position?.y??8,right:'auto',bottom:'auto',width:240,maxWidth:'calc(100vw - 16px)',maxHeight:position?.maxHeight??'calc(100dvh - 16px)',visibility:position?'visible':'hidden'}}
     >
       <div className="shrink-0 border-b border-line bg-panel-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
         {appName}

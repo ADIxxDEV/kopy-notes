@@ -89,6 +89,10 @@ test('compact menu keeps import and export screens attached on both sides and mo
   await menu.getByRole('button',{name:'Export',exact:true}).click();screen=page.getByRole('dialog',{name:'Export',exact:true});
   await contained(screen,page);await expect.poll(async()=>{const a=(await menu.boundingBox())!,b=(await screen.boundingBox())!;return Math.abs(a.x-b.x-b.width);}).toBeLessThan(1);
   await screen.press('Escape');await expect(screen).toHaveCount(0);await expect(menu).toBeVisible();
-  await page.setViewportSize({width:390,height:844});await menu.getByRole('button',{name:'Import',exact:true}).click();screen=page.getByRole('dialog',{name:'Import to board',exact:true});await contained(screen,page);
+  await page.setViewportSize({width:390,height:664});await menu.getByRole('button',{name:'Import',exact:true}).click();screen=page.getByRole('dialog',{name:'Import to board',exact:true});await contained(screen,page);
   await screen.getByRole('button',{name:'Back to menu',exact:true}).click();await expect(menu).toBeVisible();
+  await page.getByRole('button',{name:'Menu',exact:true}).click();await expect(menu).toHaveCount(0);
+  await page.getByRole('button',{name:'Menu',exact:true}).click();await menu.getByRole('button',{name:'Import',exact:true}).click();
+  await page.getByRole('dialog',{name:'Import to board',exact:true}).getByRole('button',{name:'Close',exact:true}).click();await expect(menu).toHaveCount(0);
+  await page.getByRole('button',{name:'Teaching controls',exact:true}).click();await expect(page.getByLabel('Show recording controls')).toBeVisible();
 });
