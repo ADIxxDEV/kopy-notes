@@ -1,3 +1,4 @@
+import {selectOption} from '../helpers/custom-select';
 import {test,expect,type Page} from '@playwright/test';
 import {jsPDF} from 'jspdf';
 import JSZip from 'jszip';
@@ -40,7 +41,7 @@ test('geometry, science, pressure controls and backup recovery work together',as
   await page.getByRole('button',{name:'Pen',exact:true}).click();
   await page.getByText('Writing & touch',{exact:true}).click();
   await expect(page.getByLabel('Pen pressure')).toBeChecked();
-  await page.getByLabel('Touch behavior').selectOption('reject');
+  await selectOption(page.getByLabel('Touch behavior'),'reject');
   await page.getByRole('button',{name:'Pen',exact:true}).click();
   await page.getByRole('button',{name:'Treasure box',exact:true}).click();
   await page.getByRole('button',{name:'Ruler',exact:true}).click();
@@ -132,7 +133,7 @@ test('shape palette creates editable filled shapes and keeps their styles after 
   await page.getByRole('button',{name:'Triangle',exact:true}).click();
   await page.getByLabel('Fill shapes').check();
   await page.getByLabel('Shape fill color').fill('#ff8800');
-  await page.getByLabel('Shape line style').selectOption('dashed');
+  await selectOption(page.getByLabel('Shape line style'),'dashed');
   await page.getByRole('button',{name:'Close shape palette',exact:true}).click();
   await page.mouse.move(420,200);await page.mouse.down();await page.mouse.move(580,340,{steps:8});await page.mouse.up();
   await expect.poll(()=>page.evaluate(async()=>{const mod=await import('/src/lib/local-store.ts' as string);const res=await mod.localRequest('/api/pages/page-test');const {page:p}=await res.json();return p.objects.find((o:any)=>o.kind==='shape');})).toMatchObject({shape:'triangle',filled:true,fillColor:'#ff8800',dash:'dashed'});

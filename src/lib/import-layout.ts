@@ -1,12 +1,13 @@
 export type ImportFrame={x:number;y:number;width:number;height:number};
 export type ImportAlignment='top-left'|'top-center'|'top-right'|'center-left'|'center'|'center-right'|'bottom-left'|'bottom-center'|'bottom-right';
-export type ImportLayout={sizing:'fit'|'original';frameWidth:number;frameHeight:number;alignment:ImportAlignment;locked?:boolean;margins:{top:number;right:number;bottom:number;left:number}};
+export type ImportLayout={sizing:'fit'|'fill'|'original';frameWidth:number;frameHeight:number;alignment:ImportAlignment;locked?:boolean;margins:{top:number;right:number;bottom:number;left:number}};
 export const DEFAULT_IMPORT_LAYOUT:ImportLayout={sizing:'fit',frameWidth:1280,frameHeight:720,alignment:'center',locked:true,margins:{top:0,right:0,bottom:0,left:0}};
 export function orientImportFrame(width:number,height:number,orientation:'portrait'|'landscape'){
  return orientation==='portrait'?{frameWidth:Math.min(width,height),frameHeight:Math.max(width,height)}:{frameWidth:Math.max(width,height),frameHeight:Math.min(width,height)};
 }
 export const MM_TO_DIGITAL_PX=96/25.4;
 export function validateImportLayout(layout:ImportLayout){
+ if(!['fit','fill','original'].includes(layout.sizing)||!['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'].includes(layout.alignment))throw new Error('Choose a valid document fit and alignment.');
  for(const v of [layout.frameWidth,layout.frameHeight])if(!Number.isFinite(v)||v<200||v>16000)throw new Error('Frame dimensions must be between 200 and 16000 pixels.');
  for(const v of Object.values(layout.margins))if(!Number.isFinite(v)||v<0||v>1000)throw new Error('Margins must be between 0 and 1000 mm.');
  if((layout.margins.left+layout.margins.right)*MM_TO_DIGITAL_PX>=layout.frameWidth||(layout.margins.top+layout.margins.bottom)*MM_TO_DIGITAL_PX>=layout.frameHeight)throw new Error('Margins leave no room for the document. Reduce them or increase the frame size.');
@@ -19,7 +20,7 @@ export function placeImportedMedia(source:{width:number;height:number},layout:Im
  const left=layout.margins.left*MM_TO_DIGITAL_PX,top=layout.margins.top*MM_TO_DIGITAL_PX;
  const usableWidth=layout.frameWidth-left-layout.margins.right*MM_TO_DIGITAL_PX,usableHeight=layout.frameHeight-top-layout.margins.bottom*MM_TO_DIGITAL_PX;
  const scale=layout.sizing==='original'?1:Math.min(usableWidth/source.width,usableHeight/source.height);
- const width=source.width*scale,height=source.height*scale;
+ const width=layout.sizing==='fill'?usableWidth:source.width*scale,height=layout.sizing==='fill'?usableHeight:source.height*scale;
  const horizontal=layout.alignment.endsWith('left')?0:layout.alignment.endsWith('right')?1:.5,vertical=layout.alignment.startsWith('top')?0:layout.alignment.startsWith('bottom')?1:.5;
  const x=frame.x+left+(usableWidth-width)*horizontal,y=frame.y+top+(usableHeight-height)*vertical;
  // Original-size documents can exceed the requested frame; include the overflow when fitting the view.

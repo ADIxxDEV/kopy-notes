@@ -1,3 +1,4 @@
+import {SmartKeyboard} from '@/components/SmartKeyboard';
 import { createRoot } from 'react-dom/client';
 import { useEffect } from 'react';
 import { AppProvider } from '@/lib/app-context';
@@ -16,6 +17,6 @@ function App() {
   const location = useLocation();
   useEffect(() => { void navigator.storage?.persist?.(); }, []);
   const page = location.startsWith('/board/') ? <Board key={location.split('?')[0]}/> : location.startsWith('/library') ? <Library/> : location === '/onboarding' ? <Onboarding/> : <Home/>;
-  return <AppProvider><ToastProvider>{page}</ToastProvider></AppProvider>;
+  return <AppProvider><ToastProvider>{page}<SmartKeyboard/></ToastProvider></AppProvider>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);

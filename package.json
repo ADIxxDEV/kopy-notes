@@ -1,6 +1,6 @@
 {
   "name": "kopy-notes",
-  "version": "0.2.0-dev.4",
+  "version": "0.2.0-dev.5",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -30,8 +30,10 @@
     "mammoth": "1.13.0",
     "mathjs": "15.2.0",
     "pdfjs-dist": "6.3.289",
+    "perfect-freehand": "^1.2.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "simple-keyboard": "^3.8.192"
   },
   "devDependencies": {
     "@capacitor/cli": "8.4.3",

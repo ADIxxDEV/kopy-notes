@@ -1,3 +1,4 @@
+import {CustomSelect} from '@/components/CustomSelect';
 "use client";
 import { localRequest } from "@/lib/local-store";
 
@@ -150,7 +151,7 @@ function LibraryInner() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium">Subject</label>
-              <select
+              <CustomSelect aria-label="Subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="kn-focus w-full rounded-xl border border-line bg-base-2 px-4 py-2.5"
@@ -160,7 +161,7 @@ function LibraryInner() {
                     {s}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium">Cover colour</label>

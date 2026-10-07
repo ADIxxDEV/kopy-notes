@@ -1,4 +1,6 @@
+import {interfaceSettings} from './interface-settings';
 "use client";
+import {BUILTIN_THEMES} from './theme-pack';
 import { localRequest } from "@/lib/local-store";
 
 import {
@@ -10,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AppProfile } from "@/db/schema";
+declare global {interface Window {kopyStartup?:{ready:()=>void;retry:()=>void}}}
 
 const DEFAULT_PROFILE: AppProfile = {
   id: 1,
@@ -60,6 +63,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void reload();
   }, [reload]);
+  useEffect(()=>{if(!loading)window.kopyStartup?.ready();},[loading]);
 
   // The user-defined name is shown as the document title everywhere.
   useEffect(() => {
@@ -83,6 +87,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [profile.accent]);
 
+  useEffect(()=>{
+    const t=profile.theme??BUILTIN_THEMES[0];
+    for(const [key,color] of Object.entries(t.colors))document.documentElement.style.setProperty(`--theme-${key}`,color);
+    const root=document.documentElement;
+    for(const [key,color] of Object.entries({panel:t.colors.panel,'panel-2':t.colors.surface,'base':t.colors.surface,'base-2':t.colors.surface,elevated:t.colors.surface,line:t.colors.line,ink:t.colors.ink,muted:t.colors.muted,faint:t.colors.muted}))root.style.setProperty(`--color-${key}`,color);
+    root.style.setProperty('--tool-popup-gap',`${interfaceSettings(profile.ui).popupGap}px`);
+    window.dispatchEvent(new Event('kopy-popup-layout'));
+  },[profile.theme,profile.ui]);
+
   const updateProfile = useCallback(
     async (patch: Partial<AppProfile>) => {
       // Optimistic update for a snappy feel.
@@ -91,7 +104,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const res = await localRequest("/api/profile", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(patch),
+          body: JSON.stringify({...patch,...('boardImage' in patch?{boardImage:patch.boardImage??''}:{})}),
         });
         if (!res.ok) throw new Error("bad status");
         const data = (await res.json()) as { profile: AppProfile };

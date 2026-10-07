@@ -1,3 +1,4 @@
+import {loadBackgroundImage} from './background-image';
 import type {MediaItem, Page, Watermark} from '@/db/schema';
 import {drawBackground, drawObject, isColorDark, objectBounds, type Bounds} from './render';
 
@@ -95,7 +96,7 @@ async function drawExportMedia(ctx: CanvasRenderingContext2D, item: MediaItem, s
     }
     ctx.save();
     try {
-      ctx.translate(item.x + item.width / 2, item.y + item.height / 2); ctx.rotate(item.rotation);
+      ctx.translate(item.x + item.width / 2, item.y + item.height / 2); ctx.rotate(item.rotation);ctx.scale(item.mirrorX?-1:1,item.mirrorY?-1:1);
       ctx.drawImage(source, -item.width / 2, -item.height / 2, item.width, item.height);
     } finally {ctx.restore();}
   } finally {
@@ -128,7 +129,7 @@ export async function renderExportPage(page: Page, watermark?: Watermark): Promi
   ctx = canvas.getContext('2d')!;
   const sx = size.width / bounds.w, sy = size.height / bounds.h;
   try {
-    drawBackground(ctx, size.width, size.height, page.background, 'none', 1);
+    drawBackground(ctx, size.width, size.height, page.background, 'none', 1,page.backgroundImage?await loadBackgroundImage(page.backgroundImage):undefined);
     // Bound pattern work as well as raster allocation on very large boards.
     // Spacing below four output pixels is consolidated to stay legible.
     if (page.pattern !== 'none') {
@@ -140,6 +141,10 @@ export async function renderExportPage(page: Page, watermark?: Watermark): Promi
       if (page.pattern === 'lines' || page.pattern === 'grid') {
         for (let y = 0; y < size.height; y += stepY) {ctx.moveTo(0, y); ctx.lineTo(size.width, y);}
         ctx.stroke();
+      } else if(page.pattern==='staff'||page.pattern==='handwriting'){
+        const gap=Math.max(4,(page.pattern==='staff'?10:16)*sy),group=Math.max(20,(page.pattern==='staff'?100:80)*sy);ctx.beginPath();for(let y=32*sy;y<size.height;y+=group)for(let n=0;n<(page.pattern==='staff'?5:3);n++){ctx.moveTo(0,y+n*gap);ctx.lineTo(size.width,y+n*gap);}ctx.stroke();
+      } else if(page.pattern==='isometric'){
+        const gap=Math.max(8,40*sx);ctx.beginPath();for(let x=-size.height*2;x<size.width+size.height*2;x+=gap){ctx.moveTo(x,0);ctx.lineTo(x+size.height/1.732,size.height);ctx.moveTo(x,0);ctx.lineTo(x-size.height/1.732,size.height);}for(let y=0;y<size.height;y+=Math.max(8,34.64*sy)){ctx.moveTo(0,y);ctx.lineTo(size.width,y);}ctx.stroke();
       } else if (page.pattern === 'dots') {
         for (let x = stepX; x < size.width; x += stepX) for (let y = stepY; y < size.height; y += stepY) {
           ctx.beginPath(); ctx.arc(x, y, Math.max(.5, 1.4 * sx), 0, Math.PI * 2); ctx.fill();
@@ -149,7 +154,7 @@ export async function renderExportPage(page: Page, watermark?: Watermark): Promi
     ctx.setTransform(sx, 0, 0, sy, -bounds.x * sx, -bounds.y * sy);
     drawWatermark(ctx, page, bounds, watermark);
     for (const item of page.media) await drawExportMedia(ctx, item, Math.max(sx, sy));
-    for (const object of page.objects) drawObject(ctx, object);
+    for (const object of page.objects)if(object.kind!=='stroke'||object.tool!=='laser')drawObject(ctx, object);
     return canvas;
   } catch (error) {canvas.width = 0; canvas.height = 0; throw error;}
 }

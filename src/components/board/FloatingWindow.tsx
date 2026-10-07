@@ -1,3 +1,4 @@
+import {controlCoordinates,CONTROL_LAYOUT_KEY,parseControlLayout} from '@/lib/control-layout';
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -26,6 +27,9 @@ export function FloatingWindow({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId=`panel-${title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)}`;
+  const [pinned,setPinned]=useState(()=>{try{return localStorage.getItem(`kopy-pin-${panelId}`)==='true';}catch{return false;}});
+  useEffect(()=>{try{localStorage.setItem(`kopy-pin-${panelId}`,String(pinned));}catch{}},[pinned,panelId]);
+  const restored=useRef(false);
   const [floating,setFloating]=useState(()=>{try{const p=JSON.parse(localStorage.getItem('kopy-control-layout-v1')||'null')?.current?.[panelId];return p? p.floating!==false:false;}catch{return false;}});
   const [viewport, setViewport] = useState({width:window.innerWidth,height:window.innerHeight});
   const actualWidth = Math.min(width, viewport.width - 16);
@@ -41,6 +45,10 @@ export function FloatingWindow({
   useLayoutEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
+    if(!restored.current){
+      restored.current=true;
+      try{const saved=parseControlLayout(JSON.parse(localStorage.getItem(CONTROL_LAYOUT_KEY)??'null')).current[panelId];if(saved){const r=panel.getBoundingClientRect();setPos(controlCoordinates(saved,{width:r.width,height:r.height},{width:innerWidth,height:innerHeight}));}}catch{}
+    }
     const clamp = () => setPos(previous => {
       const next = constrain(previous);
       return next.x===previous.x && next.y===previous.y ? previous : next;
@@ -55,7 +63,7 @@ export function FloatingWindow({
   useEffect(()=>{const changed=(event:Event)=>{const positions=(event as CustomEvent).detail;setFloating(positions?.[panelId]?.floating!==false&&!!positions?.[panelId]);};window.addEventListener('kopy-layout-updated',changed);return()=>window.removeEventListener('kopy-layout-updated',changed);},[panelId]);
 
   function onHeaderPointerDown(e: React.PointerEvent) {
-    if ((e.target as HTMLElement).closest('button')) return;
+    if (pinned||(e.target as HTMLElement).closest('button')) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
     drag.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
   }
@@ -89,10 +97,11 @@ export function FloatingWindow({
         style={{touchAction:'none'}}
         className="sticky top-0 z-10 flex cursor-grab active:cursor-grabbing items-center justify-between gap-2 border-b border-line bg-panel-2 px-3 py-2"
       >
-        <div className="flex items-center gap-2 text-sm font-semibold">
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold">
           {icon && <span className="text-base leading-none">{icon}</span>}
-          <span>{title}</span>
+          <span className="truncate">{title}</span>
         </div>
+<button type="button" aria-label={`Pin ${title}`} title={`Pin ${title}`} aria-pressed={pinned} className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-md" onClick={()=>setPinned(value=>!value)}><Icon name="pin" className="h-4 w-4"/></button>
         <button
           type="button" aria-label={floating?`Dock ${title}`:`Float ${title}`} title={floating?'Dock to edge':'Make floating'}
           className="kn-focus grid h-11 w-11 shrink-0 place-items-center rounded-md text-muted hover:bg-elevated"

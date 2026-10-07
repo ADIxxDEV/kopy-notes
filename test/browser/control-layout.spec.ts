@@ -1,3 +1,4 @@
+import {selectOption} from '../helpers/custom-select';
 import {test,expect} from '@playwright/test';
 
 test('individual controls and named layouts survive reload, Cancel and tablet rotation',async({page})=>{
@@ -8,7 +9,7 @@ test('individual controls and named layouts survive reload, Cancel and tablet ro
     const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Layout regression'})})).json();location.hash=`/board/${notebook.id}`;
   });
   const launch=page.getByRole('button',{name:'Customize control layout',exact:true});await launch.click();
-  await page.getByLabel('Layout control',{exact:true}).selectOption('tool-pen');
+  await selectOption(page.getByLabel('Layout control',{exact:true}),'tool-pen');
   await page.getByLabel('Floating control',{exact:true}).check();
   const target=page.getByRole('button',{name:'Move Pen',exact:true});await target.focus();
   for(let i=0;i<8;i++)await target.press('Shift+ArrowUp');

@@ -1,6 +1,6 @@
 # Arrange your classroom controls
 
-Controls dock against the screen edges by default. On tablets, drawing tools use the left edge, slide thumbnails open on the right, and file/page controls sit at the bottom corners. Smaller screens scroll the vertical tool dock.
+Controls dock against the screen edges by default. Drawing tools stay horizontal at the bottom on phones and tablets; secondary tools move into More, where teachers can pin them back. Left/right tool docking is available only when explicitly selected. Slide thumbnails open on the right, with file/page controls at the corners.
 
 Open **Teaching controls → Customize all controls**, or tap the layout icon on the right edge.
 
@@ -18,3 +18,7 @@ Layouts use proportional positions so they stay reachable when a tablet rotates.
 Export downloads `kopy-control-layouts.json`, containing the current layout and up to 20 presets. Import restores it on another device. Layouts are stored in this browser profile, separately from lesson content; export a copy before clearing site data.
 
 The layout editor itself can be moved by its header or minimized to reach controls behind it. The layout launcher stays on the screen edge so hidden controls can always be restored.
+
+Tool windows restore their last position and docking mode. Pin a window to prevent header dragging; pin state and open tools are remembered across restarts. Ruler, compass and other instrument positions, sizes and angles are also kept locally.
+
+Text fields open the on-screen keyboard automatically. Choose floating or bottom docking; the last mode and floating position are saved. The keyboard processes text locally and works with the offline app.

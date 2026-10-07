@@ -1,3 +1,5 @@
+import {LoadingOverlay} from '@/components/LoadingOverlay';
+import {CustomSelect} from '@/components/CustomSelect';
 "use client";
 import { importPdfPages } from "@/lib/pdf-pages";
 import { importLesson } from "@/lib/lesson-bundle";
@@ -37,8 +39,8 @@ export function ImportPanel({
   const [picked, setPicked] = useState<Picked[]>([]);
   const [pdfMode,setPdfMode]=useState("pages");
   const [presentationMode,setPresentationMode]=useState<'editable'|'flattened'>('editable');
-  const [layout,setLayout]=useState<ImportLayout>(()=>({...DEFAULT_IMPORT_LAYOUT,margins:{...DEFAULT_IMPORT_LAYOUT.margins}}));
-  const [framePreset,setFramePreset]=useState('16:9');
+  const [layout,setLayout]=useState<ImportLayout>(()=>({...DEFAULT_IMPORT_LAYOUT,sizing:'fill',frameWidth:1280,frameHeight:Math.max(200,Math.min(16000,1280*(document.querySelector<HTMLCanvasElement>('.kn-canvas-surface')?.clientHeight??720)/(document.querySelector<HTMLCanvasElement>('.kn-canvas-surface')?.clientWidth??1280))),margins:{...DEFAULT_IMPORT_LAYOUT.margins}}));
+  const [framePreset,setFramePreset]=useState('board');
   const [previewSize,setPreviewSize]=useState({width:600,height:900});
   useEffect(()=>{let cancelled=false;const file=picked.find(p=>p.kind==='image')?.file;setPreviewSize({width:600,height:900});if(file)void imageSize(file).then(d=>{if(!cancelled)setPreviewSize({width:d.w,height:d.h});}).catch(()=>{});return()=>{cancelled=true;};},[picked]);
   let placementError='';let placementPreview:ReturnType<typeof placeImportedMedia>|undefined;try{placementPreview=placeImportedMedia(previewSize,layout,{x:layout.frameWidth/2,y:layout.frameHeight/2});}catch(error){placementError=error instanceof Error?error.message:'Check the frame and margins.';}
@@ -54,7 +56,7 @@ export function ImportPanel({
         continue;
       }
       if (file.name.toLowerCase().endsWith('.kopy')) {
-        void importLesson(file).then(id => router.push(`/board/${id}`)).catch(error => push(error.message, "error"));
+        setBusy(true);void importLesson(file).then(id => router.push(`/board/${id}`)).catch(error => push(error.message, "error")).finally(()=>setBusy(false));
         continue;
       }
       list.push({ file, ...classifyFile(file) });
@@ -70,6 +72,7 @@ export function ImportPanel({
     }
     try{validateImportLayout(layout);}catch(error){push(error instanceof Error?error.message:'Invalid import placement.','error');return;}
     setBusy(true);
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
     const items: MediaItem[] = [];
     const frames:ImportFrame[]=[];
     let addedPages = 0;
@@ -165,6 +168,7 @@ export function ImportPanel({
       onClose={onClose}
       width={620}
     >
+      {busy&&<LoadingOverlay detail="Importing document"/>}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -224,17 +228,17 @@ export function ImportPanel({
         </div>
       )}
 
-      {picked.some(p=>p.kind==='pdf')&&(<label className="mb-4 block text-sm">PDF import mode<select aria-label="PDF import mode" value={pdfMode} onChange={e=>setPdfMode(e.target.value)} className="mt-1 block w-full rounded border border-line p-2"><option value="pages">One board page per PDF page</option><option value="object">PDF object on current page</option></select></label>)}
+      {picked.some(p=>p.kind==='pdf')&&(<label className="mb-4 block text-sm">PDF import mode<CustomSelect aria-label="PDF import mode" value={pdfMode} onChange={e=>setPdfMode(e.target.value)} className="mt-1 block w-full rounded border border-line p-2"><option value="pages">One board page per PDF page</option><option value="object">PDF object on current page</option></CustomSelect></label>)}
       {picked.some(p=>p.kind==='presentation')&&<fieldset disabled={busy} className="mb-4 rounded-xl border border-line p-3"><legend className="px-2 text-sm font-semibold">Presentation</legend><div className="grid grid-cols-2 gap-2">{(['editable','flattened'] as const).map(mode=><button type="button" key={mode} aria-pressed={presentationMode===mode} onClick={()=>setPresentationMode(mode)} className={`min-h-16 rounded-lg border p-3 text-left text-sm ${presentationMode===mode?'border-brand bg-brand/10':'border-line'}`}><strong className="block">{mode==='editable'?'Editable elements':'Flattened slides'}</strong><span className="mt-1 block text-xs text-muted">{mode==='editable'?'Move and edit text, shapes and images':'One image per slide; write over it'}</span></button>)}</div><p className="mt-2 text-xs text-muted">Complex layouts may differ in either mode. Use PDF for closer fidelity.</p></fieldset>}
 
       {placementError&&<p role="alert" className="mb-3 rounded-lg border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-200">{placementError}</p>}
       <fieldset disabled={busy} className="mb-4 rounded-xl border border-line p-4"><legend className="px-2 text-sm font-semibold">Page layout</legend>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <label>Size<select aria-label="Import size" value={layout.sizing} onChange={e=>setLayout(v=>({...v,sizing:e.target.value as ImportLayout['sizing']}))} className="mt-1 block w-full rounded border border-line p-2"><option value="fit">Fit frame, preserve proportions</option><option value="original">Original size</option></select></label>
-          <label>Frame<select aria-label="Import frame" value={framePreset} onChange={e=>{setFramePreset(e.target.value);if(e.target.value!=='custom')setLayout(v=>({...v,...orientImportFrame(e.target.value==='16:9'?1280:1024,e.target.value==='16:9'?720:768,v.frameWidth>=v.frameHeight?'landscape':'portrait')}));}} className="mt-1 block w-full rounded border border-line p-2"><option value="16:9">Widescreen 16:9 / 9:16</option><option value="4:3">Classic 4:3 / 3:4</option><option value="custom">Custom frame</option></select></label>
-          <label >Page orientation<select aria-label="Import page orientation" value={layout.frameWidth>=layout.frameHeight?'landscape':'portrait'} onChange={e=>setLayout(v=>({...v,...orientImportFrame(v.frameWidth,v.frameHeight,e.target.value as 'portrait'|'landscape')}))} className="mt-1 block w-full rounded border border-line p-2"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></select><span className="mt-1 block text-xs text-muted">{layout.frameWidth} × {layout.frameHeight} px</span></label>
+          <label>Size<CustomSelect aria-label="Import size" value={layout.sizing} onChange={e=>setLayout(v=>({...v,sizing:e.target.value as ImportLayout['sizing']}))} className="mt-1 block w-full rounded border border-line p-2"><option value="fill">Fill board (stretch, no borders)</option><option value="fit">Fit frame, preserve proportions</option><option value="original">Original size</option></CustomSelect></label>
+          <label>Frame<CustomSelect aria-label="Import frame" value={framePreset} onChange={e=>{setFramePreset(e.target.value);if(e.target.value==='board'){const canvas=document.querySelector<HTMLCanvasElement>('.kn-canvas-surface');setLayout(v=>({...v,frameWidth:1280,frameHeight:Math.max(200,Math.min(16000,1280*(canvas?.clientHeight??720)/(canvas?.clientWidth??1280)))}));}else if(e.target.value!=='custom')setLayout(v=>({...v,...orientImportFrame(e.target.value==='16:9'?1280:1024,e.target.value==='16:9'?720:768,v.frameWidth>=v.frameHeight?'landscape':'portrait')}));}} className="mt-1 block w-full rounded border border-line p-2"><option value="board">Current board</option><option value="16:9">Widescreen 16:9 / 9:16</option><option value="4:3">Classic 4:3 / 3:4</option><option value="custom">Custom frame</option></CustomSelect></label>
+          <label >Page orientation<CustomSelect aria-label="Import page orientation" value={layout.frameWidth>=layout.frameHeight?'landscape':'portrait'} onChange={e=>setLayout(v=>({...v,...orientImportFrame(v.frameWidth,v.frameHeight,e.target.value as 'portrait'|'landscape')}))} className="mt-1 block w-full rounded border border-line p-2"><option value="landscape">Landscape</option><option value="portrait">Portrait</option></CustomSelect><span className="mt-1 block text-xs text-muted">{layout.frameWidth} × {layout.frameHeight} px</span></label>
           {framePreset==='custom'&&<><label>Width (px)<input aria-label="Import frame width" type="number" min="200" max="16000" value={layout.frameWidth} onChange={e=>setLayout(v=>({...v,frameWidth:Number(e.target.value)}))} className="mt-1 w-full rounded border border-line p-2"/></label><label>Height (px)<input aria-label="Import frame height" type="number" min="200" max="16000" value={layout.frameHeight} onChange={e=>setLayout(v=>({...v,frameHeight:Number(e.target.value)}))} className="mt-1 w-full rounded border border-line p-2"/></label></>}
-          <label >Alignment<select aria-label="Import alignment" value={layout.alignment} onChange={e=>setLayout(v=>({...v,alignment:e.target.value as ImportLayout['alignment']}))} className="mt-1 block w-full rounded border border-line p-2">{(['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'] as const).map(anchor=><option key={anchor} value={anchor}>{anchor==='center'?'Centered':anchor.replaceAll('-',' ').replace(/^\w/,c=>c.toUpperCase())}</option>)}</select></label>
+          <label >Alignment<CustomSelect aria-label="Import alignment" value={layout.alignment} onChange={e=>setLayout(v=>({...v,alignment:e.target.value as ImportLayout['alignment']}))} className="mt-1 block w-full rounded border border-line p-2">{(['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'] as const).map(anchor=><option key={anchor} value={anchor}>{anchor==='center'?'Centered':anchor.replaceAll('-',' ').replace(/^\w/,c=>c.toUpperCase())}</option>)}</CustomSelect></label>
         </div>
         <p className="mb-2 mt-3 text-xs font-medium">Margins (mm)</p><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{(['top','right','bottom','left'] as const).map(edge=><label key={edge} className="text-xs capitalize">{edge}<input aria-label={`Import ${edge} margin`} type="number" min="0" max="1000" step="1" value={layout.margins[edge]} onChange={e=>setLayout(v=>({...v,margins:{...v.margins,[edge]:Number(e.target.value)}}))} className="mt-1 w-full rounded border border-line p-2"/></label>)}</div>
         <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" aria-label="Lock imported document" checked={layout.locked??false} onChange={e=>setLayout(v=>({...v,locked:e.target.checked}))}/>Fix document in place</label>

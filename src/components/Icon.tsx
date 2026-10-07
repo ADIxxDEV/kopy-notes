@@ -3,6 +3,14 @@ import type { SVGProps } from "react";
 // Feather-style 24x24 stroke icons, keyed by name, so toolbars stay crisp at
 // any size without shipping an icon dependency.
 export const ICON_PATHS = {
+  pin: ["M9 3h6l-1 6 4 4H6l4-4-1-6z", "M12 13v8"],
+  keyboard: ["M2 5h20v14H2z", "M5 9h1m3 0h1m3 0h1m3 0h1M5 12h1m3 0h1m3 0h1m3 0h1M6 16h12"],
+  autoShape: ["M3 20l4-12 7-5 7 7-3 11-9-3-6 2z", "M16 3v6", "M13 6h6"],
+  selectionEraser: ["M3 7V3h4", "M17 3h4v4", "M21 17v4h-4", "M7 21H3v-4", "M3 10v4", "M21 10v4", "M10 3h4", "M10 21h4", "M7 13l6-6 4 4-6 6H9l-2-2z"],
+  objectEraser: ["M3 15l9-9 7 7-7 7H8z", "M6 12l7 7", "M19 2v6", "M16 5h6"],
+  clearAnnotations: ["M3 7h18", "M8 7V4h8v3", "M5 7l2 14h10l2-14", "M10 11v6", "M14 11v6"],
+  flipHorizontal: ["M12 2v20", "M3 6v12l6-6-6-6z", "M21 6v12l-6-6 6-6z"],
+  flipVertical: ["M2 12h20", "M6 3h12l-6 6-6-6z", "M6 21h12l-6-6-6 6z"],
   select: ["M3 3l7.5 18 2.5-7 7-2.5L3 3z"],
   pen: [
     "M12 19l7-7 3 3-7 7-3-3z",

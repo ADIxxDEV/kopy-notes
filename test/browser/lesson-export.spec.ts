@@ -1,3 +1,4 @@
+import {selectOption} from '../helpers/custom-select';
 import {test, expect} from '@playwright/test';
 import {jsPDF} from 'jspdf';
 
@@ -63,14 +64,14 @@ test('PDF panel waits for a ready document and lets the user download current or
   await page.getByRole('button', {name: 'Menu', exact: true}).click();
   await page.getByRole('region', {name: 'File menu'}).getByRole('button', {name: 'Export', exact: true}).click();
   await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toHaveCount(0);
-  await page.getByLabel('Pages to export').selectOption('all');
+  await selectOption(page.getByLabel('Pages to export'),'all');
   await page.getByRole('button', {name: 'Prepare PDF', exact: true}).click();
   await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toBeVisible();
   await expect(page.getByRole('dialog')).toBeVisible();
   const allDownload = page.waitForEvent('download');
   await page.getByRole('link', {name: 'Download PDF', exact: true}).click();
   expect((await allDownload).suggestedFilename()).toBe('PDF lesson.pdf');
-  await page.getByLabel('Pages to export').selectOption('current');
+  await selectOption(page.getByLabel('Pages to export'),'current');
   await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toHaveCount(0);
   await page.getByRole('button', {name: 'Prepare PDF', exact: true}).click();
   await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toBeVisible();

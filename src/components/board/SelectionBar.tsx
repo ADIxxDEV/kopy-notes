@@ -1,3 +1,6 @@
+import {CustomSelect} from '@/components/CustomSelect';
+import {SideSettings} from './SideSettings';
+import type {ObjectTransform} from '@/lib/object-transform';
 "use client";
 import './selection-properties.css';
 import {useLayoutEffect,useRef,useState} from 'react';
@@ -19,7 +22,7 @@ export function SelectionBar({
   onMediaProperties,onPlaceMedia,
   onPdfPage,
   onDeselect,
-  onEditText,
+  onEditText,onTransform,
 }: {
   anchor:{x:number;y:number;width:number;height:number};
   count:number;onResize:(factor:number)=>void;onSelectAll:()=>void;
@@ -34,7 +37,7 @@ export function SelectionBar({
   onPlaceMedia:(align:'left'|'center'|'right',fit?:boolean)=>void;
   onPdfPage: (delta: number) => void;
   onDeselect: () => void;
-  onEditText: () => void;
+  onEditText: () => void;onTransform:(action:ObjectTransform)=>void;
 }) {
   const isObject = selection.kind === "object";
   const panel=useRef<HTMLDivElement>(null);
@@ -81,6 +84,12 @@ export function SelectionBar({
       <button type="button" onClick={onDuplicate} aria-label="Duplicate" title="Duplicate"><Icon name="copy" className="h-5 w-5"/></button>
       <button type="button" onClick={onDelete} aria-label="Delete" title="Delete" className="selection-delete"><Icon name="trash" className="h-5 w-5"/></button>
       </div>
+      <SideSettings label="Rotate & mirror"><div className="selection-transforms">
+        <button aria-label="Rotate selection left" disabled={media?.locked} onClick={()=>onTransform('rotate-left')}><Icon name="undo"/>15 degrees</button>
+        <button aria-label="Rotate selection right" disabled={media?.locked} onClick={()=>onTransform('rotate-right')}><Icon name="redo"/>15 degrees</button>
+        <button aria-label="Mirror selection horizontally" disabled={media?.locked} onClick={()=>onTransform('mirror-x')}><Icon name="flipHorizontal"/>Horizontal</button>
+        <button aria-label="Mirror selection vertically" disabled={media?.locked} onClick={()=>onTransform('mirror-y')}><Icon name="flipVertical"/>Vertical</button>
+      </div></SideSettings>
       {media && media.kind === "pdf" && (
         <div className="selection-pdf-navigation">
           <button
@@ -119,25 +128,23 @@ export function SelectionBar({
           </div>
       )}
 
-      {media&&<details key={`document-${selection.id}`} className="selection-properties" onToggle={()=>reposition.current()}>
-        <summary>Document</summary><div>
+      {media&&<SideSettings key={`document-${selection.id}`} label="Document"><div>
           <button disabled={media.locked} onClick={()=>onPlaceMedia('center',true)}>Fit document to frame</button>
-          <label>Orientation <select aria-label="Document rotation" disabled={media.locked} value={Math.round(media.rotation*180/Math.PI)%360} onChange={e=>onMediaProperties({rotation:Number(e.target.value)*Math.PI/180})}><option value="0">Original</option><option value="90">Rotate right 90°</option><option value="180">Rotate 180°</option><option value="270">Rotate left 90°</option></select></label>
+          <label>Orientation <CustomSelect aria-label="Document rotation" disabled={media.locked} value={Math.round(media.rotation*180/Math.PI)%360} onChange={e=>onMediaProperties({rotation:Number(e.target.value)*Math.PI/180})}><option value="0">Original</option><option value="90">Rotate right 90°</option><option value="180">Rotate 180°</option><option value="270">Rotate left 90°</option></CustomSelect></label>
           <div className="document-align"><button disabled={media.locked} onClick={()=>onPlaceMedia('left')}>Left</button><button disabled={media.locked} onClick={()=>onPlaceMedia('center')}>Center</button><button disabled={media.locked} onClick={()=>onPlaceMedia('right')}>Right</button></div>
           <label><input aria-label="Lock document position" type="checkbox" checked={media.locked??false} onChange={e=>onMediaProperties({locked:e.target.checked})}/>Lock position and size</label>
           <small>Locked documents can still be annotated. Select and unlock here to move them.</small>
-        </div></details>}
-      {object?.kind==='shape' && <details key={`style-${selection.id}`} className="selection-properties" onToggle={()=>reposition.current()}>
-        <summary>Style</summary><div>
+        </div></SideSettings>}
+      {object?.kind==='shape' && <SideSettings key={`style-${selection.id}`} label="Style"><div>
           <label>Line color <input aria-label="Selected shape line color" type="color" value={object.color} onChange={e=>onShapeProperties({color:e.target.value})}/></label>
           <label>Line width <input aria-label="Selected shape line width" type="range" min="1" max="32" value={object.width} onChange={e=>onShapeProperties({width:Number(e.target.value)})}/></label>
-          <label>Line style <select aria-label="Selected shape line style" value={object.dash??'solid'} onChange={e=>onShapeProperties({dash:e.target.value as ShapeObject['dash']})}><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label>
+          <label>Line style <CustomSelect aria-label="Selected shape line style" value={object.dash??'solid'} onChange={e=>onShapeProperties({dash:e.target.value as ShapeObject['dash']})}><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></CustomSelect></label>
           <label><input aria-label="Selected shape fill" type="checkbox" checked={object.filled} onChange={e=>onShapeProperties({filled:e.target.checked})}/> Fill shape</label>
-          <label>Fill style <select aria-label="Selected shape fill style" value={object.fillStyle??'solid'} onChange={e=>onShapeProperties({fillStyle:e.target.value as ShapeObject['fillStyle']})}><option value="solid">Solid</option><option value="hachure">Hatched</option><option value="crosshatch">Crosshatched</option></select></label>
+          <label>Fill style <CustomSelect aria-label="Selected shape fill style" value={object.fillStyle??'solid'} onChange={e=>onShapeProperties({fillStyle:e.target.value as ShapeObject['fillStyle']})}><option value="solid">Solid</option><option value="hachure">Hatched</option><option value="crosshatch">Crosshatched</option></CustomSelect></label>
           {object.shape==='rect'&&<label>Corners <input aria-label="Selected shape corner radius" type="range" min="0" max="40" value={object.roundness??0} onChange={e=>onShapeProperties({roundness:Number(e.target.value)})}/></label>}
           <label>Fill color <input aria-label="Selected shape fill color" type="color" value={object.fillColor??object.color} onChange={e=>onShapeProperties({fillColor:e.target.value})}/></label>
         </div>
-      </details>}
+      </SideSettings>}
       </div>
     </div>
   );

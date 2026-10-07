@@ -1,3 +1,4 @@
+import {penOutline,drawStamp,laserOpacity,brushTexture} from './pen-strokes';
 import type {
   BoardObject,
   Point,
@@ -47,40 +48,22 @@ export function drawStroke(ctx: CanvasRenderingContext2D, stroke: StrokeObject) 
   ctx.strokeStyle = stroke.color;
   ctx.lineWidth = stroke.width;
 
-  if(stroke.tool==='pen'&&(stroke.brush==='paint'||stroke.brush==='crayon')){
-    // Deterministic bristles: redraws and exports keep the same texture.
-    const crayon=stroke.brush==='crayon',count=crayon?7:5;
-    for(let strand=0;strand<count;strand++){
-      ctx.globalAlpha=inheritedAlpha*(crayon?.28:.34);
-      ctx.lineWidth=Math.max(.35,stroke.width/(crayon?9:4));
-      if(crayon)ctx.setLineDash([Math.max(.6,stroke.width*.22),Math.max(.4,stroke.width*.14)]);
-      ctx.lineDashOffset=strand*.73;
-      ctx.beginPath();
-      for(let i=0;i<pts.length;i++){
-        const p=pts[i],previous=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+1)];
-        const angle=Math.atan2(next.y-previous.y,next.x-previous.x)+Math.PI/2;
-        const pressure=p.p===undefined?1:.2+.8*p.p;
-        const offset=(strand/(count-1)-.5)*stroke.width*.8*pressure;
-        const x=p.x+Math.cos(angle)*offset,y=p.y+Math.sin(angle)*offset;
-        if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-        if(pts.length===1){ctx.fillStyle=stroke.color;ctx.fillRect(x,y,Math.max(.5,stroke.width/5),Math.max(.5,stroke.width/5));}
-      }
-      ctx.stroke();
+  if(stroke.tool==='laser'){ctx.globalAlpha*=laserOpacity(stroke,performance.now(),typeof window!=='undefined'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);ctx.shadowColor=stroke.color;ctx.shadowBlur=Math.max(12,stroke.width*4);}
+  if(stroke.brush==='stamp'){
+    let previous:{x:number;y:number}|undefined;for(const p of pts){if(previous&&dist(previous,p)<Math.max(12,stroke.width*1.4))continue;drawStamp(ctx,stroke.stamp??'smile',p.x,p.y,Math.max(12,stroke.width),stroke.color);previous=p;}ctx.restore();return;
+  }
+  if(stroke.tool==='pen'){
+    const outline=penOutline(stroke);
+    if(outline.length){
+      ctx.beginPath();ctx.moveTo(outline[0][0],outline[0][1]);for(let i=1;i<outline.length;i++)ctx.lineTo(outline[i][0],outline[i][1]);ctx.closePath();
+      const textured=['paint','crayon','pencil'].includes(stroke.brush??'');
+      ctx.fillStyle=stroke.color;
+      ctx.globalAlpha=inheritedAlpha*(stroke.brush==='pencil'?.3:stroke.brush==='crayon'?.32:stroke.brush==='paint'?.86:1);ctx.fill();
+      if(textured){const pigment=brushTexture(ctx,stroke.brush!,stroke.color);if(pigment){ctx.fillStyle=pigment;ctx.globalAlpha=inheritedAlpha*(stroke.brush==='paint'?.5:.85);ctx.fill();}}
     }
     ctx.restore();return;
   }
 
-  if (stroke.tool === "pen" && pts.some(p => p.p !== undefined)) {
-    ctx.fillStyle = stroke.color;
-    for (let i = 0; i < pts.length; i++) {
-      const p = pts[i], previous = pts[Math.max(0, i - 1)];
-      const radius = stroke.width * (0.2 + 0.8 * Math.min(1, Math.max(0, p.p ?? 0.5))) / 2;
-      ctx.lineWidth = radius * 2;
-      ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.2, radius), 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore(); return;
-  }
   if (pts.length === 1) {
     const p = pts[0];
     ctx.beginPath();
@@ -103,6 +86,7 @@ export function drawStroke(ctx: CanvasRenderingContext2D, stroke: StrokeObject) 
   const last = pts[pts.length - 1];
   ctx.lineTo(last.x, last.y);
   ctx.stroke();
+  if(stroke.tool==='laser'){ctx.shadowBlur=0;ctx.strokeStyle='#fff7df';ctx.lineWidth=Math.max(.8,stroke.width*.35);ctx.stroke();}
   ctx.restore();
 }
 
@@ -172,7 +156,7 @@ function hatchFill(ctx:CanvasRenderingContext2D,shape:ShapeObject){
 
 export function drawShape(ctx: CanvasRenderingContext2D, shape: ShapeObject) {
   ctx.save();
-  const {x,y,w,h}=shape;ctx.translate(x+w/2,y+h/2);ctx.rotate(shape.rotation);ctx.translate(-(x+w/2),-(y+h/2));
+  const {x,y,w,h}=shape;ctx.translate(x+w/2,y+h/2);ctx.rotate(shape.rotation);if(shape.mirrorX||shape.mirrorY)ctx.scale(shape.mirrorX?-1:1,shape.mirrorY?-1:1);ctx.translate(-(x+w/2),-(y+h/2));
   ctx.globalAlpha=1;ctx.strokeStyle=shape.color;ctx.fillStyle=shape.fillColor??shape.color;ctx.lineWidth=shape.width;
   ctx.setLineDash(shape.dash==='dashed'?[shape.width*4,shape.width*3]:shape.dash==='dotted'?[0,shape.width*3]:[]);
   ctx.lineCap='round';ctx.lineJoin='round';
@@ -210,6 +194,7 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
 
 export function drawText(ctx: CanvasRenderingContext2D, item: TextObject) {
   ctx.save();
+  if(item.rotation||item.mirrorX||item.mirrorY){const b=rawObjectBounds(item,ctx),cx=b.x+b.w/2,cy=b.y+b.h/2;ctx.translate(cx,cy);ctx.rotate(item.rotation??0);ctx.scale(item.mirrorX?-1:1,item.mirrorY?-1:1);ctx.translate(-cx,-cy);}
   ctx.globalAlpha = 1;
   ctx.fillStyle = item.color;
   const font = `${item.bold ? "700 " : ""}${item.fontSize}px ${item.fontFamily}`;
@@ -245,11 +230,13 @@ export function drawBackground(
   color: string,
   pattern: string,
   dpr: number,
+  image?:CanvasImageSource|null,
 ) {
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, w, h);
+  if(image)ctx.drawImage(image,0,0,w,h);
 
   if (pattern && pattern !== "none") {
     const step = 32;
@@ -258,7 +245,12 @@ export function drawBackground(
     ctx.fillStyle = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.14)";
     ctx.lineWidth = 1;
 
-    if (pattern === "grid") {
+    if(pattern==='staff'||pattern==='handwriting'){
+      ctx.beginPath();const rows=pattern==='staff'?5:3,gap=pattern==='staff'?10:16;
+      for(let y=32;y<h;y+=pattern==='staff'?100:80)for(let n=0;n<rows;n++){ctx.moveTo(0,y+n*gap);ctx.lineTo(w,y+n*gap);}ctx.stroke();
+    }else if(pattern==='isometric'){
+      ctx.beginPath();for(let x=-h*2;x<w+h*2;x+=40){ctx.moveTo(x,0);ctx.lineTo(x+h/1.732,h);ctx.moveTo(x,0);ctx.lineTo(x-h/1.732,h);}for(let y=0;y<h;y+=34.64){ctx.moveTo(0,y);ctx.lineTo(w,y);}ctx.stroke();
+    }else if (pattern === "grid") {
       ctx.beginPath();
       for (let x = 0; x <= w; x += step) {
         ctx.moveTo(x, 0);
@@ -324,7 +316,13 @@ export function pointNearStroke(p: Point, stroke: StrokeObject, tol: number): bo
   return false;
 }
 
-export function objectBounds(obj: BoardObject, ctx?: CanvasRenderingContext2D): Bounds {
+export function objectBounds(obj:BoardObject,ctx?:CanvasRenderingContext2D):Bounds {
+  const b=rawObjectBounds(obj,ctx);if(obj.kind!=='text'||!obj.rotation)return b;
+  const cx=b.x+b.w/2,cy=b.y+b.h/2,c=Math.cos(obj.rotation),s=Math.sin(obj.rotation);
+  const pts=[[b.x,b.y],[b.x+b.w,b.y],[b.x+b.w,b.y+b.h],[b.x,b.y+b.h]].map(([x,y])=>({x:cx+(x-cx)*c-(y-cy)*s,y:cy+(x-cx)*s+(y-cy)*c}));
+  const x=Math.min(...pts.map(p=>p.x)),y=Math.min(...pts.map(p=>p.y));return{x,y,w:Math.max(...pts.map(p=>p.x))-x,h:Math.max(...pts.map(p=>p.y))-y};
+}
+function rawObjectBounds(obj: BoardObject, ctx?: CanvasRenderingContext2D): Bounds {
   if (obj.kind === "stroke") {
     const pts = obj.points;
     if (pts.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
@@ -420,8 +418,8 @@ export function recognizeShape(points:Point[],color:string,width:number):ShapeOb
   // Closed figures must have substantial size/area and a small seam.
   if(w<38||h<38||gap>diag*.10)return null;
   let area=0;for(let i=0;i<clean.length;i++){const a=clean[i],b=clean[(i+1)%clean.length];area+=a.x*b.y-b.x*a.y;}
-  if(Math.abs(area)/2<w*h*.32)return null;
-  const closed=gap>.2?[...clean,first]:clean,samples=samplePath(closed),candidates:{shape:ShapeObject['shape'];score:number;rotation:number}[]=[];
+  if(Math.abs(area)/2<w*h*.24)return null;
+  const closed=gap>.2?[...clean,first]:clean,samples=samplePath(closed),candidates:{shape:ShapeObject['shape'];score:number;rotation:number;x?:number;y?:number;w?:number;h?:number}[]=[];
   function polygonCandidate(kind:ShapeObject['shape'],vertices:Point[],rotation=0){
     const errors=samples.map(p=>Math.min(...vertices.map((a,i)=>distToSegment(p,a,vertices[(i+1)%vertices.length]))));
     const perimeter=vertices.reduce((v,a,i)=>v+dist(a,vertices[(i+1)%vertices.length]),0);
@@ -430,18 +428,33 @@ export function recognizeShape(points:Point[],color:string,width:number):ShapeOb
     if(score<.027&&Math.max(...errors)<diag*.075&&length/perimeter>.75&&length/perimeter<1.28&&coverage)candidates.push({shape:kind,score,rotation});
   }
   polygonCandidate('rect',[{x:minX,y:minY},{x:minX+w,y:minY},{x:minX+w,y:minY+h},{x:minX,y:minY+h}]);
-  for(const kind of ['diamond','triangle','righttriangle'] as const){
+  for(const kind of ['diamond','triangle','righttriangle','pentagon','hexagon','star','trapezoid','parallelogram'] as const){
     const vertices=shapeVertices({...base,shape:kind});polygonCandidate(kind,vertices);
     if(kind==='triangle'){
       // An upside-down triangle keeps the same drag bounds.
       polygonCandidate(kind,vertices.map(p=>({x:2*(minX+w/2)-p.x,y:2*(minY+h/2)-p.y})),Math.PI);
     }
   }
+  for(let degrees=15;degrees<180;degrees+=15){
+    const angle=degrees*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle),cx=minX+w/2,cy=minY+h/2;
+    const local=clean.map(p=>({x:(p.x-cx)*c+(p.y-cy)*s,y:-(p.x-cx)*s+(p.y-cy)*c}));
+    const lx=Math.min(...local.map(p=>p.x)),ly=Math.min(...local.map(p=>p.y)),lw=Math.max(...local.map(p=>p.x))-lx,lh=Math.max(...local.map(p=>p.y))-ly;
+    const ox=cx+(lx+lw/2)*c-(ly+lh/2)*s,oy=cy+(lx+lw/2)*s+(ly+lh/2)*c;
+    for(const kind of ['rect','triangle','righttriangle','pentagon','hexagon','star','trapezoid','parallelogram'] as const){
+      const template={...base,shape:kind,x:ox-lw/2,y:oy-lh/2,w:lw,h:lh};
+      const vertices=kind==='rect'?[{x:template.x,y:template.y},{x:template.x+lw,y:template.y},{x:template.x+lw,y:template.y+lh},{x:template.x,y:template.y+lh}]:shapeVertices(template);
+      const rotated=vertices.map(p=>({x:ox+(p.x-ox)*c-(p.y-oy)*s,y:oy+(p.x-ox)*s+(p.y-oy)*c}));
+      const start=candidates.length;polygonCandidate(kind,rotated,angle);
+      if(candidates.length>start){const candidate=candidates[candidates.length-1];candidate.score+=.003;Object.assign(candidate,{x:template.x,y:template.y,w:lw,h:lh});}
+    }
+  }
   const radial=samples.map(p=>Math.abs(Math.hypot((p.x-minX-w/2)/(w/2),(p.y-minY-h/2)/(h/2))-1));
   const angles=new Set(samples.map(p=>Math.floor((Math.atan2((p.y-minY-h/2)/(h/2),(p.x-minX-w/2)/(w/2))+Math.PI)/(2*Math.PI)*16)%16));
   const ellipsePerimeter=Math.PI*(3*(w/2+h/2)-Math.sqrt((3*w/2+h/2)*(w/2+3*h/2)));
   const radialMean=radial.reduce((v,e)=>v+e,0)/radial.length;
-  if(radialMean<.075&&Math.max(...radial)<.2&&angles.size>=14&&length/ellipsePerimeter>.8&&length/ellipsePerimeter<1.2)candidates.push({shape:'ellipse',score:radialMean*.35,rotation:0});
+  if(radialMean<.055&&Math.max(...radial)<.12&&angles.size>=14&&length/ellipsePerimeter>.8&&length/ellipsePerimeter<1.2)candidates.push({shape:Math.abs(w/h-1)<.08?'circle':'ellipse',score:radialMean*.35,rotation:0});
   candidates.sort((a,b)=>a.score-b.score);const best=candidates[0];
-  return best?{...base,shape:best.shape,rotation:best.rotation}:null;
+  if(!best)return null;const result={...base,shape:best.shape,rotation:best.rotation,x:best.x??base.x,y:best.y??base.y,w:best.w??base.w,h:best.h??base.h};
+  if(result.shape==='rect'&&result.w<result.h){const cx=result.x+result.w/2,cy=result.y+result.h/2;[result.w,result.h]=[result.h,result.w];result.x=cx-result.w/2;result.y=cy-result.h/2;result.rotation=(result.rotation+Math.PI/2)%Math.PI;}
+  return result;
 }

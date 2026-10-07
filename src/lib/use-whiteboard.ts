@@ -1,7 +1,11 @@
+import {readEraserMode,eraseSelection,type EraserMode} from './eraser-modes';
+import {transformObject,transformMedia,type ObjectTransform} from './object-transform';
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {mediaBounds,placeMediaInFrame} from "@/lib/media-layout";
+import {persistentObjects} from './pen-strokes';
+import {loadBackgroundImage} from './background-image';
 import {eraseInk} from '@/lib/erase-ink';
 import { nearbyEdge, projectToEdge, type GuideEdge } from "@/lib/guide-geometry";
 import type { BoardObject, MediaItem, Point, ShapeObject, StrokeObject, TextObject } from "@/db/schema";
@@ -57,6 +61,7 @@ export function useWhiteboard(options: {
   initialObjects: BoardObject[];
   initialMedia: MediaItem[];
   background: string;
+  backgroundImage?:string;
   pattern: string;
   onContentChange: (objects: BoardObject[], media: MediaItem[]) => void;
 }) {
@@ -68,9 +73,17 @@ export function useWhiteboard(options: {
   const [objects, setObjectsState] = useState<BoardObject[]>(initialObjects);
   const [media, setMediaState] = useState<MediaItem[]>(initialMedia);
   const [view, setViewState] = useState<View>({ tx: 0, ty: 0, scale: 1 });
+  const [shapeFeedback,setShapeFeedback]=useState('');
+  useEffect(()=>{if(!shapeFeedback)return;const timeout=setTimeout(()=>setShapeFeedback(''),2600);return()=>clearTimeout(timeout);},[shapeFeedback]);
   const [tool, setTool] = useState<ActiveTool>("pen");
   const [pen, setPen] = useState<Pen>({ color: options.defaultPenColor??"#10151b", size: 4, opacity: 1, smartShapes: false, pressure: true, touchMode: "draw" });
   const [eraserSize, setEraserSize] = useState(24);
+  const [eraserMode,setEraserMode]=useState<EraserMode>(()=>{try{return readEraserMode(localStorage.getItem('kopy-eraser-mode'));}catch{return 'ink';}});
+  const [palmEraser,setPalmEraser]=useState(()=>{try{return localStorage.getItem('kopy-palm-eraser')==='true';}catch{return false;}});
+  const eraserModeRef=useRef(eraserMode),palmEraserRef=useRef(palmEraser),gestureEraserMode=useRef<'ink'|'object'>('ink');
+  eraserModeRef.current=eraserMode;palmEraserRef.current=palmEraser;
+  useEffect(()=>{try{localStorage.setItem('kopy-eraser-mode',eraserMode);}catch{}},[eraserMode]);
+  useEffect(()=>{try{localStorage.setItem('kopy-palm-eraser',String(palmEraser));}catch{}},[palmEraser]);
   const [selection, setSelectionState] = useState<Selection>(null);
   const [selectedIds,setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef=useRef<string[]>([]);
@@ -93,6 +106,7 @@ export function useWhiteboard(options: {
   const lastErasePoint=useRef<Point|null>(null);
   const guideEdges = useRef(new Map<string,GuideEdge[]>());
   const drawingEdge = useRef<GuideEdge | undefined>(undefined);
+  const backgroundPicture=useRef<HTMLImageElement|null>(null);
   const backgroundRef = useRef(background);
   const patternRef = useRef(pattern);
   const watermarkRef=useRef(options.watermark);watermarkRef.current=options.watermark;
@@ -113,7 +127,6 @@ export function useWhiteboard(options: {
 
   // In-progress drawing state (refs, rendered imperatively).
   const draft = useRef<BoardObject | null>(null);
-  const lasers = useRef<{ points: Point[]; born: number }[]>([]);
   const laserHead=useRef<{point:Point;last:number}|null>(null);
   const eraseWorking = useRef<BoardObject[] | null>(null);
   const moveState = useRef<{ sel: Selection; lastWorld: Point } | null>(null);
@@ -147,6 +160,7 @@ export function useWhiteboard(options: {
         ctx.save();
         ctx.translate(m.x + m.width / 2, m.y + m.height / 2);
         ctx.rotate(m.rotation);
+        ctx.scale(m.mirrorX?-1:1,m.mirrorY?-1:1);
         ctx.drawImage(source, -m.width / 2, -m.height / 2, m.width, m.height);
         ctx.restore();
       };
@@ -181,7 +195,7 @@ export function useWhiteboard(options: {
 
   const paintScene = useCallback(
     (ctx: CanvasRenderingContext2D, v: View, cssW: number, cssH: number, dpr: number) => {
-      drawBackground(ctx, cssW, cssH, backgroundRef.current, patternRef.current, dpr);
+      drawBackground(ctx, cssW, cssH, backgroundRef.current, patternRef.current, dpr,backgroundPicture.current);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const watermark=watermarkRef.current;
       if(watermark?.enabled&&watermark.text){ctx.save();ctx.globalAlpha=watermark.opacity;ctx.fillStyle=backgroundRef.current==='#ffffff'?'#142b26':'#ffffff';ctx.font='600 24px Georgia';ctx.textBaseline=watermark.position.includes('top')?'top':watermark.position==='center'?'middle':'bottom';ctx.textAlign=watermark.position.includes('right')?'right':watermark.position.includes('left')?'left':'center';ctx.fillText(watermark.text,watermark.position.includes('right')?cssW-28:watermark.position.includes('left')?28:cssW/2,watermark.position.includes('top')?28:watermark.position.includes('bottom')?cssH-28:cssH/2,cssW-56);ctx.restore();}
@@ -229,47 +243,24 @@ export function useWhiteboard(options: {
     if (modeRef.current === "erase" && eraseWorking.current) {
       const center = eraseCenterRef.current;
       if (center) {
+        ctx.save();ctx.globalCompositeOperation='difference';
         ctx.beginPath();
         ctx.arc(center.x, center.y, gestureRadius.current, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255,255,255,0.5)";
+        ctx.strokeStyle = "#ffffff";
         ctx.setLineDash(1 / v.scale ? [4 / v.scale, 4 / v.scale] : [4, 4]);
         ctx.lineWidth = 1.5 / v.scale;
         ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.setLineDash([]);ctx.restore();
       }
     }
 
-    // The temporary trail and pointer blink together, then fade without saving ink.
     const now = performance.now();
-    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const pulse=reduced?1:(now%700<400?1:.12);
-    if (lasers.current.length) {
-      const life = 1800;
-      lasers.current = lasers.current.filter((l) => now - l.born < life);
-      for (const l of lasers.current) {
-        const alpha = 1 - (now - l.born) / life;
-        const stroke: StrokeObject = {
-          id: "laser",
-          kind: "stroke",
-          tool: "pen",
-          color: "#ff2d55",
-          width: 5,
-          points: l.points,
-        };
-        ctx.save();
-        ctx.globalAlpha = Math.max(alpha, 0)*pulse;
-        ctx.shadowColor = "#ff2d55"; ctx.shadowBlur = 12;
-        drawStroke(ctx, stroke);
-        ctx.restore();
-      }
-    }
-
     const head=laserHead.current;
     if(head&&(now-head.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser'))){
-      ctx.save();ctx.globalAlpha=(modeRef.current==='draw'&&toolRef.current==='laser'?1:Math.min(1,(1200-(now-head.last))/300))*pulse;ctx.shadowColor='#ff244b';ctx.shadowBlur=18;
+      ctx.save();ctx.globalAlpha=(modeRef.current==='draw'&&toolRef.current==='laser'?1:Math.min(1,(1200-(now-head.last))/300));ctx.shadowColor='#ff244b';ctx.shadowBlur=18;
       ctx.fillStyle='#ff244b';ctx.beginPath();ctx.arc(head.point.x,head.point.y,7/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff3db';ctx.beginPath();ctx.arc(head.point.x,head.point.y,2.5/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.restore();
     }
-    if(marquee.current){const {a,b}=marquee.current;ctx.strokeStyle='#217cb8';ctx.lineWidth=1.5/v.scale;ctx.setLineDash([6/v.scale,4/v.scale]);ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.setLineDash([]);}
+    if(marquee.current){const {a,b}=marquee.current;ctx.strokeStyle=modeRef.current==='erase-marquee'?'#e15a66':'#217cb8';ctx.lineWidth=1.5/v.scale;ctx.setLineDash([6/v.scale,4/v.scale]);ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.setLineDash([]);}
     // selection outline
     if (selectionRef.current) {
       const sel = selectionRef.current;
@@ -296,7 +287,7 @@ export function useWhiteboard(options: {
 
     ctx.restore();
 
-    if (lasers.current.length||(laserHead.current&&(performance.now()-laserHead.current.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser')))) scheduleRender();
+    if (objectsRef.current.some(o=>o.kind==="stroke"&&o.tool==="laser")||(laserHead.current&&(performance.now()-laserHead.current.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser')))) scheduleRender();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paintScene, scheduleRender]);
 
@@ -319,7 +310,7 @@ export function useWhiteboard(options: {
       mediaRef.current = nextMedia;
       setObjectsState(nextObjects);
       setMediaState(nextMedia);
-      onContentChange(nextObjects, nextMedia);
+      onContentChange(persistentObjects(nextObjects), nextMedia);
       scheduleRender();
     },
     [onContentChange, scheduleRender],
@@ -335,7 +326,7 @@ export function useWhiteboard(options: {
     setMediaState(prev.media);
     setSelection(null);
     setHistoryVersion((x) => x + 1);
-    onContentChange(prev.objects, prev.media);
+    onContentChange(persistentObjects(prev.objects), prev.media);
     scheduleRender();
   }, [onContentChange, scheduleRender]);
 
@@ -349,10 +340,11 @@ export function useWhiteboard(options: {
     setMediaState(next.media);
     setSelection(null);
     setHistoryVersion((x) => x + 1);
-    onContentChange(next.objects, next.media);
+    onContentChange(persistentObjects(next.objects), next.media);
     scheduleRender();
   }, [onContentChange, scheduleRender]);
 
+    const clearAnnotations=useCallback(()=>{commit([],mediaRef.current);setSelection(null);},[commit]);
     const clearPage = useCallback(() => {
     commit([], []);
     setSelection(null);
@@ -364,7 +356,6 @@ export function useWhiteboard(options: {
       past.current = [];
       future.current = [];
       draft.current = null;
-      lasers.current = [];
       eraseWorking.current = null;
       moveState.current = null;
       objectsRef.current = nextObjects;
@@ -455,7 +446,7 @@ export function useWhiteboard(options: {
 
   const fitToBounds = useCallback((b:{x:number;y:number;width:number;height:number})=>{
     const canvas=canvasRef.current;if(!canvas||b.width<=0||b.height<=0)return;
-    const scale=clamp(Math.min((canvas.clientWidth-80)/b.width,(canvas.clientHeight-80)/b.height),MIN_SCALE,MAX_SCALE);
+    const scale=clamp(Math.min(canvas.clientWidth/b.width,canvas.clientHeight/b.height),MIN_SCALE,MAX_SCALE);
     setView({tx:(canvas.clientWidth-b.width*scale)/2-b.x*scale,ty:(canvas.clientHeight-b.height*scale)/2-b.y*scale,scale});scheduleRender();
   },[setView,scheduleRender]);
   const fitToContent = useCallback(() => {
@@ -549,7 +540,7 @@ export function useWhiteboard(options: {
       if (!canvas) return;
       // Contact size alone is not a reliable palm signal on iPad/large touchscreens.
       // Reject touches while a stylus is active; let explicit Hand/Select work in pen-only mode.
-      if (e.pointerType === "touch" && (activePen.current !== null || (penRef.current.touchMode === "reject" && !['pan','select'].includes(toolRef.current)))) return;
+      if (e.pointerType === "touch" && (activePen.current !== null || (penRef.current.touchMode === "reject" && !(palmEraserRef.current&&Math.max(e.width,e.height)>=35) && !['pan','select'].includes(toolRef.current)))) return;
       if(e.pointerType==='touch'&&pointers.current.size>=1&&penRef.current.gestureMode==='off')return;
       if(pointers.current.size>=2)return;
       if (e.pointerType === "pen") {
@@ -582,7 +573,8 @@ export function useWhiteboard(options: {
 
       const t = toolRef.current;
       if(t!=="select")setSelection(null);
-      const wantPan = t === "pan" || spaceHeld.current || e.button === 1 || (e.pointerType === "touch" && penRef.current.touchMode === "pan");
+      const palmErase=e.pointerType==='touch'&&palmEraserRef.current&&Math.max(e.width,e.height)>=35;
+      const wantPan = !palmErase && ( t === "pan" || spaceHeld.current || e.button === 1 || (e.pointerType === "touch" && penRef.current.touchMode === "pan"));
       if (wantPan) {
         modeRef.current = "pan";
         panStart.current = { sx: e.clientX, sy: e.clientY, tx: viewRef.current.tx, ty: viewRef.current.ty };
@@ -593,7 +585,7 @@ export function useWhiteboard(options: {
       const projected = drawingEdge.current ? projectToEdge({x:e.clientX,y:e.clientY},drawingEdge.current) : {x:e.clientX,y:e.clientY};
       const world = screenToWorld(projected.x, projected.y);
 
-      if (t === "select") {
+      if (t === "select" && !palmErase) {
         const hit = hitTest(world);
         if (hit) {
           if(e.shiftKey){const ids=selectedIdsRef.current.includes(hit.id)?selectedIdsRef.current.filter(id=>id!==hit.id):[...selectedIdsRef.current,hit.id];selectIds(ids);scheduleRender();return;}
@@ -608,18 +600,20 @@ export function useWhiteboard(options: {
         scheduleRender();return;
       }
 
-      if (t === "text") {
+      if (t === "text" && !palmErase) {
         modeRef.current = "maybe-text";
         panStart.current = { sx: e.clientX, sy: e.clientY, tx: 0, ty: 0 };
         return;
       }
 
-      const palmErase = e.pointerType === "touch" && penRef.current.touchMode === "palm-erase" && Math.max(e.width, e.height) >= 35;
+      if(t==='eraser'&&!palmErase&&eraserModeRef.current==='selection'){modeRef.current='erase-marquee';marquee.current={a:world,b:world};scheduleRender();return;}
+      if(t==='eraser'&&!palmErase&&eraserModeRef.current==='all'){modeRef.current='idle';return;}
       if (t === "eraser" || palmErase || (e.pointerType === "pen" && (e.button === 5 || (e.buttons & 32) !== 0))) {
         gestureRadius.current = palmErase ? Math.max(e.width, e.height) / (2 * viewRef.current.scale) : eraserSizeRef.current;
+        gestureEraserMode.current=!palmErase&&eraserModeRef.current==='object'?'object':'ink';
         modeRef.current = "erase";
         lastErasePoint.current=world;
-        eraseWorking.current = penRef.current.eraserMode==='ink'
+        eraseWorking.current = gestureEraserMode.current==='ink'
           ? eraseInk(objectsRef.current,world,world,gestureRadius.current)
           : objectsRef.current.filter(o => !objectHitByEraser(o, world, gestureRadius.current));
         eraseCenterRef.current = world;
@@ -627,23 +621,19 @@ export function useWhiteboard(options: {
         return;
       }
 
-      if (t === "laser") {
-        modeRef.current = "draw";
-        lasers.current.push({ points: [world], born: performance.now() });
-        laserHead.current={point:world,last:performance.now()};
-        scheduleRender();
-        return;
-      }
+      if(t==='laser')laserHead.current={point:world,last:performance.now()};
 
       // pen / marker / highlighter / shapes
       modeRef.current = "draw";
       const p = penRef.current;
-      if (t === "pen" || t === "highlighter" || t === "marker") {
+      if (t === "pen" || t === "highlighter" || t === "marker" || t === "laser" || t === "auto-shape") {
         draft.current = {
           id: uid(),
           kind: "stroke",
-          tool: t,
-          brush: t==='pen' ? p.brush : undefined,
+          tool: t==='auto-shape'?'pen':t,
+          brush: t==='auto-shape'?'normal':t==='pen'?p.brush:undefined,
+          stamp:p.stamp,
+          ...(t==='laser'?{laserExpiresAt:performance.now()+6000,laserCreatedAt:performance.now()}:{}),
           color: p.color,
           width: p.size,
           points: [{...world, p: e.pointerType === "pen" && p.pressure ? Math.max(0.05, e.pressure) : undefined}],
@@ -705,7 +695,7 @@ export function useWhiteboard(options: {
         return;
       }
 
-      if(modeRef.current==='marquee'&&marquee.current){marquee.current.b=screenToWorld(e.clientX,e.clientY);scheduleRender();return;}
+      if((modeRef.current==='marquee'||modeRef.current==='erase-marquee')&&marquee.current){marquee.current.b=screenToWorld(e.clientX,e.clientY);scheduleRender();return;}
       if (modeRef.current === "pan" && panStart.current) {
         const dx = e.clientX - panStart.current.sx;
         const dy = e.clientY - panStart.current.sy;
@@ -737,7 +727,7 @@ export function useWhiteboard(options: {
         eraseCenterRef.current = world;
         const r = gestureRadius.current;
         const previous=lastErasePoint.current??world;
-        if(penRef.current.eraserMode==='ink')eraseWorking.current=eraseInk(eraseWorking.current,previous,world,r);
+        if(gestureEraserMode.current==='ink')eraseWorking.current=eraseInk(eraseWorking.current,previous,world,r);
         else {
           const steps=Math.max(1,Math.ceil(dist(previous,world)/Math.max(1,r/2)));
           eraseWorking.current=eraseWorking.current.filter(object=>{
@@ -754,17 +744,6 @@ export function useWhiteboard(options: {
         const projected = drawingEdge.current ? projectToEdge({x:e.clientX,y:e.clientY},drawingEdge.current) : {x:e.clientX,y:e.clientY};
         const world = screenToWorld(projected.x, projected.y);
         const t = toolRef.current;
-        if (t === "laser") {
-          const last = lasers.current[lasers.current.length - 1];
-          if (!last) lasers.current.push({points:[world],born:performance.now()});
-          if (last && dist(last.points[last.points.length - 1], world) > 2) {
-            last.points.push(world);
-            last.born = performance.now();
-            if (last.points.length > 45) last.points.shift();
-          }
-          scheduleRender();
-          return;
-        }
         const d = draft.current;
         if (!d) return;
         if (d.kind === "stroke") {
@@ -772,7 +751,7 @@ export function useWhiteboard(options: {
           if (dist(last, world) > 1.2) {
             const samples = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent];
             const points = (samples.length ? samples : [e.nativeEvent]).map(sample => { const point = drawingEdge.current ? projectToEdge({x:sample.clientX,y:sample.clientY},drawingEdge.current) : {x:sample.clientX,y:sample.clientY};return {...screenToWorld(point.x, point.y), p: sample.pointerType === "pen" && penRef.current.pressure ? Math.max(0.05, sample.pressure) : undefined}; });
-            draft.current = { ...d, points: [...d.points, ...points] };
+            draft.current = { ...d, ...(d.tool==="laser"?{laserExpiresAt:performance.now()+6000}:{}),points: [...d.points, ...points] };
           }
         } else if (d.kind === "shape") {
           const w=world.x-d.x,h=world.y-d.y,size=Math.min(Math.abs(w),Math.abs(h));
@@ -803,6 +782,7 @@ export function useWhiteboard(options: {
       const t = toolRef.current;
       const world = screenToWorld(e.clientX, e.clientY);
 
+      if(modeRef.current==='erase-marquee'&&marquee.current){const {a,b}=marquee.current;commit(eraseSelection(objectsRef.current,a,b,canvas?.getContext('2d')??undefined),mediaRef.current);marquee.current=null;modeRef.current='idle';scheduleRender();return;}
       if(modeRef.current==='marquee'&&marquee.current){
         const {a,b}=marquee.current,left=Math.min(a.x,b.x),top=Math.min(a.y,b.y),right=Math.max(a.x,b.x),bottom=Math.max(a.y,b.y);
         const intersects=(r:{x:number;y:number;w:number;h:number})=>r.x<=right&&r.x+r.w>=left&&r.y<=bottom&&r.y+r.h>=top;
@@ -865,25 +845,24 @@ export function useWhiteboard(options: {
 
       if (modeRef.current === "draw") {
         const p = penRef.current;
-        if (t === "laser") {
-          modeRef.current = "idle";
-          return;
-        }
         const d = draft.current;
         draft.current = null;
         modeRef.current = "idle";
         if (!d) return;
 
         if (d.kind === "stroke") {
-          if (p.smartShapes && d.tool === "pen") {
+          if ((t==='auto-shape'||p.smartShapes) && d.tool === "pen") {
             const recognized = recognizeShape(d.points, d.color, d.width);
             if (recognized) {
-              const shape: ShapeObject = { ...recognized, id: uid() };
+              const shape: ShapeObject = { ...recognized, id: uid(),filled:p.shapeFill??false,fillColor:p.shapeFillColor??p.color,dash:p.shapeDash??'solid',fillStyle:p.shapeFillStyle??'solid',roundness:p.shapeRoundness??0 };
+              if(t==='auto-shape')setShapeFeedback(`${shape.shape==='rect'?'Rectangle':shape.shape[0].toUpperCase()+shape.shape.slice(1)} recognized`);
               commit([...objectsRef.current, shape], mediaRef.current);
               setSelection(null);
               return;
             }
           }
+          if(t==='auto-shape')setShapeFeedback('Shape not recognized. Drawing kept as ink.');
+          if(d.tool==="laser"){d.laserCreatedAt=performance.now();d.laserExpiresAt=performance.now()+6000;}
           commit([...objectsRef.current, d], mediaRef.current);
         } else if (d.kind === "shape") {
           if (Math.abs(d.w) < 4 && Math.abs(d.h) < 4) return; // ignore taps
@@ -930,6 +909,7 @@ export function useWhiteboard(options: {
     commit(objectsRef.current,mediaRef.current.map(m=>m.id===id?{...m,pageNumber:number,height:m.width*size.height/size.width}:m));scheduleRender();
   },[commit,scheduleRender]);
 
+  const transformSelected=useCallback((action:ObjectTransform)=>{const ids=selectedIdsRef.current;commit(objectsRef.current.map(o=>ids.includes(o.id)?transformObject(o,action,canvasRef.current?.getContext('2d')??undefined):o),mediaRef.current.map(m=>ids.includes(m.id)?transformMedia(m,action):m));},[commit]);
   const deleteSelected = useCallback(()=>{const ids=selectedIdsRef.current;commit(objectsRef.current.filter(o=>!ids.includes(o.id)),mediaRef.current.filter(m=>!ids.includes(m.id)));setSelection(null);},[commit]);
   const duplicateSelected = useCallback(()=>{const ids=selectedIdsRef.current,objects=objectsRef.current.filter(o=>ids.includes(o.id)).map(o=>({...translateObject(o,24,24),id:uid()})),media=mediaRef.current.filter(m=>ids.includes(m.id)).map(m=>({...m,id:uid(),x:m.x+24,y:m.y+24}));commit([...objectsRef.current,...objects],[...mediaRef.current,...media]);selectIds([...objects.map(o=>o.id),...media.map(m=>m.id)]);},[commit]);
   const recolorSelected=useCallback((color:string)=>{commit(objectsRef.current.map(o=>selectedIdsRef.current.includes(o.id)?{...o,color}:o),mediaRef.current);},[commit]);
@@ -1062,6 +1042,8 @@ export function useWhiteboard(options: {
 
   useEffect(()=>{if(tool!=='select')setSelection(null);scheduleRender();},[tool]);
   useEffect(()=>{scheduleRender();},[selectedIds]);
+  useEffect(()=>{let cancelled=false;backgroundPicture.current=null;scheduleRender();if(options.backgroundImage)void loadBackgroundImage(options.backgroundImage).then(image=>{if(!cancelled){backgroundPicture.current=image;scheduleRender();}}).catch(()=>{});return()=>{cancelled=true;};},[options.backgroundImage,scheduleRender]);
+  useEffect(()=>{const timer=window.setInterval(()=>{const now=performance.now();const next=objectsRef.current.filter(o=>{if(o.kind!=='stroke'||o.tool!=='laser')return true;if(selectedIdsRef.current.includes(o.id)&&now<(o.laserCreatedAt??now)+14000)o.laserExpiresAt=now+1200;return (o.laserExpiresAt??0)>now;});if(next.length!==objectsRef.current.length){objectsRef.current=next;setObjectsState(next);if(selectionRef.current&&!next.some(o=>o.id===selectionRef.current!.id))setSelection(null);scheduleRender();}},200);return()=>clearInterval(timer);},[scheduleRender]);
   const brushProfiles=useRef<Record<string,Pen>>({});
   const previousBrush=useRef(tool);
   useEffect(()=>{try{const stored=JSON.parse(localStorage.getItem('kopy-brush-profiles')??'{}');for(const [key,value] of Object.entries(stored)){const brush=value as Pen;if(/^#[0-9a-f]{6}$/i.test(brush.color)&&Number.isFinite(brush.size)&&brush.size>=1&&brush.size<=100)brushProfiles.current[key]=brush;}if(brushProfiles.current.pen)setPen(brushProfiles.current.pen);}catch{}},[]);
@@ -1090,11 +1072,11 @@ export function useWhiteboard(options: {
     media,
     counts,
     view,
-    tool,
+    tool,shapeFeedback,
     setTool,
     pen,
     setPen,
-    eraserSize,
+    eraserSize,eraserMode,setEraserMode,palmEraser,setPalmEraser,
     setEraserSize,
     selection,
     setSelection,
@@ -1113,7 +1095,7 @@ export function useWhiteboard(options: {
     redo,
     canUndo,
     canRedo,
-    clearPage,
+    clearPage,clearAnnotations,
     reset,
     screenToWorld,
     worldToScreen,
@@ -1128,7 +1110,7 @@ export function useWhiteboard(options: {
     addObjects: (items: BoardObject[]) => commit([...objectsRef.current, ...items], mediaRef.current),
     removeMedia,
     setPdfPage,
-    deleteSelected,
+    deleteSelected,transformSelected,
     duplicateSelected,
     recolorSelected,
     updateShapeSelected,

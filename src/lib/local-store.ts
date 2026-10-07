@@ -1,3 +1,6 @@
+import {interfaceSettings} from './interface-settings';
+import {newPageStyle} from './new-page-style';
+import {parseThemePack,isRasterData} from './theme-pack';
 import {validateBoardPresets} from './board-presets';
 import { openDB, type DBSchema } from 'idb';
 import type { AppProfile, Notebook, Page } from '../db/schema';
@@ -17,7 +20,7 @@ export const database = () => openDB<Store>('kopy-notes', 1, { upgrade(db) {
 } });
 const text = (value: unknown, fallback: string, max = 120) => typeof value === 'string' ? value.slice(0, max) : fallback;
 const color = (value: unknown, fallback: string) => typeof value === 'string' && /^#[\da-f]{6}$/i.test(value) ? value : fallback;
-const patterns = ['none', 'grid', 'dots', 'lines'];
+const patterns = ['none', 'grid', 'dots', 'lines', 'staff', 'handwriting', 'isometric'];
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: {'Content-Type':'application/json'} });
 
 // A local persistence adapter, not an HTTP request or global fetch interception.
@@ -43,7 +46,7 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
     if (kind === 'profile') {
       const current = await tx.objectStore('profile').get(1) || DEFAULT_PROFILE;
       if (method === 'PUT') {
-        const updated: AppProfile = { ...current, boardPresets:body.boardPresets===undefined?current.boardPresets:validateBoardPresets(body.boardPresets), appName: text(body.appName, current.appName, 60) || 'Kopy Notes', teacherName: text(body.teacherName,current.teacherName,60), institution: text(body.institution,current.institution,60), accent: color(body.accent,current.accent), boardBg: color(body.boardBg,current.boardBg), boardPattern: typeof body.boardPattern === 'string' && patterns.includes(body.boardPattern) ? body.boardPattern : current.boardPattern, defaultPenColor: color(body.defaultPenColor,current.defaultPenColor), onboarded: body.onboarded === 1 ? 1 : current.onboarded, splashText: text(body.splashText,current.splashText || '',120), watermark: body.watermark && typeof body.watermark==='object'?{enabled:Boolean((body.watermark as any).enabled),text:text((body.watermark as any).text,current.watermark?.text??'',120),position:['center','top-left','top-right','bottom-left','bottom-right'].includes((body.watermark as any).position)?(body.watermark as any).position:'bottom-right',opacity:Math.max(.02,Math.min(.5,Number((body.watermark as any).opacity)||.12))}:current.watermark, calibrationPxPerMm: Number.isFinite(body.calibrationPxPerMm)?Math.max(.1,Math.min(50,Number(body.calibrationPxPerMm))):current.calibrationPxPerMm, ai:body.ai && typeof body.ai==='object'?{enabled:Boolean((body.ai as any).enabled),endpoint:text((body.ai as any).endpoint,current.ai?.endpoint??'http://127.0.0.1:11434',300),model:text((body.ai as any).model,current.ai?.model??'llama3.2',100)}:current.ai, iconData: typeof body.iconData === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(body.iconData) && body.iconData.length < 750000 ? body.iconData : current.iconData, updatedAt: now };
+        const updated: AppProfile = { ...current, ui:body.ui===undefined?current.ui:interfaceSettings({...current.ui,...(body.ui as object)}), theme:body.theme===undefined?current.theme:parseThemePack(body.theme),themePacks:body.themePacks===undefined?current.themePacks:(Array.isArray(body.themePacks)?body.themePacks.slice(0,8).map(parseThemePack):[]),boardImage:body.boardImage===undefined?current.boardImage:(isRasterData(body.boardImage)?body.boardImage:undefined), boardPresets:body.boardPresets===undefined?current.boardPresets:validateBoardPresets(body.boardPresets), appName: text(body.appName, current.appName, 60) || 'Kopy Notes', teacherName: text(body.teacherName,current.teacherName,60), institution: text(body.institution,current.institution,60), accent: color(body.accent,current.accent), boardBg: color(body.boardBg,current.boardBg), boardPattern: typeof body.boardPattern === 'string' && patterns.includes(body.boardPattern) ? body.boardPattern : current.boardPattern, defaultPenColor: color(body.defaultPenColor,current.defaultPenColor), onboarded: body.onboarded === 1 ? 1 : current.onboarded, splashText: text(body.splashText,current.splashText || '',120), watermark: body.watermark && typeof body.watermark==='object'?{enabled:Boolean((body.watermark as any).enabled),text:text((body.watermark as any).text,current.watermark?.text??'',120),position:['center','top-left','top-right','bottom-left','bottom-right'].includes((body.watermark as any).position)?(body.watermark as any).position:'bottom-right',opacity:Math.max(.02,Math.min(.5,Number((body.watermark as any).opacity)||.12))}:current.watermark, calibrationPxPerMm: Number.isFinite(body.calibrationPxPerMm)?Math.max(.1,Math.min(50,Number(body.calibrationPxPerMm))):current.calibrationPxPerMm, ai:body.ai && typeof body.ai==='object'?{enabled:Boolean((body.ai as any).enabled),endpoint:text((body.ai as any).endpoint,current.ai?.endpoint??'http://127.0.0.1:11434',300),model:text((body.ai as any).model,current.ai?.model??'llama3.2',100)}:current.ai, iconData: typeof body.iconData === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(body.iconData) && body.iconData.length < 750000 ? body.iconData : current.iconData, updatedAt: now };
         await tx.objectStore('profile').put(updated); result = json({profile:updated});
       } else result = json({profile:current});
     } else if (kind === 'notebooks' && !id && method === 'GET') {
@@ -51,7 +54,7 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
     } else if (kind === 'notebooks' && !id && method === 'POST') {
       const profile = await tx.objectStore('profile').get(1) || DEFAULT_PROFILE;
       const notebook: Notebook = {id:crypto.randomUUID(),title:text(body.title,'Untitled lesson') || 'Untitled lesson',subject:text(body.subject,'General',60),coverColor:color(body.coverColor,'#526677'),pageCount:1,createdAt:now,updatedAt:now};
-      const page: Page = {id:crypto.randomUUID(),notebookId:notebook.id,position:0,background:profile.boardBg,pattern:profile.boardPattern,objects:[],media:[],createdAt:now,updatedAt:now};
+      const page: Page = {id:crypto.randomUUID(),notebookId:notebook.id,position:0,background:profile.boardBg,pattern:profile.boardPattern,backgroundImage:profile.boardImage,objects:[],media:[],createdAt:now,updatedAt:now};
       await tx.objectStore('notebooks').add(notebook); await tx.objectStore('pages').add(page); result = json({notebook},201);
     } else if (kind === 'notebooks' && id) {
       const notebook = await tx.objectStore('notebooks').get(id);
@@ -75,7 +78,8 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
           const insertion=after===undefined?pages.length:pages.findIndex(page=>page.id===after)+1;
           if(after!==undefined&&(typeof after!=='string'||insertion===0))result=json({error:'The current slide does not belong to this lesson'},400);
           else {
-            const page: Page = {id:crypto.randomUUID(),notebookId:id,position:insertion,background:color(body.background,'#83d131'),pattern:patterns.includes(String(body.pattern))?String(body.pattern):'none',objects:[],media:[],createdAt:now,updatedAt:now};
+            const defaults=newPageStyle((await tx.objectStore('profile').get(1))??{},pages[insertion-1]);
+            const page: Page = {id:crypto.randomUUID(),notebookId:id,position:insertion,background:color(body.background,defaults.background),pattern:patterns.includes(String(body.pattern))?String(body.pattern):defaults.pattern,backgroundImage:body.backgroundImage===undefined?defaults.backgroundImage:(isRasterData(body.backgroundImage)?body.backgroundImage:undefined),objects:[],media:[],createdAt:now,updatedAt:now};
             const ordered=[...pages];ordered.splice(insertion,0,page);
             for(let position=0;position<ordered.length;position++){ordered[position]={...ordered[position],position};await tx.objectStore('pages').put(ordered[position]);}
             await tx.objectStore('notebooks').put({...notebook,pageCount:ordered.length,updatedAt:now});result=json({page,pages:ordered},201);
@@ -98,7 +102,7 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
         if (method === 'PUT') {
           const importFrame=body.importFrame as Page['importFrame'];
           if(importFrame && (![importFrame.x,importFrame.y,importFrame.width,importFrame.height].every(Number.isFinite)||importFrame.width<=0||importFrame.height<=0||importFrame.width>100000||importFrame.height>100000))throw new Error('Invalid import frame');
-          const updated={...page,importFrame:importFrame??page.importFrame,objects:Array.isArray(body.objects)?body.objects as Page['objects']:page.objects,media:Array.isArray(body.media)?body.media as Page['media']:page.media,background:color(body.background,page.background),pattern:patterns.includes(String(body.pattern))?String(body.pattern):page.pattern,updatedAt:now};
+          const updated={...page,backgroundImage:body.backgroundImage===undefined?page.backgroundImage:(isRasterData(body.backgroundImage)?body.backgroundImage:undefined),importFrame:importFrame??page.importFrame,objects:Array.isArray(body.objects)?body.objects as Page['objects']:page.objects,media:Array.isArray(body.media)?body.media as Page['media']:page.media,background:color(body.background,page.background),pattern:patterns.includes(String(body.pattern))?String(body.pattern):page.pattern,updatedAt:now};
           await tx.objectStore('pages').put(updated); await tx.objectStore('notebooks').put({...notebook,updatedAt:now}); result=json({page:updated});
         } else if (method === 'DELETE') {
           const count=await tx.objectStore('pages').index('notebookId').count(page.notebookId);

@@ -57,6 +57,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run desktop:build
+      - run: npx playwright test --config=playwright.desktop.config.ts
       - name: Label unsigned installer
         shell: pwsh
         run: |

@@ -54,3 +54,13 @@ test('filled shapes retain a separate stroke and line pattern',()=>{
   assert.ok(Math.abs(bounds.x+30)<1e-8&&Math.abs(bounds.y-30)<1e-8);
   assert.ok(Math.abs(bounds.w-100)<1e-8&&Math.abs(bounds.h-40)<1e-8);
 });
+
+test('auto shapes recognize circular and regular polygon outlines',()=>{
+ const circle=Array.from({length:65},(_,i)=>({x:160+Math.cos(i*Math.PI/32)*90,y:140+Math.sin(i*Math.PI/32)*90}));assert.equal(recognizeShape(circle,'#000000',3)?.shape,'circle');
+ for(const shape of ['pentagon','hexagon','star','trapezoid','parallelogram'] as const){const template={...base,shape,x:40,y:40,w:180,h:160};assert.equal(recognizeShape(traced(shapeVertices(template)),'#000000',3)?.shape,shape,shape);}
+});
+test('auto shapes recognize a rotated rectangle while preserving its angle',()=>{
+ const angle=Math.PI/6,c=Math.cos(angle),s=Math.sin(angle),cx=140,cy=100;
+ const vertices=[{x:40,y:50},{x:240,y:50},{x:240,y:150},{x:40,y:150}].map(p=>({x:cx+(p.x-cx)*c-(p.y-cy)*s,y:cy+(p.x-cx)*s+(p.y-cy)*c}));
+ const result=recognizeShape(traced(vertices),'#000000',3);assert.equal(result?.shape,'rect');assert.ok(Math.abs(result!.rotation-angle)<.01);
+});

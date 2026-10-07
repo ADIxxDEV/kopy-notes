@@ -1,3 +1,5 @@
+import {LoadingOverlay} from '@/components/LoadingOverlay';
+import {CustomSelect} from '@/components/CustomSelect';
 "use client";
 
 import {useEffect, useRef, useState} from 'react';
@@ -16,9 +18,9 @@ export function ExportPanel({onClose, pageTitle, pageCount = 1, onPNG, onPDF, on
   onClose: () => void;
   pageTitle: string;
   pageCount?: number;
-  onPNG: () => void;
+  onPNG: () => void|Promise<void>;
   onPDF: (scope: PDFScope, onProgress: (progress: ExportProgress) => void) => Promise<PreparedDownload>;
-  onJSON: () => void;
+  onJSON: () => void|Promise<void>;
   onPrint: () => void;
 }) {
   const [scope, setScope] = useState<PDFScope>('current');
@@ -35,6 +37,7 @@ export function ExportPanel({onClose, pageTitle, pageCount = 1, onPNG, onPDF, on
     if (inFlight.current) return;
     inFlight.current = true; setPending(true); setError(''); setReady(null); setProgress(null);
     try {
+      await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
       const result = await onPDF(scope, value => {if (mounted.current) setProgress(value);});
       if (!result.blob.size || result.blob.type !== 'application/pdf') throw new Error('PDF preparation did not produce a document.');
       if (mounted.current) setReady({url: URL.createObjectURL(result.blob), filename: result.filename});
@@ -54,15 +57,16 @@ export function ExportPanel({onClose, pageTitle, pageCount = 1, onPNG, onPDF, on
 
   return (
     <Modal title="Export" icon={<Icon name="export" className="h-5 w-5 text-brand-light" />} onClose={onClose}>
+      {pending&&<LoadingOverlay detail={progress?`Exporting page ${progress.page} of ${progress.total}`:'Preparing document export'}/>}
       <div className="space-y-3">
         <div className="rounded-xl border border-line bg-base-2 p-4">
           <div className="flex items-center gap-3"><Icon name="doc" className="h-5 w-5 text-brand-light" /><h3 className="text-sm font-semibold">PDF document</h3></div>
           <p className="mt-2 text-xs text-muted">Save complete pages, including content outside the visible board. PDF pages are pictures; use .kopy to keep lessons editable.</p>
           <label className="mt-3 block text-xs font-medium" htmlFor="pdf-export-scope">Pages to export</label>
-          <select id="pdf-export-scope" value={scope} disabled={pending} onChange={e => {setScope(e.target.value as PDFScope); setReady(null); setError('');}}
+          <CustomSelect id="pdf-export-scope" value={scope} disabled={pending} onChange={e => {setScope(e.target.value as PDFScope); setReady(null); setError('');}}
             className="kn-focus mt-1 w-full rounded-lg border border-line bg-base p-2 text-sm">
             <option value="current">Current page</option><option value="all">All pages ({pageCount})</option>
-          </select>
+          </CustomSelect>
           <button type="button" disabled={pending} onClick={() => void preparePDF()} className="kn-focus mt-3 w-full rounded-lg bg-brand p-3 text-sm font-semibold text-white disabled:opacity-60">
             {pending ? 'Preparing PDF…' : ready ? 'Prepare PDF again' : 'Prepare PDF'}
           </button>
@@ -75,7 +79,7 @@ export function ExportPanel({onClose, pageTitle, pageCount = 1, onPNG, onPDF, on
             <p className="text-xs text-faint">If your browser opens the PDF, use its Save or Share control.</p>
           </div>}
         </div>
-        {otherOptions.map(o => <button key={o.id} disabled={pending} onClick={() => {o.action(); if (o.id !== 'print') onClose();}}
+        {otherOptions.map(o => <button key={o.id} disabled={pending} onClick={async()=>{if(inFlight.current)return;inFlight.current=true;setPending(true);try{await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));await o.action();if(o.id!=='print')onClose();}catch(error){setError(error instanceof Error?error.message:'Export failed. Please try again.');}finally{inFlight.current=false;if(mounted.current)setPending(false);}}}
           className="kn-focus flex w-full items-center gap-4 rounded-xl border border-line bg-base-2 p-4 text-left transition hover:border-brand/50 hover:bg-elevated disabled:opacity-60">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand-light"><Icon name={o.icon} className="h-5 w-5" /></span>
           <span className="flex-1"><span className="block text-sm font-semibold">{o.label}</span><span className="block text-xs text-muted">{o.desc}</span></span>

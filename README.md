@@ -6,11 +6,13 @@
 
 [**Try the web preview**](https://kopy-notes.netlify.app) | [MIT license](LICENSE) · [Setup](docs/SETUP.md) · [Features](docs/FEATURE_MATRIX.md) · [Builds and releases](docs/RELEASE.md) · [Changelog](CHANGELOG.md)
 
-Version **0.2.0-dev.4 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+Version **0.2.0-dev.5 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+
+Portable [theme packs](docs/THEME_PACKS.md) include colors, custom icons and background images. Small screens use a horizontal pen family and a pinnable More menu. The Windows app shows a startup screen while loading the classroom.
 
 ## Download the development version
 
-[**Download APK, Windows EXE and web ZIP**](https://github.com/ADIxxDEV/kopy-notes/releases). Version tags automatically publish development prereleases with checksums and source code. Development APKs use a test/debug signature; Windows installers are unsigned. Native builds pass CI, but real smartboard validation is still needed.
+[**Download APK, Windows EXE and web ZIP**](https://github.com/ADIxxDEV/kopy-notes/releases). Version tags automatically publish development prereleases with checksums and source code. Development APKs use a test/debug signature; Windows installers are unsigned. Release workflows build the native packages; real smartboard validation is still needed.
 
 ## Screenshots
 
@@ -37,7 +39,7 @@ Open the displayed local URL, choose teaching defaults, and create a lesson. No 
 
 ## Classroom tools
 
-- Normal, paint and crayon pens, highlighter, partial/whole-object erasing, blinking laser, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
+- Normal, pencil, paint, Chinese brush, crayon and stamp pens with pressure handwriting, highlighter, partial/whole-object erasing, editable temporary laser strokes, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
 - Thirteen shapes; separate stroke/fill colors, thickness, solid/dashed/dotted lines, hatched/crosshatched fills and rounded rectangles.
 - Transparent ruler, set square, protractor and compass with attached move/rotate/stretch grips, edge tracing, angle adjustment and arc/circle sweeps.
 - Hand tool for panning into extra board space; original-position reset, zoom and fit-to-content.

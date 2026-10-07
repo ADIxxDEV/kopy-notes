@@ -1,3 +1,4 @@
+import {isRasterData} from './theme-pack';
 import JSZip from 'jszip';
 import { database } from './local-store';
 import type { Notebook, Page } from '../db/schema';
@@ -43,7 +44,7 @@ export async function importLesson(file: Blob): Promise<string> {
   const pages=[...data.pages].sort((a,b)=>(Number.isFinite(a.position)?a.position:0)-(Number.isFinite(b.position)?b.position:0)).map((page,index)=>{
     const frame=(page as Page & {importFrame?:{x:number;y:number;width:number;height:number}}).importFrame;
     if(frame!==undefined&&(!frame||![frame.x,frame.y,frame.width,frame.height].every(value=>Number.isFinite(value)&&Math.abs(value)<=1000000)||frame.width<=0||frame.height<=0))throw new Error('Invalid imported page frame');
-    if(!Array.isArray(page.objects)||!Array.isArray(page.media)||page.objects.length>10000||page.media.length>500||!/^#[\da-f]{6}$/i.test(page.background)||!['none','grid','dots','lines'].includes(page.pattern))throw new Error('Invalid page data');
+    if(!Array.isArray(page.objects)||!Array.isArray(page.media)||page.objects.length>10000||page.media.length>500||!/^#[\da-f]{6}$/i.test(page.background)||!['none','grid','dots','lines','staff','handwriting','isometric'].includes(page.pattern)||(page.backgroundImage!==undefined&&!isRasterData(page.backgroundImage)))throw new Error('Invalid page data');
     for(const object of page.objects){
       if(!['stroke','shape','text'].includes(object.kind))throw new Error('Unsupported board object');
       if(object.kind==='stroke'&&(!Array.isArray(object.points)||object.points.length>100000||object.points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y))))throw new Error('Invalid pen stroke');

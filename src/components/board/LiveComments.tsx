@@ -1,3 +1,4 @@
+import {CustomSelect} from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import { FloatingWindow } from './FloatingWindow';
 import { LIVE_COMMENTS_STORAGE_KEY, readSavedCommentConnection, resolveLiveCommentSource, type LiveCommentKind, type LiveCommentSource } from '@/lib/live-comments';
@@ -48,7 +49,7 @@ export function LiveComments({ onClose }: { onClose: () => void }) {
   return <FloatingWindow title="Live comments" initialX={Math.max(8,window.innerWidth-450)} initialY={80} width={420} onClose={onClose}>
     <div className="live-comments">
       <form onSubmit={event => {event.preventDefault();connect();}} className="live-comments-form">
-        <label>Comment source<select className="kn-focus" value={kind} onChange={event=>{setKind(event.target.value as LiveCommentKind);setError('');}}><option value="youtube">YouTube live chat</option><option value="url">Comment page URL</option></select></label>
+        <label>Comment source<CustomSelect className="kn-focus" value={kind} onChange={event=>{setKind(event.target.value as LiveCommentKind);setError('');}}><option value="youtube">YouTube live chat</option><option value="url">Comment page URL</option></CustomSelect></label>
         <label>{kind==='youtube'?'Video ID or live stream URL':'HTTPS comment URL'}<input className="kn-focus" aria-label={kind==='youtube'?'YouTube video ID or live URL':'Comment page URL'} type="text" inputMode="url" autoComplete="off" spellCheck={false} maxLength={4096} placeholder={kind==='youtube'?'youtube.com/live/… or video ID':'https://example.com/comments'} value={input} onChange={event=>{setInput(event.target.value);setError('');}}/></label>
         <p className="live-comments-hint">Connect loads the chosen service. The board works offline; live comments require internet.</p>
         <div className="live-comments-actions"><button type="submit" className="kn-focus live-comments-primary" disabled={!input.trim()}>Connect</button><button type="button" className="kn-focus" onClick={save} disabled={!input.trim()}>Save connection</button><button type="button" className="kn-focus" onClick={forget}>Forget saved</button></div>

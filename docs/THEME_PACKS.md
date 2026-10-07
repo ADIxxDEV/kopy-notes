@@ -1,0 +1,11 @@
+# Kopy theme packs
+
+Open **Menu → Themes** on a board, or **Theme packs** in setup/settings. Choose a theme, adjust colors, upload your own tool artwork, and save it under a new name. “Contrast controls with the page background” uses light controls on dark boards and dark controls on light boards. Disable it to keep your chosen panel colors.
+
+Use **Prepare export → Download theme pack** to save a `.kopy-theme` file. Import that file on the web, Android app or Windows app. No account, cloud service or vendor asset library is required. Each pack contains its own artwork and page presets; teacher details, lesson data and device settings are excluded. Control layout presets remain separately portable through Customize controls.
+
+The file is UTF-8 JSON with `schema: "org.kopynotes.theme"`, `version: 1`, an `id`, a `name`, `colors`, `autoContrast`, `icons` and `boards`. Colors are six-digit hex values. Icon slots are `pen`, `pencil`, `paint`, `chinese`, `crayon`, `stamp`, `highlighter`, `laser`, `eraser`, `select`, `hand`, `shapes` and `tools`. Upload PNG, JPEG or WebP; images up to 64 MB are resized locally, compressed automatically when needed, and embedded as data URLs. Backgrounds fit within 1280 x 720 and icons within 128 x 128, preserving proportions. Lossless PNG is kept when it fits; larger images use WebP or smaller dimensions until they fit the saved-image limit. External URLs, scripts, fonts, HTML and arbitrary SVG are rejected. Packs are limited to 6 MB, 24 page presets and 550 KB per embedded image; up to eight custom packs can be saved locally.
+
+Page presets contain `id`, `name`, `background`, `pattern`, `ink`, and optionally an embedded raster `image`. Patterns include none, grid, dots, lines, music staff, handwriting guides and isometric paper. Applying a page preset changes the current page; adding a page inherits its color, pattern and background image. Existing pages keep their own settings. Custom backgrounds remain embedded in `.kopy` lessons and PDF exports.
+
+Kopy's pen illustrations and paper/chalk textures are original MIT-licensed artwork. Installed Note3 resources were inspected as a design reference and are not distributed in Kopy. Only redistribute artwork you own or have permission to share.

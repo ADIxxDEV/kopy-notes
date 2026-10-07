@@ -1,3 +1,4 @@
+import {CustomSelect} from '@/components/CustomSelect';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { FloatingWindow } from './FloatingWindow';
 import './ClassroomTools.css';
@@ -50,7 +51,7 @@ export function ClassroomTools({onClose}:{onClose:()=>void}) {
       <p className="classroom-hint">{names.length} {names.length===1?'name':'names'} · {repeat?'Repeats allowed':`${available.length} remaining`}</p>
       <div className="classroom-winner" role="status" aria-live="polite">{winner || 'Add names, then pick'}{!repeat && names.length>0 && !available.length && <small>Everyone has been picked. Reset the round to start again.</small>}</div>
     </section>
-    <section aria-label="Classroom dice"><h3>Dice</h3><div className="classroom-dice-controls"><label>Number of dice<select aria-label="Number of dice" className="kn-focus" value={diceCount} onChange={event=>{setDiceCount(Number(event.target.value));setDice([]);}}><option value={1}>One</option><option value={2}>Two</option><option value={3}>Three</option></select></label><button className="kn-focus classroom-primary" onClick={roll}>Roll dice</button></div><div className="classroom-dice" aria-live="polite">{dice.length ? <><div>{dice.map((value,index)=><Die key={index} value={value}/>)}</div><p role="status">{dice.join(' + ')}{dice.length>1?` = ${dice.reduce((sum,value)=>sum+value,0)}`:''}</p></>:<p className="classroom-hint">Roll to show the result.</p>}</div></section>
+    <section aria-label="Classroom dice"><h3>Dice</h3><div className="classroom-dice-controls"><label>Number of dice<CustomSelect aria-label="Number of dice" className="kn-focus" value={diceCount} onChange={event=>{setDiceCount(Number(event.target.value));setDice([]);}}><option value={1}>One</option><option value={2}>Two</option><option value={3}>Three</option></CustomSelect></label><button className="kn-focus classroom-primary" onClick={roll}>Roll dice</button></div><div className="classroom-dice" aria-live="polite">{dice.length ? <><div>{dice.map((value,index)=><Die key={index} value={value}/>)}</div><p role="status">{dice.join(' + ')}{dice.length>1?` = ${dice.reduce((sum,value)=>sum+value,0)}`:''}</p></>:<p className="classroom-hint">Roll to show the result.</p>}</div></section>
     {error && <p role="alert" className="classroom-error">{error}</p>}
   </div></FloatingWindow>;
 }

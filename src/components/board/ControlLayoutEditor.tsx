@@ -1,3 +1,4 @@
+import {CustomSelect} from '@/components/CustomSelect';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState,type PointerEvent} from 'react';
 import {createPortal} from 'react-dom';
 import {Icon} from '@/components/Icon';
@@ -65,7 +66,7 @@ export function ControlLayoutEditor(){
     }
     // Tool menus follow a relocated launch button unless the panel has its own position.
     const anchorMenu=(panel:HTMLElement|null,button:HTMLElement|null)=>{
-      if(!panel||!button)return;
+      if(!panel||!button||panel.hasAttribute('data-side-menu')||panel.closest('.kn-anchored-popover'))return;
       const r=panel.getBoundingClientRect(),b=button.getBoundingClientRect();
       const x=Math.max(8,Math.min(b.x+b.width/2-r.width/2,innerWidth-r.width-8));
       const y=b.y-r.height-10>=8?b.y-r.height-10:Math.max(8,Math.min(b.bottom+10,innerHeight-r.height-8));
@@ -153,9 +154,9 @@ export function ControlLayoutEditor(){
       }} onPointerMove={event=>{const active=settingsDrag.current;if(active?.id!==event.pointerId)return;const rect=settingsPanel.current!.getBoundingClientRect();setPanelPosition({x:Math.max(8,Math.min(event.clientX-active.dx,innerWidth-rect.width-8)),y:Math.max(8,Math.min(event.clientY-active.dy,innerHeight-rect.height-8))});}} onPointerUp={()=>settingsDrag.current=null} onPointerCancel={()=>settingsDrag.current=null}><strong>Customize controls</strong><button type="button" onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?'Expand layout settings':'Minimize layout settings'}>{collapsed?'+':'−'}</button><button type="button" onClick={cancel} aria-label="Cancel layout editing"><Icon name="close"/></button></header>
       <div hidden={collapsed}>
       <p>Drag a control. Select a panel to move its whole group.</p>
-      <label>Control<select autoFocus aria-label="Layout control" value={selected} onChange={e=>setSelected(e.target.value)}>{controls.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+      <label>Control<CustomSelect autoFocus aria-label="Layout control" value={selected} onChange={e=>setSelected(e.target.value)}>{controls.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</CustomSelect></label>
       {control&&<><label className="kn-layout-check"><input type="checkbox" aria-label="Floating control" checked={position?position.floating!==false:false} onChange={e=>update(selected,controlPositionAt(control.rect.x,control.rect.y,control.rect.width,control.rect.height,{width:innerWidth,height:innerHeight},position?.scale??1,e.target.checked))}/>Floating control</label><label className="kn-layout-size">Size <input type="range" aria-label="Control size" min="1" max="1.75" step=".05" value={position?.scale??1} onChange={e=>update(selected,{scale:Number(e.target.value)})}/><output>{Math.round((position?.scale??1)*100)}%</output></label><label className="kn-layout-check"><input type="checkbox" aria-label="Hide selected control" checked={position?.hidden??false} onChange={e=>update(selected,{hidden:e.target.checked})}/>Hide this control</label><button type="button" onClick={()=>setDraft(previous=>{const next={...previous};delete next[selected];return next;})}>Reset this control</button></>}
-      <fieldset><legend>Presets</legend><select aria-label="Control layout preset" value={presetId} onChange={e=>{setPresetId(e.target.value);const preset=store.presets.find(p=>p.id===e.target.value);if(preset){setDraft({...preset.positions});setName(preset.name);}}}><option value="">Current layout</option>{store.presets.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><label>Name<input aria-label="Layout preset name" value={name} maxLength={40} placeholder="My classroom" onChange={e=>setName(e.target.value)}/></label><div className="kn-layout-row"><button type="button" disabled={!name.trim()||(!presetId&&store.presets.length>=20)} onClick={()=>{
+      <fieldset><legend>Presets</legend><CustomSelect aria-label="Control layout preset" value={presetId} onChange={e=>{setPresetId(e.target.value);const preset=store.presets.find(p=>p.id===e.target.value);if(preset){setDraft({...preset.positions});setName(preset.name);}}}><option value="">Current layout</option>{store.presets.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</CustomSelect><label>Name<input aria-label="Layout preset name" value={name} maxLength={40} placeholder="My classroom" onChange={e=>setName(e.target.value)}/></label><div className="kn-layout-row"><button type="button" disabled={!name.trim()||(!presetId&&store.presets.length>=20)} onClick={()=>{
         const id=presetId||crypto.randomUUID(),preset={id,name:name.trim(),positions:{...draft}};const presets=presetId?store.presets.map(p=>p.id===id?preset:p):[...store.presets,preset];
         if(persist({...store,presets})){setPresetId(id);setMessage('Preset saved.');}
       }}>{presetId?'Update preset':'Save preset'}</button><button type="button" disabled={!presetId} onClick={()=>{if(persist({...store,presets:store.presets.filter(p=>p.id!==presetId)})){setPresetId('');setName('');}}}>Delete</button></div></fieldset>

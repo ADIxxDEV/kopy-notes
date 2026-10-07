@@ -1,6 +1,6 @@
 import {test,expect,type Page,type Locator} from '@playwright/test';
 
-async function activate(page:Page,control:Locator){if(await page.evaluate(()=>navigator.maxTouchPoints>0))await control.tap();else await control.click();}
+async function activate(page:Page,control:Locator){if(!await control.count()||!await control.isVisible()){const more=page.getByRole('button',{name:'More tools',exact:true});if(await more.count()){if(await page.evaluate(()=>navigator.maxTouchPoints>0))await more.tap();else await more.click();}}if(await page.evaluate(()=>navigator.maxTouchPoints>0))await control.tap();else await control.click();}
 async function board(page:Page){
   await page.goto('/');
   await page.evaluate(async()=>{
@@ -71,7 +71,7 @@ test('partial eraser cuts handwriting and Undo restores it',async({page})=>{
     const {notebooks}=await(await localRequest('/api/notebooks')).json();const {pages}=await(await localRequest(`/api/notebooks/${notebooks[0].id}`)).json();
     await localRequest(`/api/pages/${pages[0].id}`,{method:'PUT',body:JSON.stringify({objects:[{id:'ink',kind:'stroke',tool:'pen',color:'#123456',width:4,points:[{x:60,y:200},{x:300,y:200}]},{id:'shape',kind:'shape',shape:'rect',x:60,y:310,w:100,h:50,color:'#123456',width:2,filled:false,rotation:0}]})});
   });await page.reload();
-  await activate(page,page.getByRole('button',{name:'Eraser',exact:true}));await page.getByLabel('Eraser mode').selectOption('ink');
+  await activate(page,page.getByRole('button',{name:'Eraser',exact:true}));await page.getByRole('button',{name:'Custom eraser',exact:true}).click();
   await page.locator('.kn-canvas-surface').evaluate(el=>{
     const c=el as HTMLCanvasElement;c.setPointerCapture=()=>{};
     for(const [type,y] of [['pointerdown',160],['pointermove',240],['pointerup',240]] as const)c.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:7,pointerType:'touch',width:40,height:40,clientX:180,clientY:y,button:0,buttons:type==='pointerup'?0:1}));

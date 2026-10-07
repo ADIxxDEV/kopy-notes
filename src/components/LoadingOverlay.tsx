@@ -1,0 +1,1 @@
+export function LoadingOverlay({detail}:{detail?:string}){return <div className="kn-operation-loading" role="status" aria-live="polite"><div><span className="kn-loading-spinner" aria-hidden="true"/><strong>Please wait</strong>{detail&&<small>{detail}</small>}</div></div>;}

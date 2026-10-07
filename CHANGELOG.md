@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.0-dev.5 — 2026-10-07
+
+- Larger bold classroom clock; solid pressure paint, wax-grain crayon and soft pencil rendering with remembered sizes for each pen family.
+- Glowing laser ink with a bright core; size feedback stays inside pen/eraser settings and appears only when size changes.
+- Saved teaching-control visibility, custom dropdowns, full dark-theme surfaces and configurable popup spacing.
+- Edge menu, compact thumbnail actions and import/export progress; blank pages after imports restore the saved page style.
+- Smartboard slide filmstrip with compact view, larger touch controls and page navigation.
+- Restored tool positions, pinned windows, circle size preview and floating/docked on-screen keyboard.
+- Dedicated Auto Shape mode with circle/polygon recognition and feedback when a sketch stays as ink.
+
+- Portable theme packs with custom colors, original pen artwork, embedded icons and page background images; import/export uses the same format on web, Android and Windows.
+- Original chalk/paper texture presets, music staff, handwriting and isometric guides. New pages inherit their current page background and images survive lesson/PDF export.
+- Horizontal compact toolbars on small screens, a pinnable More menu and a single illustrated pen family for normal, pencil, paint, Chinese brush, crayon, highlighter, stamp and laser pens.
+- MIT perfect-freehand pressure handwriting; original smile, star, heart and sun stamp pens.
+- Steady laser pointer with faster-blinking editable temporary strokes. Automatic fade after six seconds; selection briefly pauses fading, capped at fourteen seconds. Laser ink is excluded from backups.
+- Fill-board imports remove margins by default; aspect-preserving and original-size placement remain available. Removed extra view-fit padding.
+- Windows classroom startup screen with a retry page, isolated preload and renderer-ready handoff.
+
 ## 0.2.0-dev.4 | 2026-10-04
 
 - Tablet touch cancellation fixes, responsive controls, fullscreen with an iOS focus-view fallback.

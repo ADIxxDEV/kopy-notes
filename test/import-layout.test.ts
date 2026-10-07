@@ -1,6 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {DEFAULT_IMPORT_LAYOUT,MM_TO_DIGITAL_PX,combineImportFrames,placeImportedMedia,validateImportLayout,orientImportFrame,type ImportAlignment} from '../src/lib/import-layout';
+test('fill removes empty borders and respects explicit margins independently of source proportions',()=>{
+ const placed=placeImportedMedia({width:600,height:900},{...DEFAULT_IMPORT_LAYOUT,sizing:'fill'},{x:640,y:360});
+ assert.deepEqual({x:placed.x,y:placed.y,width:placed.width,height:placed.height},{x:0,y:0,width:1280,height:720});
+ const inset=placeImportedMedia({width:600,height:900},{...DEFAULT_IMPORT_LAYOUT,sizing:'fill',margins:{top:10,right:10,bottom:10,left:10}},{x:640,y:360});
+ assert.ok(Math.abs(inset.x-10*MM_TO_DIGITAL_PX)<1e-8);assert.ok(Math.abs(inset.height-(720-20*MM_TO_DIGITAL_PX))<1e-8);
+});
 test('all nine anchors respect left/right and top/bottom placement without changing original dimensions',()=>{
  const alignments:ImportAlignment[]=['top-left','top-center','top-right','center-left','center','center-right','bottom-left','bottom-center','bottom-right'];
  for(const alignment of alignments){const placed=placeImportedMedia({width:100,height:80},{...DEFAULT_IMPORT_LAYOUT,sizing:'original',alignment},{x:640,y:360});

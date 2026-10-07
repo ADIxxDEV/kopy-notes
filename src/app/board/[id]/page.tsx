@@ -1,3 +1,11 @@
+import {LoadingOverlay} from '@/components/LoadingOverlay';
+import {interfaceSettings} from '@/lib/interface-settings';
+import {newPageStyle} from '@/lib/new-page-style';
+import {BoardTooltips} from '@/components/board/BoardTooltips';
+import {persistentObjects} from '@/lib/pen-strokes';
+import {ThemeSettings} from '@/components/ThemeSettings';
+import {controlContrast,controlPalette,BUILTIN_THEMES} from '@/lib/theme-pack';
+import {BoardPresets} from '@/components/BoardPresets';
 import {ControlLayoutEditor} from '@/components/board/ControlLayoutEditor';
 import {BoardFullscreen} from '@/components/board/BoardFullscreen';
 "use client";
@@ -27,7 +35,7 @@ import { Toolbar } from "@/components/board/Toolbar";
 import { PageBar } from "@/components/board/PageBar";
 import { SlidesPanel } from "@/components/board/SlidesPanel";
 import { SelectionBar } from "@/components/board/SelectionBar";
-import { SettingsPanel, HelpPanel, AboutPanel } from "@/components/board/Panels";
+import { SettingsPanel, HelpPanel, AboutPanel, Modal as Dialog } from "@/components/board/Panels";
 import { ImportPanel } from "@/components/board/ImportPanel";
 import { ExportPanel, download } from "@/components/board/ExportPanel";
 import { FloatingWindow } from "@/components/board/FloatingWindow";
@@ -40,16 +48,16 @@ import {
   Stopwatch,
   useNow,
 } from "@/components/board/Tools";
-import type { FloatingToolId, MediaItem } from "@/lib/constants";
+import {FLOATING_TOOLS, type FloatingToolId, type MediaItem } from "@/lib/constants";
 import type { Notebook, Page } from "@/db/schema";
 
-type Modal = "settings" | "help" | "about" | "import" | "export" | null;
+type Modal = "themes" | "settings" | "help" | "about" | "import" | "export" | null;
 
 export default function BoardPage() {
   const params = useParams();
   const router = useRouter();
   const id = String(params.id);
-  const { profile } = useApp();
+  const { profile,updateProfile } = useApp();
   const { push } = useToast();
   const clock = useNow();
 
@@ -58,20 +66,26 @@ export default function BoardPage() {
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [background, setBackground] = useState("#111214");
+  const [pageImage,setPageImage]=useState<string|undefined>();
+  const pageImageRef=useRef(pageImage);pageImageRef.current=pageImage;
   const [pattern, setPattern] = useState("none");
   const [panel, setPanel] = useState<DockId | null>(null);
   const [modal, setModal] = useState<Modal>(null);
-  const [openTools, setOpenTools] = useState<Set<FloatingToolId>>(new Set());
+  const [openTools,setOpenTools]=useState<Set<FloatingToolId>>(()=>{try{const stored=JSON.parse(localStorage.getItem('kopy-open-tools')??'[]');return new Set(Array.isArray(stored)?stored.filter(id=>id!=='screenshot'&&FLOATING_TOOLS.some(t=>t.id===id)):[]);}catch{return new Set();}});
+  useEffect(()=>{try{localStorage.setItem('kopy-open-tools',JSON.stringify([...openTools].filter(id=>id!=='screenshot')));}catch{}},[openTools]);
   const [thumbsOpen, setThumbsOpen] = useState(()=>window.innerWidth>=1000);
   const [presenting, setPresenting] = useState(false);
+  const [slidesSide,setSlidesSide]=useState<'left'|'right'>(()=>{try{return localStorage.getItem('kopy-slides-side')==='left'?'left':'right';}catch{return 'right';}});
+  useEffect(()=>{try{localStorage.setItem('kopy-slides-side',slidesSide);window.dispatchEvent(new Event('kopy-popup-layout'));}catch{}},[slidesSide]);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "dirty">("saved");
+  const [operation,setOperation]=useState<string|null>(null);
   const [textValue, setTextValue] = useState("");
   const [recording, setRecording] = useState(false);
   const [showRecorder,setShowRecorder]=useState(false);
   const [showBackups,setShowBackups]=useState(false);
   const [commentsOpen,setCommentsOpen]=useState(false);
   const [toolbarLayout,setToolbarLayout]=useState<'bottom'|'left'|'right'>(()=>{try{const value=localStorage.getItem('kopy-toolbar-layout');return value==='left'||value==='right'?value:'bottom';}catch{return 'bottom';}});
-  useEffect(()=>{try{localStorage.setItem('kopy-toolbar-layout',toolbarLayout);}catch{/* Layout remains usable when storage is unavailable. */}},[toolbarLayout]);
+  useEffect(()=>{try{localStorage.setItem('kopy-toolbar-layout',toolbarLayout);window.dispatchEvent(new Event('kopy-popup-layout'));}catch{/* Layout remains usable when storage is unavailable. */}},[toolbarLayout]);
   const [assistantOpen,setAssistantOpen]=useState(false);
   const [subjectTool, setSubjectTool] = useState<SubjectTool | null>(null);
 
@@ -98,11 +112,11 @@ export default function BoardPage() {
         const res = await localRequest(`/api/pages/${pageId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ objects, media, background: bg, pattern: pat, importFrame:frameRef.current }),
+          body: JSON.stringify({ objects:persistentObjects(objects), media, background: bg, pattern: pat, backgroundImage:pageImageRef.current??'',importFrame:frameRef.current }),
         });
         if (!res.ok) throw new Error("save failed");
         setSaveState("saved");
-        setPages(list => list.map(page => page.id === pageId ? { ...page, objects, media, background: bg, pattern: pat,importFrame:frameRef.current } : page));
+        setPages(list => list.map(page => page.id === pageId ? { ...page, objects, media, background: bg, pattern: pat,backgroundImage:pageImageRef.current,importFrame:frameRef.current } : page));
       } catch {
         setSaveState("dirty");
         throw new Error("Could not save the current page. Check available storage before leaving.");
@@ -137,6 +151,7 @@ export default function BoardPage() {
     initialObjects: [],
     initialMedia: [],
     background,
+    backgroundImage:pageImage,
     pattern,
     onContentChange: handleContentChange,
   });
@@ -152,6 +167,7 @@ export default function BoardPage() {
       setIndex(i);
       setBackground(pg.background || "#111214");
       setPattern(pg.pattern || "none");
+      pageImageRef.current=pg.backgroundImage;setPageImage(pg.backgroundImage);
       wb.reset(pg.objects ?? [], pg.media ?? []);
       if(pg.importFrame)window.setTimeout(()=>wb.fitToBounds(pg.importFrame!),100);else if(pg.media?.length)window.setTimeout(wb.fitToContent,100);
     },
@@ -205,6 +221,7 @@ export default function BoardPage() {
     [pages, index, flushSave, loadPageIntoBoard],
   );
 
+  const ui=interfaceSettings(profile.ui);
   const addPage = useCallback(async () => {
     if(addingPage.current)return;
     addingPage.current=true;
@@ -213,7 +230,7 @@ export default function BoardPage() {
       const res = await localRequest(`/api/notebooks/${id}/pages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ background: bgRef.current, pattern: patternRef.current,afterPageId:pageIdRef.current }),
+        body: JSON.stringify({...newPageStyle(profile,{...pages[index],background:bgRef.current,pattern:patternRef.current,backgroundImage:pageImageRef.current}),backgroundImage:newPageStyle(profile,{...pages[index],background:bgRef.current,pattern:patternRef.current,backgroundImage:pageImageRef.current}).backgroundImage??'',afterPageId:pageIdRef.current}),
       });
       if(!res.ok)throw new Error('Could not add the slide');
       const { page,pages:next } = (await res.json()) as { page: Page;pages:Page[] };
@@ -222,16 +239,18 @@ export default function BoardPage() {
     } catch {
       push("Could not add a page.", "error");
     } finally {addingPage.current=false;}
-  }, [pages, id, flushSave, loadPageIntoBoard, push]);
+  }, [pages,index,profile, id, flushSave, loadPageIntoBoard, push]);
 
-  const deletePage = useCallback(async () => {
-    if (pages.length <= 1 || !currentPage) return;
+  const deletePage = useCallback(async (slideIndex=index) => {
+    if (pages.length <= 1 || !pages[slideIndex]) return;
     await flushSave();
     try {
-      await localRequest(`/api/pages/${currentPage.id}`, { method: "DELETE" });
-      const next = pages.filter((_, i) => i !== index);
+      const response=await localRequest(`/api/pages/${pages[slideIndex].id}`, { method: "DELETE" });
+      if(!response.ok)throw new Error("Could not delete slide");
+      const next = pages.filter((_, i) => i !== slideIndex);
       setPages(next);
-      loadPageIntoBoard(Math.max(0, index - 1), next);
+      const active=next.findIndex(page=>page.id===pageIdRef.current);
+      loadPageIntoBoard(active>=0?active:Math.min(slideIndex,next.length-1), next);
     } catch {
       push("Could not delete the page.", "error");
     }
@@ -252,7 +271,7 @@ export default function BoardPage() {
       const original=await localRequest(`/api/pages/${pages[slideIndex].id}`);
       if(!original.ok)throw new Error('Slide not found');
       const {page:source}=await original.json() as {page:Page};
-      const created=await localRequest(`/api/notebooks/${id}/pages`,{method:'POST',body:JSON.stringify({background:source.background,pattern:source.pattern})});
+      const created=await localRequest(`/api/notebooks/${id}/pages`,{method:'POST',body:JSON.stringify({background:source.background,pattern:source.pattern,backgroundImage:source.backgroundImage??''})});
       if(!created.ok)throw new Error('Could not create the copy');
       const {page:copy}=await created.json() as {page:Page};
       const copied={...copy,importFrame:source.importFrame,objects:source.objects.map(object=>({...object,id:uid()})),media:source.media.map(media=>({...media,id:uid()}))};
@@ -279,9 +298,10 @@ export default function BoardPage() {
 
   // -------------------------------- export ---------------------------------
 
-  const exportPNG = useCallback(() => {
-    const url = wb.exportPNG();
-    if (url) download(url, `${notebook?.title ?? "page"}-p${index + 1}.png`);
+  const exportPNG = useCallback(async () => {
+    setOperation('Exporting image');await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
+    try{const url = wb.exportPNG();
+    if (url) download(url, `${notebook?.title ?? "page"}-p${index + 1}.png`);}finally{setOperation(null);}
   }, [wb, notebook, index]);
 
   const exportPDF = useCallback(async (scope:PDFScope,onProgress:(progress:ExportProgress)=>void) => {
@@ -289,14 +309,15 @@ export default function BoardPage() {
     const response=await localRequest(`/api/notebooks/${id}`);
     if(!response.ok)throw new Error('The lesson could not be read. Please try again.');
     const data=await response.json() as {pages:Page[]};
-    const snapshot=data.pages.map(page=>page.id===pageIdRef.current?{...page,objects:wb.objects,media:wb.media,background:bgRef.current,pattern:patternRef.current,importFrame:frameRef.current}:page);
+    const snapshot=data.pages.map(page=>page.id===pageIdRef.current?{...page,objects:persistentObjects(wb.objects),media:wb.media,background:bgRef.current,pattern:patternRef.current,backgroundImage:pageImageRef.current,importFrame:frameRef.current}:page);
     const chosen=scope==='all'?snapshot:snapshot.filter(page=>page.id===pageIdRef.current);
     return exportLessonPDF(chosen,{title:notebook?.title??'lesson',scope,pageNumber:index+1,watermark:profile.watermark,onProgress});
   }, [flushSave,id,wb.objects,wb.media,notebook,index,profile.watermark]);
 
   const exportJSON = useCallback(async () => {
+    setOperation('Exporting editable lesson');await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
     try { await flushSave(); const blob = await exportLesson(id); download(URL.createObjectURL(blob), `${notebook?.title ?? "lesson"}.kopy`); push("Editable lesson and files exported.", "success"); }
-    catch { push("Could not export the lesson.", "error"); }
+    catch { push("Could not export the lesson.", "error"); }finally{setOperation(null);}
   }, [id, notebook, flushSave, push]);
 
   const printPage = useCallback(() => {
@@ -342,6 +363,9 @@ export default function BoardPage() {
           break;
         case "print":
           printPage();
+          break;
+        case "themes":
+          setModal("themes");
           break;
         case "settings":
           setModal("settings");
@@ -461,10 +485,11 @@ export default function BoardPage() {
   ];
 
   return (
-    <div className="kn-board fixed inset-0 flex flex-col bg-base" style={{'--guide-ink':(parseInt(background.slice(1,3),16)*.299+parseInt(background.slice(3,5),16)*.587+parseInt(background.slice(5,7),16)*.114)<125?'#e5f3fa':'#153848'} as React.CSSProperties}>
+    <div data-toolbar-layout={toolbarLayout} data-slides-side={slidesSide} data-flip-tools={ui.flipToolsOnSwap} data-show-fullscreen={ui.showFullscreen} data-show-customize={ui.showCustomize} data-show-time={ui.showTime} data-show-slides={ui.showSlideControls} data-show-menu={ui.showMenu} data-show-toolbar={ui.showToolbar} className="kn-board fixed inset-0 flex flex-col bg-base" style={{'--control-panel':controlPalette(profile.theme??BUILTIN_THEMES[0],background).panel,'--control-ink':controlPalette(profile.theme??BUILTIN_THEMES[0],background).ink,'--control-line':controlPalette(profile.theme??BUILTIN_THEMES[0],background).line,'--guide-ink':(parseInt(background.slice(1,3),16)*.299+parseInt(background.slice(3,5),16)*.587+parseInt(background.slice(5,7),16)*.114)<125?'#e5f3fa':'#153848'} as React.CSSProperties}>
+      {operation&&<LoadingOverlay detail={operation}/>}
       {/* ---------------------------- Top bar ---------------------------- */}
       {!presenting && (
-        <details className="board-meta"><summary aria-label="Lesson details">{clock.time}</summary>
+        <details className="board-meta"><summary aria-label="Lesson details">{ui.showTime?clock.time:<Icon name="doc"/>}</summary>
         <header className="board-header z-30 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-panel px-3">
           <div className="flex items-center gap-2">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand">
@@ -540,12 +565,14 @@ export default function BoardPage() {
           onLostPointerCapture={wb.onPointerCancel}
         />
 
+        {wb.shapeFeedback&&<div className="kn-shape-feedback" role="status">{wb.shapeFeedback}</div>}
         {/* Selection actions */}
         {wb.selection && (
           <SelectionBar
             anchor={wb.selectionBounds?{...wb.worldToScreen(wb.selectionBounds.x,wb.selectionBounds.y),width:wb.selectionBounds.w*wb.view.scale,height:wb.selectionBounds.h*wb.view.scale}:{x:12,y:100,width:0,height:0}}
             count={wb.selectedIds.length}
             onResize={wb.resizeSelected}
+            onTransform={wb.transformSelected}
             onSelectAll={wb.selectAll}
             selection={wb.selection}
             object={selectedObject}
@@ -569,7 +596,7 @@ export default function BoardPage() {
         {wb.selection && !selectedMedia?.locked && wb.selectionBounds && <ResizeHandles bounds={wb.selectionBounds} screen={wb.worldToScreen} resize={wb.resizeSelected}/>}
         {/* Text editor overlay */}
         {wb.editingText && (
-          <textarea
+          <textarea data-board-text
             autoFocus
             value={textValue}
             onChange={(e) => setTextValue(e.target.value)}
@@ -588,7 +615,7 @@ export default function BoardPage() {
             style={{
               position: "fixed",
               left: Math.max(12,Math.min(wb.editingText.screenX,window.innerWidth-260)),
-              top: Math.max(72,Math.min(wb.editingText.screenY,(window.visualViewport?.height??window.innerHeight)-120)),
+              top: Math.max(72,Math.min(wb.editingText.screenY,(window.visualViewport?.height??window.innerHeight)-(parseInt(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height'))||0)-120)),
               fontSize: 28,
               color: wb.pen.color,
               background: "rgba(0,0,0,0.35)",
@@ -605,7 +632,7 @@ export default function BoardPage() {
           />
         )}
 
-        <ControlLayoutEditor/><BoardFullscreen/><TeachingControls onCustomize={()=>window.dispatchEvent(new Event('kopy-customize-controls'))} layout={toolbarLayout} onLayout={setToolbarLayout} recorder={showRecorder} backups={showBackups} comments={commentsOpen} recording={recording} onRecorder={setShowRecorder} onBackups={setShowBackups} onComments={setCommentsOpen}/>
+        <BoardTooltips/><ControlLayoutEditor/><BoardFullscreen/><TeachingControls onCustomize={()=>window.dispatchEvent(new Event('kopy-customize-controls'))} layout={toolbarLayout} onLayout={setToolbarLayout} recorder={showRecorder} backups={showBackups} comments={commentsOpen} recording={recording} onRecorder={setShowRecorder} onBackups={setShowBackups} onComments={setCommentsOpen}/>
         <div hidden={!showBackups}><RecoveryPanel lessonId={id} flush={flushSave}/></div>
         {commentsOpen&&<LiveComments onClose={()=>setCommentsOpen(false)}/>}
         {profile.ai?.enabled&&<button className="local-assistant-launch" onClick={()=>setAssistantOpen(value=>!value)} aria-label="Local assistant">AI assistant</button>}
@@ -660,7 +687,8 @@ export default function BoardPage() {
             <div className="menu-dock">
               <LeftDock
                 active={panel}
-                onOpen={(d) => {setThumbsOpen(false);if(d==='import'){setPanel(null);setModal('import');}else setPanel((p) => (p === d ? null : d));}}
+                onSwap={()=>setSlidesSide(side=>side==='left'?'right':'left')}
+                onOpen={(d) => {setThumbsOpen(false);if(d==='import'||d==='export'){setPanel(null);setModal(d);}else setPanel((p) => (p === d ? null : d));}}
                 presenting={presenting}
                 onTogglePresent={() => setPresenting(true)}
                 onExit={() => { if (recording) { push("Stop recording before leaving the board.", "error"); return; } void flushSave().then(() => router.push("/library")).catch(()=>push("Save failed. Please keep this lesson open.", "error")); }}
@@ -677,7 +705,7 @@ export default function BoardPage() {
 
         {thumbsOpen && <SlidesPanel pages={pages} activePageId={currentPage?.id??''}
           onGo={i=>{void goTo(i).catch(()=>push('Could not save your edits. Keep this slide open.','error'));}}
-          onReorder={reorderPages} onClose={()=>setThumbsOpen(false)} onAdd={addPage} onDuplicate={duplicatePage}/>}
+          onReorder={reorderPages} onClose={()=>setThumbsOpen(false)} onAdd={addPage} onDuplicate={duplicatePage} onDelete={deletePage} onSwap={()=>setSlidesSide(side=>side==='left'?'right':'left')}/>}
 
         {/* Bottom toolbar + page bar */}
         <div className="board-toolbar" data-layout={toolbarLayout}>
@@ -687,6 +715,9 @@ export default function BoardPage() {
             pen={wb.pen}
             setPen={wb.setPen}
             eraserSize={wb.eraserSize}
+            eraserMode={wb.eraserMode} onEraserMode={wb.setEraserMode}
+            palmEraser={wb.palmEraser} onPalmEraser={wb.setPalmEraser}
+            onClearAnnotations={wb.clearAnnotations}
             setEraserSize={wb.setEraserSize}
             undo={wb.undo}
             redo={wb.redo}
@@ -701,7 +732,8 @@ export default function BoardPage() {
             pageCount={pages.length}
             onAdd={addPage}
             onGo={i=>{void goTo(i).catch(()=>push('Could not save this slide. Please try again.','error'));}}
-            onDelete={deletePage}
+            onDelete={()=>void deletePage()}
+            onSwap={()=>setSlidesSide(side=>side==='left'?'right':'left')}
             onToggleThumbs={() => {setPanel(null);setThumbsOpen((o) => !o);}}
             thumbsOpen={thumbsOpen}
           />
@@ -726,7 +758,7 @@ export default function BoardPage() {
           background={background}
           pattern={pattern}
           onBackground={(bg) => {
-            setBackground(bg);
+            pageImageRef.current=undefined;setPageImage(undefined);setBackground(bg);
             void saveNow(wb.objects, wb.media, bg, patternRef.current);
           }}
           onPattern={(p) => {
@@ -735,6 +767,7 @@ export default function BoardPage() {
           }}
         />
       )}
+      {modal === "themes"&&<Dialog title="Themes & page presets" onClose={()=>setModal(null)} width={650}><ThemeSettings value={profile} onChange={patch=>{void updateProfile(patch).catch(e=>push(e.message,'error'));}}/><div className="my-5 border-t border-line"/><BoardPresets value={{...profile,boardBg:background,boardPattern:pattern,boardImage:pageImage}} onChange={patch=>{if(patch.boardBg){setBackground(patch.boardBg);bgRef.current=patch.boardBg;}if(patch.boardPattern){setPattern(patch.boardPattern);patternRef.current=patch.boardPattern;}if('boardImage' in patch){pageImageRef.current=patch.boardImage;setPageImage(patch.boardImage);}if(patch.defaultPenColor)wb.setPen({...wb.pen,color:patch.defaultPenColor});if(patch.boardPresets)void updateProfile({boardPresets:patch.boardPresets});void saveNow(wb.objects,wb.media,bgRef.current,patternRef.current).catch(e=>push(e.message,'error'));}}/></Dialog>}
       {modal === "help" && <HelpPanel onClose={() => setModal(null)} />}
       {modal === "about" && <AboutPanel onClose={() => setModal(null)} />}
       {modal === "import" && (

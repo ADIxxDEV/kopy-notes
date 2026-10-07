@@ -7,6 +7,7 @@ export type { BoardObject, MediaItem };
 // ---------------------------------------------------------------------------
 
 export type ActiveTool =
+  | "auto-shape"
   | "select"
   | "pan"
   | "pen"
@@ -30,7 +31,8 @@ export type ActiveTool =
   | "text";
 
 export type Pen = {
-  brush?: 'normal' | 'paint' | 'crayon';
+  stamp?:"smile"|"star"|"heart"|"sun";
+  brush?: 'normal' | 'pencil' | 'paint' | 'chinese' | 'crayon' | 'stamp';
   color: string;
   size: number;
   opacity: number;
@@ -92,6 +94,9 @@ export const BOARD_PATTERNS = [
   { label: "Grid", value: "grid" },
   { label: "Dots", value: "dots" },
   { label: "Lines", value: "lines" },
+  { label: "Music staff", value: "staff" },
+  { label: "Handwriting", value: "handwriting" },
+  { label: "Isometric", value: "isometric" },
 ];
 
 export const SUBJECTS = [

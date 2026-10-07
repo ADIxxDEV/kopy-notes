@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -17,6 +18,7 @@ const DOCK: { id: DockId; icon: IconName; label: string }[] = [
   { id: "file", icon: "menu", label: "Menu" },
   { id: "treasure", icon: "toolbox", label: "Treasure box" },
   { id: "import", icon: "import", label: "Import file" },
+  {id:"export",icon:"export",label:"Export file"},
 ];
 
 export function LeftDock({
@@ -24,13 +26,13 @@ export function LeftDock({
   onOpen,
   presenting,
   onTogglePresent,
-  onExit,
+  onExit,onSwap,
 }: {
   active: DockId | null;
   onOpen: (id: DockId) => void;
   presenting: boolean;
   onTogglePresent: () => void;
-  onExit: () => void;
+  onExit: () => void;onSwap:()=>void;
 }) {
   return (
     <div className="kn-dock pointer-events-auto flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-xl backdrop-blur">
@@ -51,6 +53,7 @@ export function LeftDock({
           <Icon name={d.icon} className="h-5 w-5" />
         </button>
       ))}
+      <button type="button" onClick={onSwap} title="Swap sides" aria-label="Swap menu side" className="kn-focus grid h-11 w-11 place-items-center rounded-xl"><Icon name="flipHorizontal" className="h-5 w-5"/></button>
       <div className="my-0.5 h-px w-8 bg-line" />
       <button
         type="button"
@@ -87,7 +90,7 @@ const FILE_ITEMS: { id: string; label: string; icon: IconName }[] = [
   { id: "export", label: "Export", icon: "export" },
   { id: "print", label: "Print", icon: "print" },
   { id: "settings", label: "Settings", icon: "settings" },
-  { id: "themes", label: "Themes — coming soon", icon: "board" },
+  { id: "themes", label: "Themes", icon: "board" },
   { id: "help", label: "Help", icon: "help" },
   { id: "about", label: "About", icon: "eye" },
   { id: "exit", label: "Exit to library", icon: "back" },
@@ -124,9 +127,10 @@ export function FileMenu({
     };
   }, [onClose]);
 
-  return (
+  return createPortal((
     <div
       ref={ref}
+      data-side-menu
       aria-label="File menu"
       className="kn-file-menu kn-pop absolute bottom-24 left-3 z-40 flex w-64 max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
       role="region"
@@ -141,7 +145,6 @@ export function FileMenu({
           {FILE_ITEMS.filter(item=>group.ids.includes(item.id)).map((item) => (
           <button
             key={item.id}
-            disabled={item.id==='themes'}
             type="button"
             style={{display:'flex',width:'100%',height:'auto',minHeight:44}}
             onClick={() => {
@@ -156,5 +159,5 @@ export function FileMenu({
         ))}</section>)}
       </div>
     </div>
-  );
+  ),document.querySelector('.kn-board')??document.body);
 }
