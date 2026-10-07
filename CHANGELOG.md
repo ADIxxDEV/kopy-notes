@@ -2,6 +2,7 @@
 
 ## 0.2.0-dev.6 | 2026-10-07
 
+- Keyboard persistence checks wait for the actual saved title before reloading, avoiding a race with the asynchronous database commit.
 - Floating tools reapply saved layout after viewport clamps settle, keeping panels inside the screen through repeated landscape and portrait resizing.
 
 - Bounded PDF raster cache, shared render requests, direct saved-file loading and automatic retries for temporary render failures.

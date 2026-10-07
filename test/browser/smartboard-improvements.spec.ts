@@ -5,7 +5,7 @@ async function board(page:Page){
  await page.goto(`/#/board/${id}`);await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();return id;
 }
 test('custom keyboard types into the active field, changes docking and saves the title',async({page})=>{
- const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await board(page);
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));const id=await board(page);
  await page.getByLabel('Lesson details').click();const input=page.locator('.board-header input').first();await input.fill('');
  const keyboard=page.getByRole('region',{name:'On-screen keyboard',exact:true});await expect(keyboard).toBeVisible();
  await expect(keyboard.locator('[data-skbtn="h"]')).toBeVisible({timeout:10000});
@@ -13,6 +13,11 @@ test('custom keyboard types into the active field, changes docking and saves the
  await keyboard.getByRole('button',{name:'Float keyboard',exact:true}).click();await expect(keyboard).toHaveClass(/is-floating/);
  await page.setViewportSize({width:390,height:844});await expect.poll(async()=>{const r=await keyboard.boundingBox();return !!r&&r.x>=7&&r.x+r.width<=383&&r.y+r.height<=837;}).toBe(true);
  await keyboard.getByRole('button',{name:'Finish typing',exact:true}).click();await expect(keyboard).toHaveCount(0);
+ // Blur starts an asynchronous IndexedDB save; reload only after its commit.
+ await expect.poll(()=>page.evaluate(async notebookId=>{
+  const {localRequest}=await import('/src/lib/local-store.ts' as string);
+  const {notebook}=await(await localRequest(`/api/notebooks/${notebookId}`)).json();return notebook.title;
+ },id)).toBe('hi');
  await page.reload();await page.getByLabel('Lesson details').click();await expect(page.locator('.board-header input').first()).toHaveValue('hi');expect(errors).toEqual([]);
 });
 test('calculator returns to its saved position and pin state after reopening',async({page})=>{
