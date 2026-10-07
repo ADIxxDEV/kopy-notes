@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0-dev.6 | 2026-10-07
+
+- Bounded PDF raster cache, shared render requests, direct saved-file loading and automatic retries for temporary render failures.
+- Previous and next PDF pages warm in the background; imported pages retain selected paper colors, patterns and images.
+- Transparent PDF viewer paper and exports reveal the chosen board background; backgrounds explicitly painted inside the PDF remain part of the document.
+- Serialized page saves capture the correct slide and metadata; reopening restores the last slide and viewport without changing shape coordinates.
+- A separate durable edit journal checkpoints unfinished drawings. Teachers choose whether to recover edits or keep saved pages; three rotating lesson backups remain available.
+- Slow rendering/saving shows Please wait; the library offers the last interrupted lesson and records unfinished import/export activity.
+- Teaching controls use a gear-only button.
+- Keyboard space is reserved in setup, layout and comments panels; dismissing it no longer moves a button during a click. Custom dropdowns ignore drawing hotkeys, and regression checks follow the compact slide and side-setting controls.
+
 ## 0.2.0-dev.5 — 2026-10-07
 
 - Larger bold classroom clock; solid pressure paint, wax-grain crayon and soft pencil rendering with remembered sizes for each pen family.

@@ -1,5 +1,5 @@
 "use client";
-import { localAssetURL } from "@/lib/local-store";
+import { database, localAssetURL } from "@/lib/local-store";
 import DOMPurify from "dompurify";
 
 // ---------------------------------------------------------------------------
@@ -24,12 +24,22 @@ async function getPdfjs() {
       return pdfjsLib;
     })();
   }
+  pdfjsPromise.catch(()=>{pdfjsPromise=null;});
   return pdfjsPromise;
 }
 
 const imageCache = new Map<string, HTMLImageElement>();
 const pdfCache = new Map<string, Promise<PdfDoc>>();
 const pageCanvasCache = new Map<string, HTMLCanvasElement>();
+const pageRenders = new Map<string,Promise<HTMLCanvasElement>>();
+const MAX_PDF_PIXELS=3_000_000, MAX_CACHE_PIXELS=12_000_000;
+function keepPdfCanvas(key:string,canvas:HTMLCanvasElement){
+  pageCanvasCache.delete(key);pageCanvasCache.set(key,canvas);
+  let pixels=Array.from(pageCanvasCache.values()).reduce((sum,c)=>sum+c.width*c.height,0);
+  for(const [old,c] of pageCanvasCache){if(pixels<=MAX_CACHE_PIXELS&&pageCanvasCache.size<=16)break;if(old===key)continue;pageCanvasCache.delete(old);pixels-=c.width*c.height;}
+}
+function cachedPdf(key:string){const canvas=pageCanvasCache.get(key);if(canvas){pageCanvasCache.delete(key);pageCanvasCache.set(key,canvas);}return canvas;}
+
 
 export function assetUrl(assetId: string): Promise<string> { return localAssetURL(assetId); }
 
@@ -45,9 +55,7 @@ export function peekPdfPage(
   assetId: string,
   pageNumber: number,
 ): HTMLCanvasElement | undefined {
-  return pageCanvasCache.get(
-    `${assetId}:${pageNumber}:${Math.round(PDF_RENDER_WIDTH)}`,
-  );
+  return cachedPdf(`${assetId}:${pageNumber}:${Math.round(PDF_RENDER_WIDTH)}`);
 }
 const docxCanvasCache = new Map<string, HTMLCanvasElement>();
 export function peekDocx(assetId: string): HTMLCanvasElement | undefined {
@@ -74,14 +82,14 @@ export function loadPdf(assetId: string): Promise<PdfDoc> {
   if (cached) return cached;
   const promise = (async () => {
     const pdfjsLib = await getPdfjs();
-    const task = pdfjsLib.getDocument({
-      url: await assetUrl(assetId),
-      // Some classroom PDFs are scanned/odd; stay lenient.
-    });
+    const db=await database();let asset;try{asset=await db.get('assets',assetId);}finally{db.close();}
+    if(!asset)throw new Error('The saved PDF is missing. Restore a lesson backup.');
+    const task = pdfjsLib.getDocument({data:new Uint8Array(await asset.blob.arrayBuffer())});
     return task.promise;
   })();
   pdfCache.set(assetId, promise);
-  promise.catch(() => pdfCache.delete(assetId));
+  for(const old of pdfCache.keys()){if(pdfCache.size<=4)break;if(old!==assetId)pdfCache.delete(old);}
+  promise.catch(() => {if(pdfCache.get(assetId)===promise)pdfCache.delete(assetId);});
   return promise;
 }
 
@@ -98,36 +106,28 @@ export async function renderPdfPage(
   targetW: number,
 ): Promise<HTMLCanvasElement> {
   const key = `${assetId}:${pageNumber}:${Math.round(targetW)}`;
-  const cached = pageCanvasCache.get(key);
-  if (cached) return cached;
+  const cached=cachedPdf(key);if(cached)return cached;
+  const pending=pageRenders.get(key);if(pending)return pending;
+  const render=async()=>{
+    const doc=await loadPdf(assetId),page=await doc.getPage(pageNumber);
+    const base=page.getViewport({scale:1});
+    // Bound memory on tablets instead of multiplying every page by DPR twice.
+    const scale=Math.min(targetW/base.width,Math.sqrt(MAX_PDF_PIXELS/(base.width*base.height)),4096/Math.max(base.width,base.height));
+    const viewport=page.getViewport({scale}),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.ceil(viewport.width));canvas.height=Math.max(1,Math.ceil(viewport.height));
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('The document renderer is temporarily unavailable.');
+    await page.render({canvas,canvasContext:ctx,viewport,background:'rgba(0,0,0,0)'}).promise;
+    keepPdfCanvas(key,canvas);return canvas;
+  };
+  const promise=render().finally(()=>pageRenders.delete(key));pageRenders.set(key,promise);return promise;
+}
 
-  const doc = await loadPdf(assetId);
-  const page = await doc.getPage(pageNumber);
-  const baseViewport = page.getViewport({ scale: 1 });
-  const scale = targetW / baseViewport.width;
-  const viewport = page.getViewport({ scale });
+// One queued pair at a time, so rapid navigation does not render the entire PDF.
 
-  const canvas = document.createElement("canvas");
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.floor(viewport.width * dpr);
-  canvas.height = Math.floor(viewport.height * dpr);
-  canvas.style.width = `${Math.floor(viewport.width)}px`;
-  canvas.style.height = `${Math.floor(viewport.height)}px`;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no 2d context");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  await page.render({
-    canvas,
-    canvasContext: ctx,
-    viewport,
-    transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
-  }).promise;
-
-  pageCanvasCache.set(key, canvas);
-  return canvas;
+export function warmPdfPages(items:{assetId:string;pageNumber:number}[]){
+  let cancelled=false;
+  const run=async()=>{for(const item of items){if(cancelled)return;try{await renderPdfPage(item.assetId,item.pageNumber,PDF_RENDER_WIDTH);}catch{/* Active pages can retry; prefetch never becomes a permanent error. */}}};
+  const timer=window.setTimeout(()=>{void run();},180);return()=>{clearTimeout(timer);cancelled=true;};
 }
 
 // ------------------------------- DOCX --------------------------------------

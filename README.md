@@ -6,7 +6,9 @@
 
 [**Try the web preview**](https://kopy-notes.netlify.app) | [MIT license](LICENSE) · [Setup](docs/SETUP.md) · [Features](docs/FEATURE_MATRIX.md) · [Builds and releases](docs/RELEASE.md) · [Changelog](CHANGELOG.md)
 
-Version **0.2.0-dev.5 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+Version **0.2.0-dev.6 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+
+PDF imports retain your selected page background and warm nearby pages. Interrupted drawings are offered for recovery before changing saved pages.
 
 Portable [theme packs](docs/THEME_PACKS.md) include colors, custom icons and background images. Small screens use a horizontal pen family and a pinnable More menu. The Windows app shows a startup screen while loading the classroom.
 

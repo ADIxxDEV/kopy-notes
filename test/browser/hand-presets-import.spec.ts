@@ -5,7 +5,7 @@ test('custom defaults and saved presets survive reopening; Hand pans without dra
  await page.goto('/#/library?new=1');await page.getByRole('button',{name:'Create & open',exact:true}).click();
  const count=()=>page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);const {notebooks}=await(await localRequest('/api/notebooks')).json();const {pages}=await(await localRequest('/api/notebooks/'+notebooks[0].id)).json();return pages[0].objects.length;});
  await page.getByRole('button',{name:'Hand',exact:true}).click();await page.mouse.move(430,300);await page.mouse.down();await page.mouse.move(850,330,{steps:8});await page.mouse.up();expect(await count()).toBe(0);
- await page.getByRole('button',{name:'Pen',exact:true}).click();await page.mouse.move(440,430);await page.mouse.down();await page.mouse.move(540,460,{steps:8});await page.mouse.up();await expect.poll(count).toBe(1);
+ await page.getByRole('button',{name:'Pen',exact:true}).click();await page.keyboard.press('Escape');await page.mouse.move(440,430);await page.mouse.down();await page.mouse.move(540,460,{steps:8});await page.mouse.up();await expect.poll(count).toBe(1);
  await page.getByLabel('Lesson details').click();await page.getByRole('button',{name:'Reset board view',exact:true}).click();await expect(page.getByRole('button',{name:'Pen',exact:true})).toHaveAttribute('aria-pressed','true');
 });
 test('import starts with file selection and explains invalid margins',async({page})=>{

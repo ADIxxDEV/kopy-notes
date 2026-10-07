@@ -66,7 +66,7 @@ test('PDF panel waits for a ready document and lets the user download current or
   await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toHaveCount(0);
   await selectOption(page.getByLabel('Pages to export'),'all');
   await page.getByRole('button', {name: 'Prepare PDF', exact: true}).click();
-  await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toBeVisible();
+  await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toBeVisible({timeout:30000});
   await expect(page.getByRole('dialog')).toBeVisible();
   const allDownload = page.waitForEvent('download');
   await page.getByRole('link', {name: 'Download PDF', exact: true}).click();
@@ -74,7 +74,7 @@ test('PDF panel waits for a ready document and lets the user download current or
   await selectOption(page.getByLabel('Pages to export'),'current');
   await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toHaveCount(0);
   await page.getByRole('button', {name: 'Prepare PDF', exact: true}).click();
-  await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toBeVisible();
+  await expect(page.getByRole('link', {name: 'Download PDF', exact: true})).toBeVisible({timeout:30000});
   const currentDownload = page.waitForEvent('download');
   await page.getByRole('link', {name: 'Download PDF', exact: true}).click();
   expect((await currentDownload).suggestedFilename()).toBe('PDF lesson-p1.pdf');

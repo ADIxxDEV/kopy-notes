@@ -64,6 +64,7 @@ export function useWhiteboard(options: {
   backgroundImage?:string;
   pattern: string;
   onContentChange: (objects: BoardObject[], media: MediaItem[]) => void;
+  onDraftChange?: (objects:BoardObject[],media:MediaItem[])=>void;
 }) {
   const { initialObjects, initialMedia, background, pattern, onContentChange } = options;
 
@@ -73,6 +74,9 @@ export function useWhiteboard(options: {
   const [objects, setObjectsState] = useState<BoardObject[]>(initialObjects);
   const [media, setMediaState] = useState<MediaItem[]>(initialMedia);
   const [view, setViewState] = useState<View>({ tx: 0, ty: 0, scale: 1 });
+  const [processing,setProcessing]=useState(false);
+  const processingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  useEffect(()=>()=>{if(processingTimer.current)clearTimeout(processingTimer.current);},[]);
   const [shapeFeedback,setShapeFeedback]=useState('');
   useEffect(()=>{if(!shapeFeedback)return;const timeout=setTimeout(()=>setShapeFeedback(''),2600);return()=>clearTimeout(timeout);},[shapeFeedback]);
   const [tool, setTool] = useState<ActiveTool>("pen");
@@ -130,8 +134,10 @@ export function useWhiteboard(options: {
   const laserHead=useRef<{point:Point;last:number}|null>(null);
   const eraseWorking = useRef<BoardObject[] | null>(null);
   const moveState = useRef<{ sel: Selection; lastWorld: Point } | null>(null);
+  const draftCheckpoint=useRef(0);
+  const draftCallback=useRef(options.onDraftChange);draftCallback.current=options.onDraftChange;
   const inflight = useRef<Set<string>>(new Set());
-  const mediaErrors=useRef(new Map<string,string>());
+  const mediaErrors=useRef(new Map<string,{message:string;attempts:number}>());
 
   const rafRef = useRef<number | null>(null);
   const spaceHeld = useRef(false);
@@ -155,7 +161,7 @@ export function useWhiteboard(options: {
   const drawMediaItem = useCallback(
     (ctx: CanvasRenderingContext2D, m: MediaItem) => {
       const cached=m.kind==='image'?peekImage(m.assetId):m.kind==='pdf'?peekPdfPage(m.assetId,m.pageNumber):peekDocx(m.assetId);
-      if(!cached){ctx.save();ctx.fillStyle='#ffffff';ctx.fillRect(m.x,m.y,m.width,m.height);ctx.strokeStyle='#7d8d99';ctx.strokeRect(m.x,m.y,m.width,m.height);ctx.fillStyle='#263c4b';ctx.font='16px Arial';ctx.fillText(mediaErrors.current.get(m.id)??'Loading document…',m.x+18,m.y+35,Math.max(100,m.width-36));ctx.restore();}
+      if(!cached){ctx.save();ctx.fillStyle=backgroundRef.current;ctx.fillRect(m.x,m.y,m.width,m.height);ctx.strokeStyle='#7d8d99';ctx.strokeRect(m.x,m.y,m.width,m.height);ctx.fillStyle=parseInt(backgroundRef.current.slice(1),16)>0x888888?'#263c4b':'#ffffff';ctx.font='16px Arial';ctx.fillText(mediaErrors.current.get(m.id)?.message??'Loading document…',m.x+18,m.y+35,Math.max(100,m.width-36));ctx.restore();}
       const place = (source: CanvasImageSource) => {
         ctx.save();
         ctx.translate(m.x + m.width / 2, m.y + m.height / 2);
@@ -165,14 +171,14 @@ export function useWhiteboard(options: {
         ctx.restore();
       };
       const kick = (key: string, fn: () => Promise<unknown>) => {
-        if (inflight.current.has(key)||mediaErrors.current.has(m.id)) return;
+        if (inflight.current.has(key)||(mediaErrors.current.get(m.id)?.attempts??0)>=3) return;
         inflight.current.add(key);
         fn()
           .then(() => {
-            inflight.current.delete(key);
+            inflight.current.delete(key);mediaErrors.current.delete(m.id);
             scheduleRender();
           })
-          .catch(() => {inflight.current.delete(key);mediaErrors.current.set(m.id,"Could not render this file. Try reimporting or converting it to PDF.");scheduleRender();});
+          .catch(() => {const attempts=(mediaErrors.current.get(m.id)?.attempts??0)+1;mediaErrors.current.set(m.id,{attempts,message:attempts<3?'Please wait. Retrying document...':'Document unavailable. Reopen this slide to retry; your saved file is unchanged.'});window.setTimeout(()=>{inflight.current.delete(key);scheduleRender();},attempts*700);scheduleRender();});
       };
 
       if (m.kind === "image") {
@@ -210,6 +216,7 @@ export function useWhiteboard(options: {
   );
 
   const renderNow = useCallback(() => {
+    const started=performance.now();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -226,6 +233,7 @@ export function useWhiteboard(options: {
     }
 
     const v = viewRef.current;
+    if(draft.current&&performance.now()-draftCheckpoint.current>750){draftCheckpoint.current=performance.now();draftCallback.current?.([...objectsRef.current,draft.current],mediaRef.current);}
     paintScene(ctx, v, cssW, cssH, dpr);
 
     // in-progress draft
@@ -287,6 +295,7 @@ export function useWhiteboard(options: {
 
     ctx.restore();
 
+    if(performance.now()-started>100){setProcessing(true);if(processingTimer.current)clearTimeout(processingTimer.current);processingTimer.current=setTimeout(()=>setProcessing(false),700);}
     if (objectsRef.current.some(o=>o.kind==="stroke"&&o.tool==="laser")||(laserHead.current&&(performance.now()-laserHead.current.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser')))) scheduleRender();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paintScene, scheduleRender]);
@@ -353,6 +362,7 @@ export function useWhiteboard(options: {
   // Loads a different page's content into the board, resetting history + view.
   const reset = useCallback(
     (nextObjects: BoardObject[], nextMedia: MediaItem[], resetViewFlag = true) => {
+      mediaErrors.current.clear();
       past.current = [];
       future.current = [];
       draft.current = null;
@@ -1066,6 +1076,7 @@ export function useWhiteboard(options: {
   );
 
   return {
+    processing,
     canvasRef,
     containerRef,
     objects,
@@ -1105,6 +1116,8 @@ export function useWhiteboard(options: {
     resetView,
     fitToContent,
     fitToBounds,
+    restoreView:setView,
+    hasVisibleContent:()=>{const canvas=canvasRef.current;if(!canvas)return false;const v=viewRef.current;return [...objectsRef.current.map(o=>objectBounds(o)),...mediaRef.current.map(mediaBounds)].some(b=>b.x*v.scale+v.tx<canvas.clientWidth&&(b.x+b.w)*v.scale+v.tx>0&&b.y*v.scale+v.ty<canvas.clientHeight&&(b.y+b.h)*v.scale+v.ty>0);},
     addMedia,
     setGuideEdges: (id:string, edges:GuideEdge[]) => { if(edges.length)guideEdges.current.set(id,edges);else guideEdges.current.delete(id); },
     addObjects: (items: BoardObject[]) => commit([...objectsRef.current, ...items], mediaRef.current),

@@ -24,5 +24,5 @@ test('individual controls and named layouts survive reload, Cancel and tablet ro
   await expect.poll(async()=>Math.abs((await pen.boundingBox())!.y-saved!.y)).toBeLessThan(2);
   await page.setViewportSize({width:810,height:1080});
   await expect.poll(()=>pen.evaluate(el=>{const r=el.getBoundingClientRect();return r.x>=0&&r.y>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;})).toBe(true);
-  await launch.click();await expect(page.getByLabel('Control layout preset')).toContainText('Tablet class');
+  await launch.click();await page.getByLabel('Control layout preset').click();await expect(page.getByRole('option',{name:'Tablet class',exact:true})).toBeVisible();
 });

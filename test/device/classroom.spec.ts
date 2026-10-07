@@ -39,7 +39,7 @@ test('menus, imports and optional teaching controls respond to taps and stay in 
   await expect(page.getByRole('button',{name:'Record class',exact:true})).toBeHidden();
   const menu=page.getByRole('button',{name:'Menu',exact:true});await activate(page,menu);await contained(page,page.getByLabel('File menu'));
   await activate(page,menu);await expect(page.getByLabel('File menu')).toHaveCount(0);
-  await activate(page,page.getByRole('button',{name:'Import file',exact:true}));
+  if(await page.getByRole('button',{name:'Import file',exact:true}).isVisible())await activate(page,page.getByRole('button',{name:'Import file',exact:true}));else{await activate(page,menu);await activate(page,page.getByRole('region',{name:'File menu',exact:true}).getByRole('button',{name:'Import',exact:true}));}
   const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await contained(page,dialog.getByRole('button',{name:'Close',exact:true}));
   await activate(page,dialog.getByRole('button',{name:'Close',exact:true}));
   await activate(page,page.getByRole('button',{name:'Teaching controls',exact:true}));await page.getByLabel('Show recording controls').check();await activate(page,page.getByRole('button',{name:'Done',exact:true}));

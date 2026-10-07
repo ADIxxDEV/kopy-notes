@@ -20,7 +20,7 @@ test('drawings survive page changes and refresh; tools stay on the board',async(
   await expect(page.getByText('Saved',{exact:true})).toBeVisible();
   await expect(page.getByText('Saved.',{exact:true})).toHaveCount(0);
   await page.keyboard.press('Control+s');await expect(page.getByText('Saved.',{exact:true})).toHaveCount(0);
-  await page.getByRole('button',{name:'Add page',exact:true}).click();await expect(page.getByText('2 / 2',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Previous page',exact:true}).click();
+  await page.getByRole('button',{name:'Add page',exact:true}).click();await expect(page.getByRole('button',{name:'Open slides',exact:true})).toHaveText('2 / 2');await page.getByRole('button',{name:'Previous page',exact:true}).click();
   const count=await page.evaluate(async()=>{const db=await new Promise<IDBDatabase>(resolve=>{const r=indexedDB.open('kopy-notes',1);r.onsuccess=()=>resolve(r.result);});const tx=db.transaction('pages');const count=await new Promise<number>(resolve=>{const r=tx.objectStore('pages').get('page-test');r.onsuccess=()=>resolve(r.result.objects.length);});db.close();return count;});expect(count).toBeGreaterThan(0);
   await page.reload();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();await page.getByRole('button',{name:'Treasure box',exact:true}).click();await page.getByRole('button',{name:'Timer',exact:true}).click();await expect(page.getByText('05:00',{exact:true})).toBeVisible();
   await page.screenshot({path:'test-results/reference-board.png'});expect(errors).toEqual([]);
@@ -79,7 +79,7 @@ test('selection clears on writing, supports multiple items and resizes them',asy
   await expect(page.getByLabel('Resize selection 1')).toBeVisible();
   await page.getByRole('button',{name:'Pen',exact:true}).click();
   await expect(page.getByLabel('Resize selection 1')).toHaveCount(0);
-  await page.getByRole('button',{name:'Eraser',exact:true}).click();await expect(page.getByLabel('Eraser size')).toBeVisible();
+  await page.getByRole('button',{name:'Eraser',exact:true}).click();await expect(page.getByRole('slider',{name:'Eraser size',exact:true})).toBeVisible();
 });
 
 test('two-finger navigation cancels draft ink and stylus pressure survives touch rejection',async({page})=>{
@@ -98,9 +98,9 @@ test('PDF creates separate lesson pages and DOCX renders visible content',async(
   await board(page);
   const pdf=new jsPDF();pdf.setFillColor(0,80,220);pdf.rect(20,20,100,60,'F');pdf.text('First PDF page',20,100);pdf.addPage();pdf.text('Second PDF page',20,40);
   await page.goto('/#/library?new=1');await page.getByLabel('Start lesson from PDF').setInputFiles({name:'sample.pdf',mimeType:'application/pdf',buffer:Buffer.from(pdf.output('arraybuffer'))});
-  await page.getByRole('button',{name:'Create & open',exact:true}).click();await expect(page.getByText('1 / 2',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Create & open',exact:true}).click();await expect(page.getByRole('button',{name:'Open slides',exact:true})).toHaveText('1 / 2');
   const pdfVisible=await page.evaluate(async()=>{const mod=await import('/src/lib/media.ts' as string);const db=await new Promise<IDBDatabase>(resolve=>{const r=indexedDB.open('kopy-notes',1);r.onsuccess=()=>resolve(r.result);});const asset=await new Promise<any>(resolve=>{const r=db.transaction('assets').objectStore('assets').getAll();r.onsuccess=()=>resolve(r.result.find((a:any)=>a.mimeType==='application/pdf'));});db.close();const canvas=await mod.renderPdfPage(asset.id,1,1600);const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let blue=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i+2]>150&&pixels[i]<30)blue++;return blue>1000;});expect(pdfVisible).toBe(true);
-  await page.getByRole('button',{name:'Next page',exact:true}).click();await expect(page.getByText('2 / 2',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Next page',exact:true}).click();await expect(page.getByRole('button',{name:'Open slides',exact:true})).toHaveText('2 / 2');
   const doc=new JSZip();doc.file('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');doc.file('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');doc.file('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Visible classroom DOCX text</w:t></w:r></w:p></w:body></w:document>');
   await page.getByRole('button',{name:'Import file',exact:true}).click();await page.getByRole('dialog').locator('input[type=file]').setInputFiles({name:'sample.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:await doc.generateAsync({type:'nodebuffer'})});await page.getByRole('dialog').getByRole('button',{name:'Import',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(await page.evaluate(async()=>{const mod=await import('/src/lib/media.ts' as string),db=await new Promise<IDBDatabase>(resolve=>{const r=indexedDB.open('kopy-notes',1);r.onsuccess=()=>resolve(r.result);});const assets=await new Promise<any[]>(resolve=>{const r=db.transaction('assets').objectStore('assets').getAll();r.onsuccess=()=>resolve(r.result);});db.close();const asset=assets.find(a=>a.name==='sample.docx'),canvas=mod.peekDocx(asset.id)??await mod.renderDocxToCanvas(asset.id,900);if(!canvas)return false;const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let dark=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]<100&&pixels[i+3]>0)dark++;return dark>100;})).toBe(true);
@@ -111,10 +111,10 @@ test('slide handles reorder persistently while the active slide stays selected',
   await board(page);
   await page.getByRole('button',{name:'Add page',exact:true}).click();
   await page.getByRole('button',{name:'Add page',exact:true}).click();
-  await expect(page.getByText('3 / 3',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Open slides',exact:true})).toHaveText('3 / 3');
   const active=await page.locator('.kn-slide-row.is-active').getAttribute('data-slide-id');
   const handle=page.getByLabel('Reorder slide 3');await handle.focus();await handle.press('ArrowUp');
-  await expect(page.getByText('2 / 3',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Open slides',exact:true})).toHaveText('2 / 3');
   await expect(page.locator('.kn-slide-row.is-active')).toHaveAttribute('data-slide-id',active!);
   const before=await page.locator('.kn-slide-row').evaluateAll(rows=>rows.map(row=>(row as HTMLElement).dataset.slideId));
   await page.getByLabel('Reorder slide 1').scrollIntoViewIfNeeded();

@@ -20,7 +20,7 @@ export function TeachingControls({layout,onLayout,recorder,backups,comments,reco
     return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape);};
   },[open]);
   return <div className="teaching-controls" ref={ref}>
-    <button aria-label="Teaching controls" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Icon name="settings" className="h-5 w-5"/><span>Teaching controls</span>{recording&&<span className="record-dot" aria-label="Recording active"/>}</button>
+    <button aria-label="Teaching controls" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><Icon name="settings" className="h-5 w-5"/>{recording&&<span className="record-dot" aria-label="Recording active"/>}</button>
     {open&&<section className="teaching-options kn-pop" aria-label="Teaching controls options">
       <strong>Teaching controls</strong>
       <button type="button" onClick={()=>{setOpen(false);onCustomize();}}>Customize all controls</button>

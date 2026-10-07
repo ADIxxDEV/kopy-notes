@@ -14,7 +14,9 @@ export function ToolPopover({anchor,children,selector}:{anchor:string;children:R
       const a=button.getBoundingClientRect(),r=node.getBoundingClientRect(),toolbar=document.querySelector<HTMLElement>('.board-toolbar')?.getBoundingClientRect();
       const gap=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tool-popup-gap'))||0;
       const obstacles=Array.from(document.querySelectorAll<HTMLElement>('.menu-dock,.page-toolbar,.teaching-controls,.kn-fullscreen-controls,.board-meta')).filter(element=>element.getClientRects().length).map(element=>element.getBoundingClientRect());
-      const next=toolPopupPosition(a,r,toolbar,{width:innerWidth,height:innerHeight},gap,!!selector,obstacles);
+      const owner=selector?button.closest<HTMLElement>('.selection-actions,.kn-tool-options,.kn-more-tools')?.getBoundingClientRect():undefined;
+      const anchorRect=owner?{x:owner.x,y:a.y,width:owner.width,height:a.height}:a;
+      const next=toolPopupPosition(anchorRect,r,toolbar,{width:innerWidth,height:innerHeight},gap,!!selector,obstacles);
       setPosition(previous=>previous&&Object.keys(next).every(key=>previous[key as keyof typeof next]===next[key as keyof typeof next])?previous:next);
     };
     const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(place);};

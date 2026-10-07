@@ -245,3 +245,10 @@ body{background:var(--color-base);color:var(--color-ink)}
 
 .kn-board .board-meta{right:calc(108px + env(safe-area-inset-right,0px))}
 .kn-board .board-meta>summary,.kn-board .board-meta[open]>summary{font-size:clamp(26px,2.3vw,34px);font-weight:800;line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:.015em;min-height:44px;padding:2px 8px}
+
+.teaching-controls>button{width:44px;justify-content:center;padding:6px}
+
+.kn-board:has(.kn-fullscreen-controls>button:nth-child(2)) .kn-customize-launch{right:calc(100px + env(safe-area-inset-right,0px))}
+.kn-board:has(.kn-fullscreen-controls>button:nth-child(2)) .board-meta{right:calc(158px + env(safe-area-inset-right,0px))}
+
+.kn-board .board-meta[open]{z-index:90}

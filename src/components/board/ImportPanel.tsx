@@ -1,3 +1,4 @@
+import {setWorkActivity} from '@/lib/work-journal';
 import {LoadingOverlay} from '@/components/LoadingOverlay';
 import {CustomSelect} from '@/components/CustomSelect';
 "use client";
@@ -72,11 +73,12 @@ export function ImportPanel({
     }
     try{validateImportLayout(layout);}catch(error){push(error instanceof Error?error.message:'Invalid import placement.','error');return;}
     setBusy(true);
+    await setWorkActivity(notebookId,'Importing '+usable.map(p=>p.file.name).join(', ').slice(0,180)).catch(()=>{});
     await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
     const items: MediaItem[] = [];
     const frames:ImportFrame[]=[];
     let addedPages = 0;
-    try{await beforeImport();}catch{setBusy(false);push("Save failed. Resolve storage issues before importing.","error");return;}
+    try{await beforeImport();}catch{setBusy(false);void setWorkActivity(notebookId,undefined).catch(()=>{});push("Save failed. Resolve storage issues before importing.","error");return;}
 
     for (const p of usable) {
       try {
@@ -153,7 +155,7 @@ export function ImportPanel({
     }
 
     if(addedPages){try{await onPagesImported();push(`Added ${addedPages} document pages.`,"success");onClose();}catch{push('Document pages were saved. Reopen the lesson to view them.','error');}}
-    setBusy(false);
+    setBusy(false);void setWorkActivity(notebookId,undefined).catch(()=>{});
     if (items.length) {
       onImport(items,combineImportFrames(frames));
       push(`Imported ${items.length} file${items.length > 1 ? "s" : ""}.`, "success");

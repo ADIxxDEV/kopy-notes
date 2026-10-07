@@ -1,3 +1,4 @@
+import {interruptedSessions,finishSession,type WorkSession} from '@/lib/work-journal';
 import {CustomSelect} from '@/components/CustomSelect';
 "use client";
 import { localRequest } from "@/lib/local-store";
@@ -31,6 +32,7 @@ function LibraryInner() {
   const { profile } = useApp();
   const { push } = useToast();
 
+  const [interrupted,setInterrupted]=useState<WorkSession[]>([]);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(search.get("new") === "1");
@@ -46,6 +48,7 @@ function LibraryInner() {
       const res = await localRequest("/api/notebooks", { cache: "no-store" });
       const data = (await res.json()) as { notebooks: Notebook[] };
       setNotebooks(data.notebooks);
+      const sessions=await interruptedSessions();setInterrupted(sessions.filter(s=>data.notebooks.some(n=>n.id===s.lessonId)));
     } catch {
       push("Could not load your lessons.", "error");
     } finally {
@@ -121,6 +124,7 @@ function LibraryInner() {
           </div>
         </header>
 
+        {interrupted.length>0&&<section className="mb-5 rounded-xl border border-line bg-panel p-4" aria-label="Interrupted lessons"><strong>Continue interrupted work</strong><p className="mb-3 text-sm text-muted">Your last lesson and any unfinished drawing are available to review.</p>{interrupted.slice(0,3).map(session=><div key={session.lessonId} className="flex items-center justify-between gap-3"><span>{notebooks.find(n=>n.id===session.lessonId)?.title??session.title}{session.activity&&<small className="ml-3 text-muted">{session.activity}</small>}</span><div className="flex gap-2"><button className="kn-focus rounded-lg bg-brand p-3 text-white" onClick={()=>router.push(`/board/${session.lessonId}`)}>Open last lesson</button><button aria-label="Dismiss interrupted lesson" className="kn-focus p-3" onClick={()=>{void finishSession(session.lessonId).then(()=>setInterrupted(list=>list.filter(s=>s.lessonId!==session.lessonId)));}}><Icon name="close" className="h-4 w-4"/></button></div></div>)}</section>}
         {loading ? (
           <div className="grid place-items-center py-24 text-muted">Loading…</div>
         ) : notebooks.length === 0 ? (

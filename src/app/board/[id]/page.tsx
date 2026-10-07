@@ -1,3 +1,5 @@
+import {warmPdfPages} from '@/lib/media';
+import {checkpoint,acknowledge,lastWorkActivity,setWorkActivity,unfinishedEdits,recordSession,finishSession,savedPageView,type EditCheckpoint,type PageEdit} from '@/lib/work-journal';
 import {LoadingOverlay} from '@/components/LoadingOverlay';
 import {interfaceSettings} from '@/lib/interface-settings';
 import {newPageStyle} from '@/lib/new-page-style';
@@ -96,55 +98,55 @@ export default function BoardPage() {
   const patternRef = useRef(pattern);
   bgRef.current = background;
   patternRef.current = pattern;
-  const pendingRef = useRef<{ objects: Page["objects"]; media: MediaItem[] } | null>(null);
+  const pendingRef = useRef<EditCheckpoint | null>(null);
+  const saveQueue=useRef<Promise<void>>(Promise.resolve());
+  const [lastActivity,setLastActivity]=useState<string|undefined>();
+  useEffect(()=>{if(operation)void setWorkActivity(id,operation).catch(()=>{});},[operation,id]);
+  const [recoveryEdits,setRecoveryEdits]=useState<EditCheckpoint[]>([]);
+  const [slowSave,setSlowSave]=useState(false);
+  useEffect(()=>{if(saveState!=='saving'){setSlowSave(false);return;}const timer=setTimeout(()=>setSlowSave(true),500);return()=>clearTimeout(timer);},[saveState]);
   const saveTimer = useRef<number | null>(null);
 
   const currentPage = pages[index] ?? null;
 
   // ------------------------------ persistence ------------------------------
 
-  const saveNow = useCallback(
-    async (objects: Page["objects"], media: MediaItem[], bg: string, pat: string) => {
-      const pageId = pageIdRef.current;
-      if (!pageId) return;
-      setSaveState("saving");
-      try {
-        const res = await localRequest(`/api/pages/${pageId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ objects:persistentObjects(objects), media, background: bg, pattern: pat, backgroundImage:pageImageRef.current??'',importFrame:frameRef.current }),
-        });
-        if (!res.ok) throw new Error("save failed");
-        setSaveState("saved");
-        setPages(list => list.map(page => page.id === pageId ? { ...page, objects, media, background: bg, pattern: pat,backgroundImage:pageImageRef.current,importFrame:frameRef.current } : page));
-      } catch {
-        setSaveState("dirty");
-        throw new Error("Could not save the current page. Check available storage before leaving.");
-      }
-    },
-    [],
-  );
-
-  const flushSave = useCallback(async () => {
-    if (saveTimer.current) {
-      window.clearTimeout(saveTimer.current);
-      saveTimer.current = null;
+  const captureEdit=useCallback((objects:Page['objects'],media:MediaItem[],bg:string,pat:string):EditCheckpoint|null=>{
+    const pageId=pageIdRef.current;if(!pageId)return null;
+    return {pageId,lessonId:id,revision:crypto.randomUUID(),savedAt:Date.now(),partial:false,edit:structuredClone({objects:persistentObjects(objects),media,background:bg,pattern:pat,backgroundImage:pageImageRef.current??'',importFrame:frameRef.current})};
+  },[id]);
+  const saveNow = useCallback((objects:Page['objects'],media:MediaItem[],bg:string,pat:string,entry?:EditCheckpoint)=>{
+    const snapshot=entry??captureEdit(objects,media,bg,pat);if(!snapshot)return Promise.resolve();
+    const staged=entry?Promise.resolve():checkpoint(snapshot);
+    setSaveState('saving');
+    const run=saveQueue.current.catch(()=>{}).then(async()=>{
+      await staged.catch(()=>{});
+      try{
+        const response=await localRequest(`/api/pages/${snapshot.pageId}`,{method:'PUT',body:JSON.stringify(snapshot.edit)});
+        if(!response.ok)throw new Error('Save failed');
+        await acknowledge(snapshot.pageId,snapshot.revision);
+        setPages(list=>list.map(page=>page.id===snapshot.pageId?{...page,...snapshot.edit}:page));
+        setSaveState(pendingRef.current?'dirty':'saved');
+      }catch(error){setSaveState('dirty');throw error;}
+    });saveQueue.current=run;return run;
+  },[captureEdit]);
+  const flushSave=useCallback(async()=>{
+    if(saveTimer.current){clearTimeout(saveTimer.current);saveTimer.current=null;}
+    // Wait for an already-started write before switching pages, even if no timer remains.
+    while(pendingRef.current){const p=pendingRef.current;pendingRef.current=null;
+      try{await saveNow(p.edit.objects,p.edit.media,p.edit.background,p.edit.pattern,p);}catch(error){if(!pendingRef.current)pendingRef.current=p;throw error;}
     }
-    if (!pendingRef.current) return;
-    const p = pendingRef.current;
-    pendingRef.current = null;
-    try { await saveNow(p.objects, p.media, bgRef.current, patternRef.current); }
-    catch (error) { if (!pendingRef.current) pendingRef.current = p; throw error; }
-  }, [saveNow]);
-
-  const handleContentChange = useCallback((objects: Page["objects"], media: MediaItem[]) => {
-    pendingRef.current = { objects, media };
-    setSaveState("dirty");
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      void flushSave().catch(() => push("Autosave failed. Your edits are still in memory. Free storage and try again.", "error"));
-    }, 100);
-  }, [flushSave]);
+    await saveQueue.current;
+  },[saveNow]);
+  const handleContentChange=useCallback((objects:Page['objects'],media:MediaItem[])=>{
+    const entry=captureEdit(objects,media,bgRef.current,patternRef.current);if(!entry)return;
+    pendingRef.current=entry;void checkpoint(entry).catch(()=>push('Recovery checkpoint could not be saved. Free storage and keep this lesson open.','error'));
+    setSaveState('dirty');if(saveTimer.current)clearTimeout(saveTimer.current);
+    saveTimer.current=window.setTimeout(()=>{void flushSave().catch(()=>push('Autosave failed. Your edits remain in the recovery journal.','error'));},100);
+  },[captureEdit,flushSave,push]);
+  const handleDraftChange=useCallback((objects:Page['objects'],media:MediaItem[])=>{
+    const entry=captureEdit(objects,media,bgRef.current,patternRef.current);if(entry)void checkpoint({...entry,partial:true}).catch(()=>{});
+  },[captureEdit]);
 
   const wb = useWhiteboard({
     watermark:profile.watermark,defaultPenColor:profile.defaultPenColor,
@@ -154,6 +156,7 @@ export default function BoardPage() {
     backgroundImage:pageImage,
     pattern,
     onContentChange: handleContentChange,
+    onDraftChange:handleDraftChange,
   });
 
   // -------------------------------- loading --------------------------------
@@ -165,11 +168,16 @@ export default function BoardPage() {
       pageIdRef.current = pg.id;
       frameRef.current=pg.importFrame;
       setIndex(i);
+      bgRef.current=pg.background;patternRef.current=pg.pattern;
+      try{localStorage.setItem('kopy-last-page:'+id,pg.id);}catch{}
+      void recordSession({lessonId:id,pageId:pg.id,title:notebook?.title??'Last lesson',active:true,updatedAt:Date.now()}).catch(()=>{});
       setBackground(pg.background || "#111214");
       setPattern(pg.pattern || "none");
       pageImageRef.current=pg.backgroundImage;setPageImage(pg.backgroundImage);
       wb.reset(pg.objects ?? [], pg.media ?? []);
-      if(pg.importFrame)window.setTimeout(()=>wb.fitToBounds(pg.importFrame!),100);else if(pg.media?.length)window.setTimeout(wb.fitToContent,100);
+      const view=savedPageView(pg.id);
+      if(view)wb.restoreView(view);
+      else if(pg.importFrame||pg.media?.length||pg.objects?.length)window.setTimeout(()=>{if(pageIdRef.current!==pg.id)return;if(pg.importFrame)wb.fitToBounds(pg.importFrame);else if(pg.media?.length||!wb.hasVisibleContent())wb.fitToContent();},100);
     },
     [wb],
   );
@@ -185,7 +193,9 @@ export default function BoardPage() {
         setNotebook(data.notebook);
         const pgs = data.pages.length ? data.pages : [];
         setPages(pgs);
-        if (pgs.length) loadPageIntoBoard(0, pgs);
+        let last:string|null=null;try{last=localStorage.getItem('kopy-last-page:'+id);}catch{}
+        if(pgs.length)loadPageIntoBoard(Math.max(0,pgs.findIndex(p=>p.id===last)),pgs);
+        const unfinished=await unfinishedEdits(id),activity=await lastWorkActivity(id);if(alive){setRecoveryEdits(unfinished);setLastActivity(activity);}
       } catch {
         if (alive) push("Could not open this lesson.", "error");
       } finally {
@@ -194,11 +204,28 @@ export default function BoardPage() {
     })();
     return () => {
       alive = false;
+      void finishSession(id).catch(()=>{});
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  useEffect(()=>{
+    if(loading||!currentPage)return;
+    try{localStorage.setItem('kopy-view:'+currentPage.id,JSON.stringify(wb.view));}catch{}
+  },[loading,currentPage?.id,wb.view]);
+  useEffect(()=>{
+    const neighbors=[...(pages[index-1]?.media??[]),...(pages[index+1]?.media??[])].filter(m=>m.kind==='pdf');
+    for(const media of currentPage?.media??[])if(media.kind==='pdf')for(const number of [media.pageNumber-1,media.pageNumber+1])if(number>0&&number<=(media.numPages??0))neighbors.push({...media,pageNumber:number});
+    return warmPdfPages(neighbors.slice(0,2));
+  },[index,pages.length,currentPage?.id,currentPage?.media]);
+  const recoverWork=async()=>{
+    try{
+      const {saveRecovery}=await import('@/lib/recovery');await saveRecovery(id);
+      for(const entry of recoveryEdits){const response=await localRequest(`/api/pages/${entry.pageId}`,{method:'PUT',body:JSON.stringify(entry.edit)});if(!response.ok)throw new Error('Recovery page no longer exists');await acknowledge(entry.pageId,entry.revision);}
+      const response=await localRequest(`/api/notebooks/${id}`),data=await response.json();setPages(data.pages);loadPageIntoBoard(Math.max(0,data.pages.findIndex((p:Page)=>p.id===recoveryEdits[0]?.pageId)),data.pages);setRecoveryEdits([]);
+    }catch{push('Could not restore the interrupted work. The recovery copy has been kept.','error');}
+  };
   useEffect(() => {
     const save = () => { if (document.visibilityState === 'hidden') void flushSave().catch(()=>{}); };
     const exit = (event: BeforeUnloadEvent) => { if (pendingRef.current || recording) { event.preventDefault(); event.returnValue = ''; void flushSave().catch(()=>{}); } };
@@ -301,7 +328,7 @@ export default function BoardPage() {
   const exportPNG = useCallback(async () => {
     setOperation('Exporting image');await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
     try{const url = wb.exportPNG();
-    if (url) download(url, `${notebook?.title ?? "page"}-p${index + 1}.png`);}finally{setOperation(null);}
+    if (url) download(url, `${notebook?.title ?? "page"}-p${index + 1}.png`);}finally{setOperation(null);void setWorkActivity(id,undefined).catch(()=>{});}
   }, [wb, notebook, index]);
 
   const exportPDF = useCallback(async (scope:PDFScope,onProgress:(progress:ExportProgress)=>void) => {
@@ -317,7 +344,7 @@ export default function BoardPage() {
   const exportJSON = useCallback(async () => {
     setOperation('Exporting editable lesson');await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
     try { await flushSave(); const blob = await exportLesson(id); download(URL.createObjectURL(blob), `${notebook?.title ?? "lesson"}.kopy`); push("Editable lesson and files exported.", "success"); }
-    catch { push("Could not export the lesson.", "error"); }finally{setOperation(null);}
+    catch { push("Could not export the lesson.", "error"); }finally{setOperation(null);void setWorkActivity(id,undefined).catch(()=>{});}
   }, [id, notebook, flushSave, push]);
 
   const printPage = useCallback(() => {
@@ -399,7 +426,7 @@ export default function BoardPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const typing = !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+      const typing = !!target.closest('input, textarea, select, [role=combobox], [role=listbox], [contenteditable]:not([contenteditable="false"])');
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         void flushSave().catch(() => push("Autosave failed. Your edits are still in memory. Free storage and try again.", "error"));
@@ -767,6 +794,8 @@ export default function BoardPage() {
           }}
         />
       )}
+      {(slowSave||wb.processing)&&<LoadingOverlay detail="Processing and saving your edits..."/>}
+      {(recoveryEdits.length>0||lastActivity)&&<Dialog title="Interrupted work" onClose={()=>{setRecoveryEdits([]);setLastActivity(undefined);}} width={460}><p className="mb-4 text-sm">{lastActivity&&<span className="mb-2 block">Last operation: {lastActivity}. Open the saved lesson to review it; an interrupted import or export can be started again.</span>}{recoveryEdits.length>0?'An unfinished edit was saved before this lesson closed. Restore it, or keep the last saved pages.':'Your saved pages are ready to open.'}</p><div className="flex gap-3">{recoveryEdits.length>0&&<button className="kn-focus rounded-lg bg-brand p-3 text-white" onClick={()=>{void recoverWork().then(()=>{setLastActivity(undefined);void setWorkActivity(id,undefined);});}}>Restore unfinished work</button>}<button className="kn-focus rounded-lg border border-line p-3" onClick={()=>{const entries=recoveryEdits;void Promise.all(entries.map(e=>acknowledge(e.pageId,e.revision))).then(()=>{setRecoveryEdits([]);setLastActivity(undefined);void setWorkActivity(id,undefined);});}}>Keep saved pages</button></div></Dialog>}
       {modal === "themes"&&<Dialog title="Themes & page presets" onClose={()=>setModal(null)} width={650}><ThemeSettings value={profile} onChange={patch=>{void updateProfile(patch).catch(e=>push(e.message,'error'));}}/><div className="my-5 border-t border-line"/><BoardPresets value={{...profile,boardBg:background,boardPattern:pattern,boardImage:pageImage}} onChange={patch=>{if(patch.boardBg){setBackground(patch.boardBg);bgRef.current=patch.boardBg;}if(patch.boardPattern){setPattern(patch.boardPattern);patternRef.current=patch.boardPattern;}if('boardImage' in patch){pageImageRef.current=patch.boardImage;setPageImage(patch.boardImage);}if(patch.defaultPenColor)wb.setPen({...wb.pen,color:patch.defaultPenColor});if(patch.boardPresets)void updateProfile({boardPresets:patch.boardPresets});void saveNow(wb.objects,wb.media,bgRef.current,patternRef.current).catch(e=>push(e.message,'error'));}}/></Dialog>}
       {modal === "help" && <HelpPanel onClose={() => setModal(null)} />}
       {modal === "about" && <AboutPanel onClose={() => setModal(null)} />}

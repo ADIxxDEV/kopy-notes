@@ -26,7 +26,7 @@ test('selection inspector sits beside the shape, contains expanded styles and hi
     return !!panel&&!!corner&&panel.y+panel.height<=corner.y+corner.height/2-8;
   }).toBe(true);
   await inspector.getByText('Style',{exact:true}).click();await containedAboveTools(page);
-  await inspector.getByLabel('Selected shape fill color').fill('#ff8800');
+  await page.getByRole('region',{name:'Style',exact:true}).getByLabel('Selected shape fill color').fill('#ff8800');
   await page.setViewportSize({width:600,height:500});await containedAboveTools(page);
   await inspector.getByRole('button',{name:'Recolor #f43f5e',exact:true}).scrollIntoViewIfNeeded();
   await inspector.getByRole('button',{name:'Recolor #f43f5e',exact:true}).click();

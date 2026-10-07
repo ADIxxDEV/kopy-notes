@@ -91,7 +91,7 @@ async function drawExportMedia(ctx: CanvasRenderingContext2D, item: MediaItem, s
       source.width = Math.max(1, Math.ceil(viewport.width)); source.height = Math.max(1, Math.ceil(viewport.height));
       const context = source.getContext('2d');
       if (!context) throw new Error('Could not allocate an imported PDF canvas.');
-      try {await page.render({canvas: source, canvasContext: context, viewport}).promise;}
+      try {await page.render({canvas: source, canvasContext: context, viewport,background:'rgba(0,0,0,0)'}).promise;}
       finally {page.cleanup();}
     }
     ctx.save();

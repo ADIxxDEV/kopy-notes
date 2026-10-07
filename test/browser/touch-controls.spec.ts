@@ -22,7 +22,7 @@ test('finger taps on nested slide actions duplicate while preview taps navigate'
   const original=await page.locator('.kn-slide-row').first().getAttribute('data-slide-id');
   await page.getByRole('button',{name:'Go to slide 2',exact:true}).tap();
   await expect(page.locator('.kn-slide-row.is-active')).not.toHaveAttribute('data-slide-id',original!);
-  await page.getByRole('button',{name:'Duplicate slide 1',exact:true}).tap();
+  await page.getByRole('button',{name:'Duplicate slide 2',exact:true}).tap();
   await expect(page.locator('.kn-slide-row')).toHaveCount(4);
   await expect(page.locator('.kn-slide-row.is-dragging')).toHaveCount(0);
   await page.getByRole('button',{name:'Go to slide 1',exact:true}).tap();

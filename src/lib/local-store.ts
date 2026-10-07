@@ -39,7 +39,7 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
   const kind = parts[1], id = parts[2];
   const body: Record<string, unknown> = typeof options.body === 'string' ? JSON.parse(options.body) : {};
   // A shared read/write transaction also serializes edits from other tabs.
-  const tx = db.transaction(['profile', 'notebooks', 'pages', 'assets'], 'readwrite');
+  const tx = db.transaction(['profile', 'notebooks', 'pages', 'assets'], 'readwrite', {durability:'strict'});
   const now = new Date();
   try {
     let result: Response;

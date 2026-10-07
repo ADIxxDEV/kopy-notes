@@ -17,3 +17,8 @@ test('tool popups touch the toolbar by default and stay inside the viewport on b
  for(const x of [0,1220]){const dock={x,y:120,width:60,height:480};const result=toolPopupPosition({x,y:260,width:44,height:44},{width:330,height:400},dock,view,12);assert.ok(result.x>=8);assert.ok(result.x+330<=1272);assert.ok(result.y+400<=712);assert.ok(x===0?result.x>=72:result.x+330<=1208);}
 });
 test('a dark theme stays dark regardless of the page color and automatic contrast setting',()=>{const theme=BUILTIN_THEMES[2];assert.equal(controlPalette(theme,'#000000').panel,theme.colors.panel);assert.equal(controlPalette(theme,'#ffffff').panel,theme.colors.panel);});
+
+test('side settings shrink into the available edge space instead of covering their owner',()=>{
+ const owner={x:252,y:200,width:336,height:44};const p=toolPopupPosition(owner,{width:320,height:280},{x:150,y:440,width:300,height:60},{width:600,height:500},0,true);
+ assert.ok(p.x+Math.min(320,p.maxWidth)<=owner.x);assert.ok(p.x>=8);assert.ok(p.maxWidth>=200);
+});

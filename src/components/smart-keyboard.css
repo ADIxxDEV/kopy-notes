@@ -3,3 +3,9 @@
 .kn-smart-keyboard header{display:flex;align-items:center;gap:8px;padding:4px 12px;touch-action:none}.kn-smart-keyboard header>span{flex:1;font-size:12px}.kn-smart-keyboard header button{min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:8px}.kn-smart-keyboard.is-floating header{cursor:move}
 .kn-smart-keyboard .hg-theme-default{background:transparent;padding:8px}.kn-smart-keyboard .hg-button{height:44px;min-width:20px;border:1px solid var(--color-line);box-shadow:none;background:var(--theme-surface,#2b3947);color:var(--color-ink);border-radius:8px;font-size:16px;touch-action:manipulation}.kn-smart-keyboard .hg-button:active{background:var(--color-brand);color:white}.kn-smart-keyboard .hg-row{margin-bottom:6px}.kn-smart-keyboard .hg-button-space{min-width:30%}
 @media(max-width:600px){.kn-smart-keyboard .hg-button{height:40px;font-size:13px;padding:0 3px}.kn-smart-keyboard .hg-row>button:not(:last-child){margin-right:3px}.kn-smart-keyboard header{padding:4px 8px}}
+
+body:has(.kn-smart-keyboard.is-bottom) .kn-layout-settings{max-height:calc(100dvh - var(--keyboard-height,310px) - 24px)}
+
+body:has(.kn-smart-keyboard.is-bottom) [data-layout-panel]:has(.live-comments){top:12px!important;max-height:calc(100dvh - var(--keyboard-height,310px) - 24px)!important}
+
+body:has(.kn-smart-keyboard.is-bottom) .kn-scroll.h-dvh{height:calc(100dvh - var(--keyboard-height,310px));scroll-padding-bottom:16px}

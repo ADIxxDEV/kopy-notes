@@ -3,8 +3,10 @@ export function toolPopupPosition(anchor:Rect,popup:{width:number;height:number}
  const margin=8,g=Math.max(0,Math.min(64,gap));let maxWidth=viewport.width-16,maxHeight=viewport.height-16;
  let x=anchor.x+anchor.width/2-popup.width/2,y=anchor.y-popup.height-g;
  if(sidePanel){
-  if(anchor.x+anchor.width+g+popup.width<=viewport.width-margin)x=anchor.x+anchor.width+g;
-  else if(anchor.x-popup.width-g>=margin)x=anchor.x-popup.width-g;
+  const right=viewport.width-margin-anchor.x-anchor.width-g,left=anchor.x-g-margin;
+  const useRight=right>=popup.width||(left<popup.width&&right>=left);
+  maxWidth=Math.max(44,useRight?right:left);
+  x=useRight?anchor.x+anchor.width+g:anchor.x-g-Math.min(popup.width,maxWidth);
   y=anchor.y;if(toolbar&&toolbar.width>=toolbar.height){maxHeight=Math.max(44,toolbar.y-g-margin);y=Math.min(y,toolbar.y-g-Math.min(popup.height,maxHeight));}
  }else if(toolbar&&toolbar.height>toolbar.width){
   const right=toolbar.x+toolbar.width+g,left=toolbar.x-g;
