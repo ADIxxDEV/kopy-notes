@@ -118,7 +118,7 @@ export function FileMenu({
     const place=()=>{if(!menu||!button)return;const a=button.getBoundingClientRect(),r=menu.getBoundingClientRect();const above=a.top-12,below=innerHeight-a.bottom-12,maxHeight=Math.max(80,Math.max(above,below));const x=Math.max(8,Math.min(a.x,innerWidth-r.width-8)),y=above>=below?Math.max(8,a.top-Math.min(r.height,maxHeight)-4):a.bottom+4;setPosition(p=>p?.x===x&&p.y===y&&p.maxHeight===maxHeight?p:{x,y,maxHeight});};
     const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(place);};
     const observer=new ResizeObserver(schedule);if(menu)observer.observe(menu);if(button)observer.observe(button);
-    window.addEventListener('resize',schedule);window.addEventListener('kopy-popup-layout',schedule);window.addEventListener('kopy-layout-updated',schedule);schedule();
+    window.addEventListener('resize',schedule);window.addEventListener('kopy-popup-layout',schedule);window.addEventListener('kopy-layout-updated',schedule);place();
     return()=>{observer.disconnect();cancelAnimationFrame(frame);window.removeEventListener('resize',schedule);window.removeEventListener('kopy-popup-layout',schedule);window.removeEventListener('kopy-layout-updated',schedule);};
   },[]);
 

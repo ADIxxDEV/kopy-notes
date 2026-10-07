@@ -27,7 +27,7 @@ export function MenuScreen({title,icon,onClose,children,width}:{title:string;ico
     };
     const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(place);};
     const observer=new ResizeObserver(schedule);observer.observe(screen);if(menu)observer.observe(menu);
-    window.addEventListener('resize',schedule);window.addEventListener('kopy-popup-layout',schedule);window.addEventListener('kopy-layout-updated',schedule);schedule();
+    window.addEventListener('resize',schedule);window.addEventListener('kopy-popup-layout',schedule);window.addEventListener('kopy-layout-updated',schedule);place();
     return()=>{observer.disconnect();cancelAnimationFrame(frame);window.removeEventListener('resize',schedule);window.removeEventListener('kopy-popup-layout',schedule);window.removeEventListener('kopy-layout-updated',schedule);if(previous?.isConnected)previous.focus({preventScroll:true});};
   },[width]);
   const root=document.querySelector('.kn-board');if(!root)return null;
