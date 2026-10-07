@@ -225,8 +225,6 @@ body{background:var(--color-base);color:var(--color-ink)}
 .kn-board[data-flip-tools=true][data-slides-side=left] .kn-dock,.kn-board[data-flip-tools=true][data-slides-side=left] .kn-page-navigation{flex-direction:row-reverse}
 .kn-board[data-flip-tools=true][data-slides-side=left] .board-toolbar[data-layout=bottom] .kn-main-tools{flex-direction:row-reverse}
 .kn-board[data-flip-tools=true][data-slides-side=left] .board-toolbar:not([data-layout=bottom]) .kn-main-tools{flex-direction:column-reverse}
-.kn-board .kn-file-menu{position:fixed;left:0;right:auto;top:52px;bottom:128px;max-height:none!important;width:280px;max-width:calc(100vw - 16px);border-radius:0 12px 12px 0}
-.kn-board[data-slides-side=left] .kn-file-menu{left:auto;right:0;border-radius:12px 0 0 12px}
 .kn-board .teaching-options{left:calc(100% + var(--tool-popup-gap,0px));top:0;max-height:calc(100dvh - 24px)}
 .kn-board .kn-anchored-popover>.kn-tool-options,.kn-board .kn-anchored-popover>.kn-shape-palette,.kn-board .kn-anchored-popover>.kn-more-tools{max-height:inherit!important;max-width:100%!important;overflow-y:auto}
 .kn-slide-header-actions{display:flex;gap:4px;padding:6px!important;justify-content:space-between}.kn-slide-header-actions>button{min-width:44px;min-height:44px;flex:1;border-radius:8px}.kn-slide-header-actions svg{width:18px!important;height:18px!important}
@@ -252,3 +250,10 @@ body{background:var(--color-base);color:var(--color-ink)}
 .kn-board:has(.kn-fullscreen-controls>button:nth-child(2)) .board-meta{right:calc(158px + env(safe-area-inset-right,0px))}
 
 .kn-board .board-meta[open]{z-index:90}
+
+/* File options stay in a compact popup; detail screens grow from its side. */
+.kn-menu-screen{position:fixed;z-index:110;display:flex;flex-direction:column;margin:0;padding:0;border:1px solid var(--color-line);border-radius:12px;background:var(--color-panel);color:var(--color-ink);box-shadow:0 18px 50px #0004;overflow:hidden;opacity:1;transform:none;transition:transform 200ms cubic-bezier(0.23,1,0.32,1),opacity 200ms cubic-bezier(0.23,1,0.32,1)}
+@starting-style{.kn-menu-screen[data-side=right]{opacity:0;transform:translateX(-12px)}.kn-menu-screen[data-side=left]{opacity:0;transform:translateX(12px)}}
+@media(prefers-reduced-motion:reduce){.kn-menu-screen{transition:none}}
+
+body:has(.kn-smart-keyboard.is-bottom) .kn-menu-screen{top:8px!important;max-height:calc(100dvh - var(--keyboard-height,310px) - 16px)!important}

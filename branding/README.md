@@ -11,3 +11,5 @@ The original mark combines a folded note page, a bold **K**, and a pencil tip. F
 Both SVGs are included under the project's MIT license. The wordmark uses the locally available Georgia serif font, with Times New Roman as a fallback; no font service or paid asset is required. Keep the mark's aspect ratio and leave clear space around it. Teachers can still replace the application icon in Settings.
 
 Run `node scripts/generate-branding.mjs` after editing the original SVG. This uses the development Playwright dependency and a local Edge browser; set `PLAYWRIGHT_CHANNEL` for a different installed browser. Run `node scripts/apply-native-branding.mjs` after `npx cap add android` to apply the checked-in Android assets. Ordinary builds use the assets already included in the repository and do not need the generator.
+
+Android builds apply adaptive and round launcher icons, Android 13 themed icons, and a forest startup screen with the Kopy mark. The startup mark stays within the system splash safe area in portrait and landscape. The AndroidX launch theme hands off to the Capacitor app without a forced delay.

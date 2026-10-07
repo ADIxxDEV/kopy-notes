@@ -2,6 +2,9 @@
 
 ## 0.2.0-dev.6 | 2026-10-07
 
+- Restored the compact file menu. Import, export, settings and help open as attached side screens; Back returns to the menu, with a contained mobile layout.
+- Android builds apply Kopy Notes adaptive, round and themed launcher icons and a branded native startup screen.
+
 - Product Hunt and r/kopynotes community links in settings and setup; Product Hunt badge and Reddit community link in the GitHub README.
 
 - Keyboard persistence checks wait for the actual saved title before reloading, avoiding a race with the asynchronous database commit.

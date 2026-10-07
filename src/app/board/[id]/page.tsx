@@ -1,3 +1,4 @@
+import {MenuScreenContext} from '@/components/board/MenuScreen';
 import {warmPdfPages} from '@/lib/media';
 import {checkpoint,acknowledge,lastWorkActivity,setWorkActivity,unfinishedEdits,recordSession,finishSession,savedPageView,type EditCheckpoint,type PageEdit} from '@/lib/work-journal';
 import {LoadingOverlay} from '@/components/LoadingOverlay';
@@ -715,13 +716,13 @@ export default function BoardPage() {
               <LeftDock
                 active={panel}
                 onSwap={()=>setSlidesSide(side=>side==='left'?'right':'left')}
-                onOpen={(d) => {setThumbsOpen(false);if(d==='import'||d==='export'){setPanel(null);setModal(d);}else setPanel((p) => (p === d ? null : d));}}
+                onOpen={(d) => {setThumbsOpen(false);if(d==='import'||d==='export'){setPanel('file');setModal(d);}else {setModal(null);setPanel((p) => (p === d ? null : d));}}}
                 presenting={presenting}
                 onTogglePresent={() => setPresenting(true)}
                 onExit={() => { if (recording) { push("Stop recording before leaving the board.", "error"); return; } void flushSave().then(() => router.push("/library")).catch(()=>push("Save failed. Please keep this lesson open.", "error")); }}
               />
               {panel === "file" && (
-                <FileMenu appName={profile.appName} onAction={onFileAction} onClose={() => setPanel(null)} />
+                <FileMenu appName={profile.appName} onAction={onFileAction} onClose={() => {setPanel(null);setModal(null);}} />
               )}
             </div>
             {panel === "treasure" && (
@@ -779,6 +780,7 @@ export default function BoardPage() {
       </div>
 
       {/* ---------------------------- Modals ---------------------------- */}
+      <MenuScreenContext.Provider value={panel==='file'&&modal!==null}>
       {modal === "settings" && (
         <SettingsPanel
           onClose={() => setModal(null)}
@@ -820,6 +822,7 @@ export default function BoardPage() {
           onPrint={printPage}
         />
       )}
+      </MenuScreenContext.Provider>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import {createPortal} from 'react-dom';
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/Icon";
 
 export type DockId =
@@ -112,13 +112,22 @@ export function FileMenu({
   appName: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [position,setPosition]=useState<{x:number;y:number}|null>(null);
+  useLayoutEffect(()=>{
+    let frame=0;const menu=ref.current,button=document.querySelector<HTMLElement>('[data-dock-action="file"]');
+    const place=()=>{if(!menu||!button)return;const a=button.getBoundingClientRect(),r=menu.getBoundingClientRect();const x=Math.max(8,Math.min(a.x,innerWidth-r.width-8)),y=Math.max(8,Math.min(a.y-r.height-4,innerHeight-r.height-8));setPosition(p=>p?.x===x&&p.y===y?p:{x,y});};
+    const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(place);};
+    const observer=new ResizeObserver(schedule);if(menu)observer.observe(menu);if(button)observer.observe(button);
+    window.addEventListener('resize',schedule);window.addEventListener('kopy-popup-layout',schedule);window.addEventListener('kopy-layout-updated',schedule);schedule();
+    return()=>{observer.disconnect();cancelAnimationFrame(frame);window.removeEventListener('resize',schedule);window.removeEventListener('kopy-popup-layout',schedule);window.removeEventListener('kopy-layout-updated',schedule);};
+  },[]);
 
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
-      if((e.target as Element).closest('[data-dock-action="file"]'))return;
+      if((e.target as Element).closest('[data-dock-action="file"],.kn-menu-screen'))return;
       if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     };
-    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose();};
+    const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!event.defaultPrevented)onClose();};
     document.addEventListener("pointerdown", onDown);
     document.addEventListener('keydown',onKey);
     return () => {
@@ -134,14 +143,14 @@ export function FileMenu({
       aria-label="File menu"
       className="kn-file-menu kn-pop absolute bottom-24 left-3 z-40 flex w-64 max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
       role="region"
-      style={{flexDirection:'column',maxHeight:'calc(100dvh - 104px - env(safe-area-inset-bottom, 0px))'}}
+      style={{position:'fixed',zIndex:100,left:position?.x??8,top:position?.y??8,right:'auto',bottom:'auto',width:240,maxWidth:'calc(100vw - 16px)',maxHeight:'calc(100dvh - 16px)',visibility:position?'visible':'hidden'}}
     >
       <div className="shrink-0 border-b border-line bg-panel-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
         {appName}
       </div>
       <div className="kn-scroll min-h-0 overflow-y-auto overscroll-contain p-1.5">
         {FILE_GROUPS.map(group=><section key={group.label} aria-label={group.label} className="kn-file-menu-group border-b border-line py-1 last:border-0">
-          <h3 className="px-3 py-2 text-xs font-semibold text-muted">{group.label}</h3>
+          <h3 className="sr-only">{group.label}</h3>
           {FILE_ITEMS.filter(item=>group.ids.includes(item.id)).map((item) => (
           <button
             key={item.id}
@@ -149,7 +158,7 @@ export function FileMenu({
             style={{display:'flex',width:'100%',height:'auto',minHeight:44}}
             onClick={() => {
               onAction(item.id);
-              onClose();
+              if(!['import','export','settings','themes','help','about'].includes(item.id))onClose();
             }}
             className="kn-focus flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-elevated"
           >
