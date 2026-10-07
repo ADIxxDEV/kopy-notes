@@ -60,6 +60,11 @@ export function FloatingWindow({
     clamp();
     return () => {observer.disconnect();window.removeEventListener('resize',resize);};
   }, [actualWidth,floating]);
+  // React can commit the viewport clamp after the layout editor's resize frame.
+  // Reapply saved transforms only after the panel's own geometry has settled.
+  useLayoutEffect(() => {
+    if (!drag.current) window.dispatchEvent(new Event('kopy-panel-geometry'));
+  }, [pos.x, pos.y, actualWidth, viewport.height, floating]);
   useEffect(()=>{const changed=(event:Event)=>{const positions=(event as CustomEvent).detail;setFloating(positions?.[panelId]?.floating!==false&&!!positions?.[panelId]);};window.addEventListener('kopy-layout-updated',changed);return()=>window.removeEventListener('kopy-layout-updated',changed);},[panelId]);
 
   function onHeaderPointerDown(e: React.PointerEvent) {

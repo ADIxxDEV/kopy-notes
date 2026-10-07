@@ -2,6 +2,8 @@
 
 ## 0.2.0-dev.6 | 2026-10-07
 
+- Floating tools reapply saved layout after viewport clamps settle, keeping panels inside the screen through repeated landscape and portrait resizing.
+
 - Bounded PDF raster cache, shared render requests, direct saved-file loading and automatic retries for temporary render failures.
 - Previous and next PDF pages warm in the background; imported pages retain selected paper colors, patterns and images.
 - Transparent PDF viewer paper and exports reveal the chosen board background; backgrounds explicitly painted inside the PDF remain part of the document.

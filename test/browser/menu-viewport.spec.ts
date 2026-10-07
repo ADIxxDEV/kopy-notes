@@ -64,6 +64,11 @@ test('floating tools preserve normal position and remain contained after drag an
   await expect.poll(async()=>(await calculator.boundingBox())?.y).toBe(90);
   const heading=calculator.locator(':scope > div').first();const box=(await heading.boundingBox())!;
   await page.mouse.move(box.x+70,box.y+15);await page.mouse.down();await page.mouse.move(1200,710,{steps:10});await page.mouse.up();await contained(calculator,page);
-  await page.setViewportSize({width:600,height:360});await contained(calculator,page);
+  for (const viewport of [{width:600,height:360},{width:360,height:600},{width:1280,height:720},{width:600,height:360}]) {
+    await page.setViewportSize(viewport);await contained(calculator,page);
+    // A later React commit must not invalidate the layout measured on resize.
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    await contained(calculator,page);
+  }
   await calculator.getByRole('button',{name:'Close',exact:true}).click();await expect(calculator).toHaveCount(0);
 });

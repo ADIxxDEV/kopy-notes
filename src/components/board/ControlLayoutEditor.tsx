@@ -89,9 +89,9 @@ export function ControlLayoutEditor(){
   useEffect(()=>{
     const board=document.querySelector('.kn-board');if(!board)return;
     const observer=new MutationObserver(schedule);observer.observe(board,{childList:true,subtree:true});
-    window.addEventListener('resize',schedule);window.visualViewport?.addEventListener('resize',schedule);schedule();
+    window.addEventListener('resize',schedule);window.addEventListener('kopy-panel-geometry',schedule);window.visualViewport?.addEventListener('resize',schedule);schedule();
     const resize=new ResizeObserver(schedule);resize.observe(board);
-    return()=>{observer.disconnect();resize.disconnect();window.removeEventListener('resize',schedule);window.visualViewport?.removeEventListener('resize',schedule);cancelAnimationFrame(frame.current);for(const e of applied.current){e.style.removeProperty('translate');e.style.removeProperty('scale');e.removeAttribute('data-layout-custom');e.removeAttribute('data-layout-hidden');}};
+    return()=>{observer.disconnect();resize.disconnect();window.removeEventListener('resize',schedule);window.removeEventListener('kopy-panel-geometry',schedule);window.visualViewport?.removeEventListener('resize',schedule);cancelAnimationFrame(frame.current);for(const e of applied.current){e.style.removeProperty('translate');e.style.removeProperty('scale');e.removeAttribute('data-layout-custom');e.removeAttribute('data-layout-hidden');}};
   },[schedule]);
   useLayoutEffect(measure,[store,draft,open,measure]);
   function persist(next:ControlLayoutStore){
