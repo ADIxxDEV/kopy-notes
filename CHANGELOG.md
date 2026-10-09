@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Paint saved lesson content when the canvas mounts, including after asynchronous loading, without requiring a click. Repaint when its visible size changes.
+
+
 - Added a responsive, static landing page with reduced-motion support, search metadata, roadmap and community links.
 - Included org-note3 artwork in production theme selection and offline caching.
 

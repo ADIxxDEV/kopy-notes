@@ -158,6 +158,21 @@ export function useWhiteboard(options: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The lesson mounts its canvas only after asynchronous data recovery finishes.
+  // Paint on attachment, and repaint when CSS/layout makes a hidden canvas visible.
+  const canvasObserver = useRef<ResizeObserver | null>(null);
+  const attachCanvas = useCallback((canvas: HTMLCanvasElement | null) => {
+    canvasObserver.current?.disconnect();
+    canvasObserver.current = null;
+    canvasRef.current = canvas;
+    if (!canvas) return;
+    if (typeof ResizeObserver !== "undefined") {
+      canvasObserver.current = new ResizeObserver(() => scheduleRender());
+      canvasObserver.current.observe(canvas);
+    }
+    scheduleRender();
+  }, [scheduleRender]);
+
   const drawMediaItem = useCallback(
     (ctx: CanvasRenderingContext2D, m: MediaItem) => {
       const cached=m.kind==='image'?peekImage(m.assetId):m.kind==='pdf'?peekPdfPage(m.assetId,m.pageNumber):peekDocx(m.assetId);
@@ -1066,7 +1081,9 @@ export function useWhiteboard(options: {
 
   useEffect(() => {
     return () => {
+      canvasObserver.current?.disconnect();
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     };
   }, []);
 
@@ -1078,6 +1095,7 @@ export function useWhiteboard(options: {
   return {
     processing,
     canvasRef,
+    attachCanvas,
     containerRef,
     objects,
     media,

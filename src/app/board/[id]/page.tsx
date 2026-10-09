@@ -592,7 +592,7 @@ export default function BoardPage() {
       {/* ---------------------------- Board ---------------------------- */}
       <div className="relative flex-1 overflow-hidden">
         <canvas
-          ref={wb.canvasRef}
+          ref={wb.attachCanvas}
           data-tool={wb.tool}
           className="kn-canvas-surface absolute inset-0 h-full w-full"
           onDoubleClick={wb.onDoubleClick}
