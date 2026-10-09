@@ -2,10 +2,10 @@ import {test,expect,type Page,type Locator} from '@playwright/test';
 
 async function activate(page:Page,control:Locator){if(!await control.count()||!await control.isVisible()){const more=page.getByRole('button',{name:'More tools',exact:true});if(await more.count()){if(await page.evaluate(()=>navigator.maxTouchPoints>0))await more.tap();else await more.click();}}if(await page.evaluate(()=>navigator.maxTouchPoints>0))await control.tap();else await control.click();}
 async function board(page:Page){
-  await page.goto('/');
+  await page.goto('/#/app');
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
-    await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1})});
+    await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1,ui:{toolPopupOnFirstClick:true}})});
     const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Device checks'})})).json();
     location.hash=`/board/${notebook.id}`;
   });

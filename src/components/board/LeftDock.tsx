@@ -1,3 +1,5 @@
+import {BoardFullscreen} from './BoardFullscreen';
+import {ThemeIcon} from './ThemeIcon';
 import {createPortal} from 'react-dom';
 "use client";
 
@@ -14,71 +16,15 @@ export type DockId =
   | "present"
   | "library";
 
-const DOCK: { id: DockId; icon: IconName; label: string }[] = [
-  { id: "file", icon: "menu", label: "Menu" },
-  { id: "treasure", icon: "toolbox", label: "Treasure box" },
-  { id: "import", icon: "import", label: "Import file" },
-  {id:"export",icon:"export",label:"Export file"},
-];
-
-export function LeftDock({
-  active,
-  onOpen,
-  presenting,
-  onTogglePresent,
-  onExit,onSwap,
-}: {
-  active: DockId | null;
-  onOpen: (id: DockId) => void;
-  presenting: boolean;
-  onTogglePresent: () => void;
-  onExit: () => void;onSwap:()=>void;
-}) {
-  return (
-    <div className="kn-dock pointer-events-auto flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-xl backdrop-blur">
-      {DOCK.map((d) => (
-        <button
-          key={d.id}
-          type="button"
-          data-dock-action={d.id}
-          aria-expanded={active===d.id}
-          style={{minWidth:44,minHeight:44}}
-          onClick={() => onOpen(d.id)}
-          title={d.label}
-          aria-label={d.label}
-          className={`kn-focus grid h-11 w-11 place-items-center rounded-xl transition ${
-            active === d.id ? "bg-brand text-white" : "text-muted hover:bg-elevated hover:text-ink"
-          }`}
-        >
-          <Icon name={d.icon} className="h-5 w-5" />
-        </button>
-      ))}
-      <button type="button" onClick={onSwap} title="Swap sides" aria-label="Swap menu side" className="kn-focus grid h-11 w-11 place-items-center rounded-xl"><Icon name="flipHorizontal" className="h-5 w-5"/></button>
-      <div className="my-0.5 h-px w-8 bg-line" />
-      <button
-        type="button"
-        style={{minWidth:44,minHeight:44}}
-        onClick={onTogglePresent}
-        title={presenting ? "Exit presentation" : "Present"}
-        aria-label="Present"
-        className={`kn-focus grid h-11 w-11 place-items-center rounded-xl transition ${
-          presenting ? "bg-brand text-white" : "text-muted hover:bg-elevated hover:text-ink"
-        }`}
-      >
-        <Icon name="board" className="h-5 w-5" />
-      </button>
-      <button
-        type="button"
-        style={{minWidth:44,minHeight:44}}
-        onClick={onExit}
-        title="Back to library"
-        aria-label="Back to library"
-        className="kn-focus grid h-11 w-11 place-items-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink"
-      >
-        <Icon name="layers" className="h-5 w-5" />
-      </button>
-    </div>
-  );
+export function LeftDock({active,onOpen,onSave,onSwap}:{active:DockId|null;onOpen:(id:DockId)=>void;onSave:()=>void;onSwap:()=>void}){
+  return <div className="kn-dock pointer-events-auto flex items-center gap-1 rounded-xl border border-line bg-panel p-1 shadow-xl">
+    <button type="button" className="kn-side-switch kn-focus" aria-label="Swap menu side" title="Swap sides" onClick={onSwap}><ThemeIcon name="flipHorizontal"/></button>
+    <button type="button" data-dock-action="file" aria-label="Menu" title="Menu" aria-expanded={active==='file'} onClick={()=>onOpen('file')} className="kn-focus"><ThemeIcon name="menu"/></button>
+    <BoardFullscreen dock/>
+    <button type="button" data-dock-action="treasure" aria-label="Treasure box" title="Treasure box" aria-expanded={active==='treasure'} onClick={()=>onOpen('treasure')} className="kn-focus"><ThemeIcon name="toolbox"/></button>
+    <button type="button" data-dock-action="import" aria-label="Import file" title="Import file" onClick={()=>onOpen('import')} className="kn-focus"><ThemeIcon name="import"/></button>
+    <button type="button" data-dock-action="save" aria-label="Save lesson" title="Save lesson" onClick={onSave} className="kn-focus"><ThemeIcon name="save"/></button>
+  </div>;
 }
 
 const FILE_ITEMS: { id: string; label: string; icon: IconName }[] = [

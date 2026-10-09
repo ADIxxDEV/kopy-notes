@@ -1,7 +1,7 @@
 "use client";
-import { Icon } from "@/components/Icon";
+import {ThemeIcon as Icon} from "./ThemeIcon";
 import "./SlidesPanel.css";
-export function PageBar({pageIndex,pageCount,onAdd,onGo,onDelete,onToggleThumbs,thumbsOpen,onSwap}: {pageIndex:number;pageCount:number;onAdd:()=>void;onGo:(index:number)=>void;onDelete:()=>void;onToggleThumbs:()=>void;thumbsOpen:boolean;onSwap:()=>void;}) {
+export function PageBar({pageIndex,pageCount,onAdd,onGo,onToggleThumbs,thumbsOpen,onSwap}: {pageIndex:number;pageCount:number;onAdd:()=>void;onGo:(index:number)=>void;onToggleThumbs:()=>void;thumbsOpen:boolean;onSwap:()=>void;}) {
   return <nav className="kn-page-navigation pointer-events-auto" aria-label="Page navigation">
     <button className="kn-focus kn-page-add" onClick={onAdd} aria-label="Add page" title="Add page"><Icon name="plus"/></button>
 
@@ -10,7 +10,6 @@ export function PageBar({pageIndex,pageCount,onAdd,onGo,onDelete,onToggleThumbs,
     <button className="kn-focus" onClick={()=>onGo(pageIndex-1)} disabled={pageIndex<=0} aria-label="Previous page" title="Previous page"><Icon name="chevronLeft"/></button>
     <button className="kn-focus kn-page-counter" onClick={onToggleThumbs} aria-label="Open slides" aria-expanded={thumbsOpen} title="Pages"><Icon name="layers"/><strong>{pageIndex+1} / {pageCount}</strong></button>
     <button className="kn-focus" onClick={()=>onGo(pageIndex+1)} disabled={pageIndex>=pageCount-1} aria-label="Next page" title="Next page"><Icon name="chevronRight"/></button>
-    <button className="kn-focus" onClick={onDelete} disabled={pageCount<=1} aria-label="Delete page" title="Delete page"><Icon name="trash"/></button>
-    <button className="kn-focus" onClick={onSwap} aria-label="Swap menu and slide controls" title="Swap sides"><Icon name="flipHorizontal"/></button>
+    <button className="kn-side-switch kn-focus" onClick={onSwap} aria-label="Swap menu and slide controls" title="Swap sides"><Icon name="flipHorizontal"/></button>
   </nav>;
 }

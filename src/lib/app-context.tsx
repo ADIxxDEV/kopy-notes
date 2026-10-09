@@ -1,6 +1,6 @@
 import {interfaceSettings} from './interface-settings';
 "use client";
-import {BUILTIN_THEMES} from './theme-pack';
+import {BUILTIN_THEMES,parseThemePack,type ThemePack} from './theme-pack';
 import { localRequest } from "@/lib/local-store";
 
 import {
@@ -9,6 +9,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import type { AppProfile } from "@/db/schema";
@@ -38,15 +39,33 @@ type AppContextValue = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<AppProfile>(DEFAULT_PROFILE);
+  const [storedProfile, setProfile] = useState<AppProfile>(DEFAULT_PROFILE);
+  const [previewTheme,setPreviewTheme]=useState<ThemePack|null>(()=>import.meta.env.DEV&&new URLSearchParams(location.search).get('theme')==='org-note3'?BUILTIN_THEMES.find(theme=>theme.id==='org-note3')!:null);
+  const profile=previewTheme?{...storedProfile,theme:previewTheme,accent:previewTheme.colors.accent}:storedProfile;
+  useEffect(()=>{
+    if(!import.meta.env.DEV)return;
+    let mounted=true;
+    void fetch('/__local-note3-theme').then(async response=>{
+      if(response.status!==200)return;const pack=await response.json();
+      const requested=new URLSearchParams(location.search).get('theme')==='org-note3';
+      if(mounted&&(requested||pack.previewDefault===true))setPreviewTheme({...parseThemePack(pack),id:'org-note3',name:'org-note3'});
+    }).catch(()=>{});
+    const stopPreview=()=>{mounted=false;setPreviewTheme(null);};
+    window.addEventListener('kopy-theme-selected',stopPreview);
+    return()=>{mounted=false;window.removeEventListener('kopy-theme-selected',stopPreview);};
+  },[]);
   const [loading, setLoading] = useState(true);
 
+  const profileRevision=useRef(0);
+  const saveQueue=useRef<Promise<void>>(Promise.resolve());
+
   const reload = useCallback(async () => {
+    const revision=profileRevision.current;
     try {
       const res = await localRequest("/api/profile", { cache: "no-store" });
       if (!res.ok) throw new Error("bad status");
       const data = (await res.json()) as { profile: AppProfile };
-      setProfile({
+      if(revision===profileRevision.current)setProfile({
         ...DEFAULT_PROFILE,
         ...data.profile,
         createdAt: new Date(data.profile.createdAt),
@@ -91,38 +110,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const t=profile.theme??BUILTIN_THEMES[0];
     for(const [key,color] of Object.entries(t.colors))document.documentElement.style.setProperty(`--theme-${key}`,color);
     const root=document.documentElement;
+    root.dataset.themeAppearance=t.appearance??'kopy';
     for(const [key,color] of Object.entries({panel:t.colors.panel,'panel-2':t.colors.surface,'base':t.colors.surface,'base-2':t.colors.surface,elevated:t.colors.surface,line:t.colors.line,ink:t.colors.ink,muted:t.colors.muted,faint:t.colors.muted}))root.style.setProperty(`--color-${key}`,color);
     root.style.setProperty('--tool-popup-gap',`${interfaceSettings(profile.ui).popupGap}px`);
     window.dispatchEvent(new Event('kopy-popup-layout'));
   },[profile.theme,profile.ui]);
 
-  const updateProfile = useCallback(
-    async (patch: Partial<AppProfile>) => {
-      // Optimistic update for a snappy feel.
-      setProfile((prev) => ({ ...prev, ...patch }));
-      try {
-        const res = await localRequest("/api/profile", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({...patch,...('boardImage' in patch?{boardImage:patch.boardImage??''}:{})}),
+  const updateProfile = useCallback((patch: Partial<AppProfile>) => {
+    const revision=++profileRevision.current;
+    setProfile(previous=>({...previous,...patch}));
+    // A slow earlier save must never replace a newer theme selection.
+    const save=saveQueue.current.then(async()=>{
+      try{
+        const response=await localRequest('/api/profile',{
+          method:'PUT',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({...patch,...('boardImage' in patch?{boardImage:patch.boardImage??''}:{})}),
         });
-        if (!res.ok) throw new Error("bad status");
-        const data = (await res.json()) as { profile: AppProfile };
-        setProfile({
-          ...DEFAULT_PROFILE,
-          ...data.profile,
-          createdAt: new Date(data.profile.createdAt),
-          updatedAt: new Date(data.profile.updatedAt),
-        });
-      } catch (error) {
-        import.meta.env.DEV && console.error("Failed to update profile", error);
-        // Revert optimistic change by reloading authoritative state.
-        await reload();
-        throw new Error("Settings could not be saved. Check available local storage.");
+        if(!response.ok)throw new Error('The local profile could not be saved.');
+        const data=await response.json() as {profile:AppProfile};
+        if(revision===profileRevision.current)setProfile({...DEFAULT_PROFILE,...data.profile,createdAt:new Date(data.profile.createdAt),updatedAt:new Date(data.profile.updatedAt)});
+      }catch(error){
+        if(revision===profileRevision.current)await reload();
+        throw new Error(error instanceof Error?`Settings could not be saved: ${error.message}`:'Settings could not be saved. Check available local storage.');
       }
-    },
-    [reload],
-  );
+    });
+    saveQueue.current=save.catch(()=>{});
+    return save;
+  },[reload]);
 
   return (
     <AppContext.Provider value={{ profile, loading, updateProfile, reload }}>

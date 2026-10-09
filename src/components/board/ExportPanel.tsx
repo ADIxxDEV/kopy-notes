@@ -14,13 +14,14 @@ function download(url: string, filename: string) {
   if (url.startsWith('blob:')) window.setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
-export function ExportPanel({onClose, pageTitle, pageCount = 1, onPNG, onPDF, onJSON, onPrint}: {
+export function ExportPanel({onClose, pageTitle, pageCount = 1, onPNG, onPDF, onJSON, onENB, onPrint}: {
   onClose: () => void;
   pageTitle: string;
   pageCount?: number;
   onPNG: () => void|Promise<void>;
   onPDF: (scope: PDFScope, onProgress: (progress: ExportProgress) => void) => Promise<PreparedDownload>;
   onJSON: () => void|Promise<void>;
+  onENB: () => Promise<void>;
   onPrint: () => void;
 }) {
   const [scope, setScope] = useState<PDFScope>('current');
@@ -52,6 +53,7 @@ export function ExportPanel({onClose, pageTitle, pageCount = 1, onPNG, onPDF, on
   const otherOptions = [
     {id: 'png', label: 'Image (PNG)', desc: 'Save a picture of the visible board.', icon: 'image' as const, action: onPNG},
     {id: 'json', label: 'Editable lesson (.kopy)', desc: 'Every page, stroke and imported file in one portable archive.', icon: 'save' as const, action: onJSON},
+    {id: 'enb', label: 'Note3 (.enb) - experimental', desc: 'Picture pages for Note3; includes an editable Kopy copy. Test in your Note3 version before class.', icon: 'doc' as const, action: onENB},
     {id: 'print', label: 'Print', desc: 'Send the current view to a printer.', icon: 'print' as const, action: onPrint},
   ];
 

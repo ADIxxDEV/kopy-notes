@@ -3,11 +3,11 @@ import {test,expect,type Page} from '@playwright/test';
 import {jsPDF} from 'jspdf';
 import JSZip from 'jszip';
 async function board(page:Page) {
-  await page.goto('/');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
+  await page.goto('/#/app');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
   await page.evaluate(async()=>{
     const db=await new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open('kopy-notes',1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
     const tx=db.transaction(['profile','notebooks','pages'],'readwrite');const now=new Date();
-    tx.objectStore('profile').put({id:1,appName:'Kopy Notes',teacherName:'Teacher',institution:'',accent:'#526677',boardBg:'#83d131',boardPattern:'none',defaultPenColor:'#10151b',onboarded:1,createdAt:now,updatedAt:now});
+    tx.objectStore('profile').put({id:1,appName:'Kopy Notes',teacherName:'Teacher',institution:'',accent:'#526677',boardBg:'#83d131',boardPattern:'none',defaultPenColor:'#10151b',ui:{toolPopupOnFirstClick:true},onboarded:1,createdAt:now,updatedAt:now});
     tx.objectStore('notebooks').put({id:'board-test',title:'Geometry lesson',subject:'Mathematics',coverColor:'#526677',pageCount:1,createdAt:now,updatedAt:now});
     tx.objectStore('pages').put({id:'page-test',notebookId:'board-test',position:0,background:'#83d131',pattern:'none',objects:[],media:[],createdAt:now,updatedAt:now});
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
@@ -56,7 +56,7 @@ test('geometry, science, pressure controls and backup recovery work together',as
   await page.getByRole('button',{name:'Place in water',exact:true}).click();
   await expect(page.getByText(/Displaced water: 100.0 mL/)).toBeVisible();
   await page.getByRole('button',{name:'Insert snapshot',exact:true}).click();
-  await page.locator('.science-lab').locator('..').locator('..').getByRole('button',{name:'Close',exact:true}).click();
+  await page.getByRole('region',{name:'Physics lab',exact:true}).getByRole('button',{name:'Close',exact:true}).click();
   await page.getByRole('button',{name:'Treasure box',exact:true}).click();
   const previous=await page.getByRole('button',{name:'Previous page',exact:true}).boundingBox();
   expect(previous?.x).toBeGreaterThan(0);expect(previous?.y).toBeGreaterThan(500);

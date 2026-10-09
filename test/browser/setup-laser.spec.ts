@@ -2,7 +2,7 @@ import {selectOption} from '../helpers/custom-select';
 import {test,expect} from '@playwright/test';
 test('teaching defaults and watermark persist; assistant sends only on explicit request',async({page})=>{
   let calls=0;await page.route('http://127.0.0.1:11434/api/generate',async route=>{calls++;expect(route.request().postDataJSON().prompt).toBe('Explain fractions');await route.fulfill({json:{response:'A fraction represents part of a whole.'}});});
-  await page.goto('/');await page.getByLabel('Default pen color').fill('#aa2200');
+  await page.goto('/#/app');await page.getByLabel('Default pen color').fill('#aa2200');
   await page.getByLabel('Default background White').click();await selectOption(page.getByLabel('Default board pattern'),'grid');
   await page.getByText('Watermark, screen calibration & local AI',{exact:true}).click();
   await page.getByLabel('Enable teaching watermark').check();await page.getByLabel('Watermark text').fill('CLASSROOM');await selectOption(page.getByLabel('Watermark position'),'bottom-right');
@@ -17,8 +17,8 @@ test('teaching defaults and watermark persist; assistant sends only on explicit 
   await expect.poll(()=>page.evaluate(async()=>{const mod=await import('/src/lib/local-store.ts' as string);const notebooks=(await(await mod.localRequest('/api/notebooks')).json()).notebooks;const data=await(await mod.localRequest('/api/notebooks/'+notebooks[0].id)).json();return data.pages[0].objects.some((o:any)=>o.kind==='text'&&o.text.includes('fraction'));})).toBe(true);
 });
 test('laser pulses on hover, fades and never becomes saved lesson ink',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:'Start teaching',exact:true}).click();await page.waitForURL('**/#/library');await page.goto('/#/library?new=1');await page.getByRole('button',{name:'Create & open',exact:true}).click();
-  await page.getByRole('button',{name:'Pen',exact:true}).click();await page.getByRole('button',{name:'Laser pointer',exact:true}).click();await page.getByRole('button',{name:'Pen',exact:true}).click();await page.mouse.move(430,270);
+  await page.goto('/#/app');await page.getByRole('button',{name:'Start teaching',exact:true}).click();await page.waitForURL('**/#/library');await page.goto('/#/library?new=1');await page.getByRole('button',{name:'Create & open',exact:true}).click();
+  await page.getByRole('button',{name:'Pen',exact:true}).click();await page.getByRole('button',{name:'Pen',exact:true}).click();await page.getByRole('button',{name:'Laser pointer',exact:true}).click();await page.getByRole('button',{name:'Pen',exact:true}).click();await page.mouse.move(430,270);
   // The pointer stays steady; only the drawn laser trail blinks.
   const pixels=[];for(let i=0;i<4;i++){await page.waitForTimeout(100);pixels.push(await page.locator('canvas.kn-canvas-surface').evaluate(canvas=>{const c=canvas as HTMLCanvasElement,scale=c.width/c.clientWidth;return Array.from(c.getContext('2d')!.getImageData(435*scale,270*scale,1,1).data);}));}
   expect(new Set(pixels.map(p=>JSON.stringify(p))).size).toBe(1);

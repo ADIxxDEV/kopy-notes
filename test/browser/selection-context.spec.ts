@@ -9,7 +9,7 @@ async function containedAboveTools(page:Page){
 }
 
 test('selection inspector sits beside the shape, contains expanded styles and hides on writing',async({page})=>{
-  await page.setViewportSize({width:1280,height:800});await page.goto('/');
+  await page.setViewportSize({width:1280,height:800});await page.goto('/#/app');
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
     await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1})});

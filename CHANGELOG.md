@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+- Added a responsive, static landing page with reduced-motion support, search metadata, roadmap and community links.
+- Included org-note3 artwork in production theme selection and offline caching.
+
+
+- Fixed overlapping menu controls, including the fullscreen button and narrow-screen dock layout.
+- Tool settings open on a second click by default; first-click opening is available in Tools and menus. Selected Note3 tool artwork rises without resizing the toolbar.
+
+
+### Note3 appearance and files
+
+- Theme saves are serialized so an earlier response cannot reset a newer selection; Settings applies themes immediately, and the built-in theme includes distinct artwork even without a local icon pack.
+- Optional `org-note3` theme with portable appearance metadata, silver controls and Note-style toolbar ordering.
+- Local installed artwork can be loaded as a separately attributed theme without entering production bundles.
+- ENB import supports editable basic ink and explicit page-preview fallbacks; experimental native picture-page export preserves an editable Kopy payload for unchanged round trips.
+- See [compatibility details and local artwork setup](docs/NOTE3_COMPATIBILITY.md).
+
+
+- Offline physics lab: series/parallel DC circuits with switch and readings, plus converging/diverging lens ray diagrams and snapshots. Corrected neutral buoyancy.
+- Chemistry lab: exact equation balancing with atom checks, dilution visualisation and editable equation insertion; searchable experiment names.
+- Four-direction curtain with a captured drag handle, keyboard adjustment, complete reveal and viewport-contained controls.
+- Added science model documentation, contribution priorities and calculation/browser regression checks.
+
 ## 0.2.0-dev.6 | 2026-10-07
 
 - Restored the compact file menu. Import, export, settings and help open as attached side screens; Back returns to the menu, with a contained mobile layout.

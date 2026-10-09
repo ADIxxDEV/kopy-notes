@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 
 test('every toolbar glyph parses and renders inside its SVG viewport',async({page})=>{
   const errors:string[]=[];page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto('/');
+  await page.goto('/#/app');
   const invalid=await page.evaluate(async()=>{
     const icon=await import('/src/components/Icon.tsx' as string);
     const glyph=await import('/src/components/board/ToolGlyph.tsx' as string);
@@ -19,7 +19,7 @@ test('every toolbar glyph parses and renders inside its SVG viewport',async({pag
 });
 
 test('all shape renderers produce visible outlines and separate fill pixels',async({page})=>{
-  await page.goto('/');
+  await page.goto('/#/app');
   const drawn=await page.evaluate(async()=>{
     const {drawShape}=await import('/src/lib/render.ts' as string);
     const shapes=['line','arrow','rect','ellipse','circle','triangle','righttriangle','star','diamond','parallelogram','trapezoid','pentagon','hexagon'];
@@ -35,7 +35,7 @@ test('all shape renderers produce visible outlines and separate fill pixels',asy
 });
 
 test('hatched fills clip to their shape, rounded corners and dotted strokes remain visible',async({page})=>{
-  await page.goto('/');
+  await page.goto('/#/app');
   const result=await page.evaluate(async()=>{
     const {drawShape}=await import('/src/lib/render.ts' as string);
     function render(fillStyle:string,roundness=0,dash='solid'){

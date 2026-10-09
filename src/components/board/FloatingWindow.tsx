@@ -91,7 +91,7 @@ export function FloatingWindow({
       aria-label={title}
       data-layout-panel={title}
       data-window-mode={floating?'floating':'docked'}
-      className="kn-pop fixed z-50 overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
+      className="kn-pop fixed z-[85] overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
       style={{ left: pos.x, top: pos.y, width: actualWidth, maxHeight: 'calc(100dvh - 16px)', overflowY: 'auto', boxShadow: accent ? `0 18px 50px -18px ${accent}` : undefined }}
     >
       <div

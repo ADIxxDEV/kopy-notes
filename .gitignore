@@ -21,3 +21,6 @@ Thumbs.db
 desktop.ini
 .agents/
 .codex/
+
+# Locally licensed reference artwork; never part of an open-source release.
+.local-themes/

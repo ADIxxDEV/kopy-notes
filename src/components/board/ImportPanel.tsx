@@ -49,12 +49,16 @@ export function ImportPanel({
   const [dragging, setDragging] = useState(false);
 
   function addFiles(files: FileList | null) {
-    if (!files) return;
+    if (!files || busy) return;
     const list: Picked[] = [];
     for (const file of Array.from(files)) {
-      if (file.size > MAX && !file.name.toLowerCase().endsWith('.kopy')) {
+      if (file.size > MAX && !/\.(kopy|enb)$/i.test(file.name)) {
         push(`"${file.name}" is larger than 25 MB.`, "error");
         continue;
+      }
+      if(file.name.toLowerCase().endsWith('.enb')){
+        setBusy(true);void (async()=>{await beforeImport();const {importEnb}=await import('@/lib/enb');const result=await importEnb(file);if(result.flattenedPages.length)push(`Pages ${result.flattenedPages.join(', ')} imported as pictures because they contain unsupported Note3 objects. You can annotate them.`, 'info');router.push(`/board/${result.id}`);})().catch(error=>push(error.message,'error')).finally(()=>setBusy(false));
+        return;
       }
       if (file.name.toLowerCase().endsWith('.kopy')) {
         setBusy(true);void importLesson(file).then(id => router.push(`/board/${id}`)).catch(error => push(error.message, "error")).finally(()=>setBusy(false));
@@ -195,7 +199,7 @@ export function ImportPanel({
           ref={inputRef}
           type="file"
           multiple
-          accept=".kopy,.pdf,image/*,.docx,.pptx,.odp,application/pdf"
+          accept=".kopy,.enb,.pdf,image/*,.docx,.pptx,.odp,application/pdf"
           className="hidden"
           onChange={(e) => addFiles(e.target.files)}
         />

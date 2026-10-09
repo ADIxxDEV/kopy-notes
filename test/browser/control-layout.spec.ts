@@ -2,7 +2,7 @@ import {selectOption} from '../helpers/custom-select';
 import {test,expect} from '@playwright/test';
 
 test('individual controls and named layouts survive reload, Cancel and tablet rotation',async({page})=>{
-  await page.goto('/');
+  await page.goto('/#/app');
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
     await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1})});

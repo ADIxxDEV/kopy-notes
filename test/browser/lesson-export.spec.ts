@@ -3,7 +3,7 @@ import {test, expect} from '@playwright/test';
 import {jsPDF} from 'jspdf';
 
 test('PDF export renders complete portrait pages, offscreen ink, images and imported PDF without cached previews', async ({page}) => {
-  await page.goto('/');
+  await page.goto('/#/app');
   const imported = new jsPDF({orientation: 'portrait', unit: 'pt', format: [200, 400]});
   imported.setFillColor(255, 0, 0); imported.rect(0, 0, 200, 400, 'F');
   const bytes = Array.from(new Uint8Array(imported.output('arraybuffer')));
@@ -52,7 +52,7 @@ test('PDF export renders complete portrait pages, offscreen ink, images and impo
 });
 
 test('PDF panel waits for a ready document and lets the user download current or all pages', async ({page}) => {
-  await page.goto('/');
+  await page.goto('/#/app');
   await page.evaluate(async () => {
     const path = '/src/lib/local-store.ts'; const {database} = await import(/* @vite-ignore */ path); const db = await database(); const now = new Date();
     await db.put('profile', {id: 1, appName: 'Kopy Notes', teacherName: 'Teacher', institution: '', accent: '#526677', boardBg: '#ffffff', boardPattern: 'none', defaultPenColor: '#10151b', onboarded: 1, createdAt: now, updatedAt: now});
@@ -82,7 +82,7 @@ test('PDF panel waits for a ready document and lets the user download current or
 });
 
 test('missing imported media fails the export with a page-specific error instead of a blank document', async ({page}) => {
-  await page.goto('/');
+  await page.goto('/#/app');
   const error = await page.evaluate(async () => {
     const path = '/src/lib/lesson-export.ts'; const {exportLessonPDF} = await import(/* @vite-ignore */ path); const now = new Date();
     const p = {id: 'missing-page', notebookId: 'missing-notebook', position: 0, background: '#ffffff', pattern: 'none', objects: [], media: [{id: 'missing', kind: 'image', assetId: 'missing-export-asset', x: 0, y: 0, width: 400, height: 800, rotation: 0, pageNumber: 1}], createdAt: now, updatedAt: now};

@@ -222,9 +222,7 @@ body{background:var(--color-base);color:var(--color-ink)}
 .kn-board[data-show-fullscreen=false] .kn-fullscreen-controls,.kn-board[data-show-customize=false] .kn-customize-launch,.kn-board[data-show-toolbar=false] .board-toolbar,.kn-board[data-show-menu=false] .menu-dock,.kn-board[data-show-slides=false] .page-toolbar,.kn-board[data-show-slides=false] .kn-slides-panel{display:none!important}
 .kn-board[data-show-time=false] .board-header>div:last-child>div:last-child{display:none}
 .kn-visible-controls{border-top:1px solid var(--color-line);margin-top:14px;padding-top:12px;font-size:12px}.kn-visible-controls label{min-height:44px}
-.kn-board[data-flip-tools=true][data-slides-side=left] .kn-dock,.kn-board[data-flip-tools=true][data-slides-side=left] .kn-page-navigation{flex-direction:row-reverse}
-.kn-board[data-flip-tools=true][data-slides-side=left] .board-toolbar[data-layout=bottom] .kn-main-tools{flex-direction:row-reverse}
-.kn-board[data-flip-tools=true][data-slides-side=left] .board-toolbar:not([data-layout=bottom]) .kn-main-tools{flex-direction:column-reverse}
+.kn-board[data-flip-tools=true][data-slides-side=left] .kn-dock{flex-direction:row-reverse}
 .kn-board .teaching-options{left:calc(100% + var(--tool-popup-gap,0px));top:0;max-height:calc(100dvh - 24px)}
 .kn-board .kn-anchored-popover>.kn-tool-options,.kn-board .kn-anchored-popover>.kn-shape-palette,.kn-board .kn-anchored-popover>.kn-more-tools{max-height:inherit!important;max-width:100%!important;overflow-y:auto}
 .kn-slide-header-actions{display:flex;gap:4px;padding:6px!important;justify-content:space-between}.kn-slide-header-actions>button{min-width:44px;min-height:44px;flex:1;border-radius:8px}.kn-slide-header-actions svg{width:18px!important;height:18px!important}
@@ -257,3 +255,24 @@ body{background:var(--color-base);color:var(--color-ink)}
 @media(prefers-reduced-motion:reduce){.kn-menu-screen{transition:none}}
 
 body:has(.kn-smart-keyboard.is-bottom) .kn-menu-screen{top:8px!important;max-height:calc(100dvh - var(--keyboard-height,310px) - 16px)!important}
+
+/* Ordered bottom controls. Only the menu reverses when swapping sides. */
+.kn-board .kn-dock{flex-direction:row;gap:3px}
+.kn-board .kn-dock>button,.kn-board .kn-dock-fullscreen>button{display:grid;place-items:center;min-width:44px;min-height:44px;border-radius:8px}
+.kn-board .kn-dock .kn-dock-fullscreen{position:relative;inset:auto;display:flex;gap:2px;z-index:auto}
+.kn-board .kn-dock-fullscreen .kn-screen-hint{top:auto;bottom:52px;left:0;right:auto;z-index:80}
+.kn-board .kn-side-switch{width:24px!important;min-width:24px!important;height:44px;padding:2px!important;flex:0 0 24px}
+.kn-board .kn-side-switch svg{width:12px!important;height:12px!important}
+.kn-board .kn-page-navigation{flex-direction:row}
+@media(pointer:coarse){.kn-board .kn-side-switch{min-width:40px!important;width:40px!important;flex-basis:40px}}
+
+/* The fullscreen wrapper is a control group, never the old dock divider. */
+.kn-board .kn-dock .kn-dock-fullscreen{width:auto;height:auto;margin:0;flex:0 0 auto;align-items:center}
+.kn-board .kn-dock>button{flex-shrink:0}
+.kn-board .kn-side-switch>.kn-theme-tool-image{width:16px!important;height:20px!important}
+@media(max-width:600px){
+ .kn-board .menu-dock{bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+ .kn-board .page-toolbar{bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+ .kn-board .kn-dock>button[data-dock-action]{display:grid}
+ .kn-board .kn-page-navigation>button[aria-label="Previous page"],.kn-board .kn-page-navigation>button[aria-label="Next page"]{display:grid}
+}

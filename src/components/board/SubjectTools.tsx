@@ -1,7 +1,7 @@
 import {HandwritingEquation} from './HandwritingEquation';
 import {GRAPH_PRESETS,compileTeachingExpression,sampleTeachingGraph,validatePlotRange,type PlotRange} from '@/lib/teaching-math';
 import { useEffect, useRef, useState } from 'react';
-import { ScienceLab } from './ScienceLab';
+import {PhysicsExperiments,ChemistryExperiments} from './ScienceExperiments';
 import { FloatingWindow } from './FloatingWindow';
 import { PeriodicTable } from './PeriodicTable';
 import { ClassroomTools, ScreenCurtain } from './ClassroomTools';
@@ -45,7 +45,7 @@ export function SubjectTools({tool,onClose,onInsert,onInsertText}:{tool:SubjectT
   const title={graph:'Function drawing',solids:'3D shapes',chemistry:'Chemistry',periodic:'Periodic table',physics:'Physics',camera:'Document camera',curtain:'Screen curtain',classroom:'Classroom tools',handwriting:'Handwriting equation'}[tool];
   const labels=tool==='solids'?['Cube','Cylinder','Cone','Sphere','Pyramid']:tool==='chemistry'?['Beaker','Flask','Test tube','Funnel','Atom']:['Resistor','Battery','Lamp','Lens'];
   if(tool==='periodic')return <FloatingWindow title="Chemistry · periodic table" initialX={120} initialY={45} width={1050} onClose={onClose}><PeriodicTable onInsert={onInsert}/></FloatingWindow>;
-  if(tool==='chemistry'||tool==='physics')return <FloatingWindow title={tool==='chemistry'?'Chemistry · periodic table':'Science lab · buoyancy'} initialX={tool==='chemistry'?120:260} initialY={45} width={tool==='chemistry'?1050:390} onClose={onClose}>{tool==='chemistry'?<PeriodicTable onInsert={onInsert}/>:<ScienceLab onInsert={onInsert}/>}<details><summary>Diagram library</summary><div className="grid grid-cols-3 gap-2">{labels.map(label=><button key={label} className="lab-action" onClick={()=>void onInsert('data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="360" viewBox="0 0 340 360"><g fill="none" stroke="#142b39" stroke-width="4">${drawings[label]}</g></svg>`),340,360)}>{label}</button>)}</div></details></FloatingWindow>;
+  if(tool==='chemistry'||tool==='physics')return <FloatingWindow title={tool==='chemistry'?'Chemistry lab':'Physics lab'} initialX={260} initialY={45} width={560} onClose={onClose}>{tool==='chemistry'?<ChemistryExperiments onInsert={onInsert} onInsertText={onInsertText}/>:<PhysicsExperiments onInsert={onInsert}/>}<details className="experiment-library"><summary>Diagram library</summary><div className="grid grid-cols-3 gap-2">{labels.map(label=><button key={label} className="lab-action" onClick={()=>void onInsert('data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="360" viewBox="0 0 340 360"><g fill="none" stroke="#142b39" stroke-width="4">${drawings[label]}</g></svg>`),340,360)}>{label}</button>)}</div></details></FloatingWindow>;
   if(tool==='handwriting')return <HandwritingEquation onClose={onClose} onInsert={onInsertText}/>;
   if(tool==='curtain')return <ScreenCurtain onClose={onClose}/>;
   if(tool==='classroom')return <ClassroomTools onClose={onClose}/>;

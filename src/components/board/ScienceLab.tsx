@@ -3,8 +3,8 @@ export function ScienceLab({onInsert}:{onInsert:(url:string,width:number,height:
  const [volume,setVolume]=useState(250),[mass,setMass]=useState(100),[density,setDensity]=useState(1),[immersed,setImmersed]=useState(false);
  const svg=useRef<SVGSVGElement>(null),[error,setError]=useState('');
  const displacement=immersed?Math.min(mass/density,mass):0, total=volume+displacement, surface=270-Math.min(500,total)/500*220;
- const floats=density<1, objectHeight=Math.min(85,25+Math.cbrt(mass/density)*7);
- const objectY=immersed?(floats?surface-objectHeight*(1-density):270-objectHeight):12;
+ const neutral=Math.abs(density-1)<0.0001, floats=density<1, objectHeight=Math.min(85,25+Math.cbrt(mass/density)*7);
+ const objectY=immersed?(floats?surface-objectHeight*(1-density):neutral?(surface+270-objectHeight)/2:270-objectHeight):12;
  async function insert(){try{setError('');const markup=new XMLSerializer().serializeToString(svg.current!);const url=URL.createObjectURL(new Blob([markup],{type:'image/svg+xml'}));try{await onInsert(url,360,320);}finally{URL.revokeObjectURL(url);}}catch{setError('Could not insert this experiment.');}}
  return <div className="science-lab"><p>Water displacement and buoyancy · water density 1 g/mL</p>
  <svg ref={svg} xmlns="http://www.w3.org/2000/svg" width="360" height="320" viewBox="0 0 360 320" className="h-auto w-full" aria-label="Water displacement experiment">
@@ -13,7 +13,7 @@ export function ScienceLab({onInsert}:{onInsert:(url:string,width:number,height:
  <path d="M85 40h15v230q0 10 10 10h130q15 0 15-15V40h15" stroke="#244c61" strokeWidth="4" fill="none"/>
  {[100,200,300,400,500].map(v=><g key={v}><path d={`M230 ${270-v/500*220}h25`} stroke="#244c61"/><text x="265" y={274-v/500*220} fontSize="12" fill="#244c61">{v} mL</text></g>)}
  <rect x="145" y={objectY} width="55" height={objectHeight} rx="5" fill={floats?'#bd894c':'#64788c'} stroke="#293c4a" strokeWidth="2"/>
- <text x="20" y="308" fill="#244c61" fontSize="14">{Math.min(500,total).toFixed(1)} mL · {immersed?(floats?'Floating':'Sinking'):'Ready'}</text>
+ <text x="20" y="308" fill="#244c61" fontSize="14">{Math.min(500,total).toFixed(1)} mL · {immersed?(neutral?'Neutral buoyancy':floats?'Floating':'Settled on bottom'):'Ready'}</text>
  </svg>
  <label>Water: {volume} mL<input aria-label="Water volume" type="range" min="50" max="450" step="10" value={volume} onChange={e=>setVolume(+e.target.value)}/></label>
  <label>Object mass: {mass} g<input aria-label="Object mass" type="range" min="10" max="200" step="5" value={mass} onChange={e=>setMass(+e.target.value)}/></label>

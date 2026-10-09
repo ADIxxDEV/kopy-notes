@@ -56,36 +56,36 @@ export function ClassroomTools({onClose}:{onClose:()=>void}) {
   </div></FloatingWindow>;
 }
 
+type CurtainEdge='top'|'right'|'bottom'|'left';
 function curtainSpace() {
-  const canvas = document.querySelector('.kn-canvas-surface')?.getBoundingClientRect();
-  const top = canvas?.top ?? 0;
-  const toolbars = [...document.querySelectorAll('.board-toolbar,.page-toolbar,.menu-dock')].map(element=>element.getBoundingClientRect()).filter(rect=>rect.width>0&&rect.height>0&&rect.top>top);
-  const bottom = Math.min(canvas?.bottom ?? window.innerHeight,window.innerHeight,...toolbars.map(rect=>rect.top));
-  return {top,height:Math.max(56,bottom-top-4)};
+  const canvas=document.querySelector('.kn-canvas-surface')?.getBoundingClientRect();
+  const left=Math.max(0,canvas?.left??0),top=Math.max(0,canvas?.top??0);
+  return {left,top,width:Math.max(1,Math.min(innerWidth,canvas?.right??innerWidth)-left),height:Math.max(1,Math.min(innerHeight,canvas?.bottom??innerHeight)-top)};
 }
 export function ScreenCurtain({onClose}:{onClose:()=>void}) {
-  const [coverage,setCoverage] = useState(65), [space,setSpace] = useState(curtainSpace);
-  const drag = useRef<{y:number;coverage:number}|null>(null);
+  const [coverage,setCoverage]=useState(65),[edge,setEdge]=useState<CurtainEdge>('top'),[space,setSpace]=useState(curtainSpace);
+  const drag=useRef<{id:number;position:number;coverage:number}|null>(null);
+  const horizontal=edge==='left'||edge==='right',reverse=edge==='bottom'||edge==='right';
   useEffect(()=>{
-    const update = ()=>setSpace(curtainSpace());
-    const observer = new ResizeObserver(update);
-    document.querySelectorAll('.kn-canvas-surface,.board-toolbar,.page-toolbar,.menu-dock').forEach(element=>observer.observe(element));
-    window.addEventListener('resize',update);update();
-    return ()=>{observer.disconnect();window.removeEventListener('resize',update);};
+    const update=()=>setSpace(curtainSpace());const observer=new ResizeObserver(update);
+    const canvas=document.querySelector('.kn-canvas-surface');if(canvas)observer.observe(canvas);
+    window.addEventListener('resize',update);window.addEventListener('kopy-layout-updated',update);update();
+    return()=>{observer.disconnect();window.removeEventListener('resize',update);window.removeEventListener('kopy-layout-updated',update);};
   },[]);
-  function start(event:PointerEvent<HTMLButtonElement>) {
-    event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);drag.current={y:event.clientY,coverage};
-  }
-  function move(event:PointerEvent<HTMLButtonElement>) {
-    if (!drag.current) return;
-    setCoverage(Math.max(0,Math.min(100,Math.round(drag.current.coverage+(event.clientY-drag.current.y)/space.height*100))));
-  }
-  return <section className="screen-curtain" aria-label="Screen curtain" style={{top:space.top,height:Math.max(56,space.height*coverage/100)}}>
-    <div className="screen-curtain-shade"/>
-    <div className="screen-curtain-controls">
-      <button className="kn-focus screen-curtain-grip" aria-label="Drag curtain reveal handle" title="Drag to reveal or cover the board" onPointerDown={start} onPointerMove={move} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}}><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 9h16M4 15h16m-8-9-3-3m3 3 3-3m-3 15-3 3m3-3 3 3"/></svg></button>
+  useEffect(()=>{const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();onClose();}};window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape);},[onClose]);
+  function start(event:PointerEvent<HTMLButtonElement>){event.preventDefault();event.stopPropagation();event.currentTarget.setPointerCapture(event.pointerId);drag.current={id:event.pointerId,position:horizontal?event.clientX:event.clientY,coverage};}
+  function move(event:PointerEvent<HTMLButtonElement>){const initial=drag.current;if(!initial||initial.id!==event.pointerId)return;const delta=(horizontal?event.clientX:event.clientY)-initial.position;setCoverage(Math.max(0,Math.min(100,Math.round(initial.coverage+delta/(horizontal?space.width:space.height)*100*(reverse?-1:1)))));}
+  const boundary=(reverse?100-coverage:coverage)/100*(horizontal?space.width:space.height);
+  return <section className="screen-curtain" aria-label="Screen curtain" data-edge={edge} style={{left:space.left,top:space.top,width:space.width,height:space.height}}>
+    <div className="screen-curtain-shade" hidden={coverage===0} onPointerDown={event=>{event.preventDefault();event.stopPropagation();}} style={{left:space.left+(edge==='right'?space.width*(1-coverage/100):0),top:space.top+(edge==='bottom'?space.height*(1-coverage/100):0),width:horizontal?space.width*coverage/100:space.width,height:horizontal?space.height:space.height*coverage/100}}/>
+    <button className="kn-focus screen-curtain-grip" aria-label="Drag curtain reveal handle" onPointerDown={start} onPointerMove={move} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}} onLostPointerCapture={()=>{drag.current=null;}} onKeyDown={event=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();event.stopPropagation();const increase=event.key==='ArrowDown'||event.key==='ArrowRight';setCoverage(value=>Math.max(0,Math.min(100,value+(increase?5:-5)*(reverse?-1:1))));}}} style={horizontal?{left:space.left+Math.max(0,Math.min(space.width-44,boundary-22)),top:space.top+space.height*.45,cursor:'ew-resize'}:{left:space.left+space.width/2-30,top:space.top+Math.max(72,Math.min(space.height-44,boundary-22)),cursor:'ns-resize'}}>
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" style={{transform:horizontal?'rotate(90deg)':undefined}}><path d="M5 10h14M5 14h14m-10-8 3-3 3 3m-6 12 3 3 3-3"/></svg>
+    </button>
+    <div className="screen-curtain-controls" style={{top:space.top+8,left:space.left+space.width/2}}>
+      <button className="kn-focus" aria-label={`Cover from ${edge}. Change direction`} onClick={()=>{drag.current=null;setEdge((['top','right','bottom','left'] as const)[(['top','right','bottom','left'].indexOf(edge)+1)%4]);}}><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" style={{transform:`rotate(${['top','right','bottom','left'].indexOf(edge)*90}deg)`}}><path d="M4 4h16M12 7v13m-5-5 5 5 5-5"/></svg><span>{edge}</span></button>
       <label>Covered {coverage}%<input aria-label="Curtain coverage" type="range" min={0} max={100} value={coverage} onChange={event=>setCoverage(Number(event.target.value))}/></label>
-      <button className="kn-focus" onClick={()=>setCoverage(0)}>Reveal all</button><button className="kn-focus" onClick={onClose} aria-label="Close curtain">Close</button>
+      <button className="kn-focus" onClick={()=>setCoverage(value=>value===0?100:0)}>{coverage===0?'Cover all':'Reveal all'}</button>
+      <button className="kn-focus" onClick={onClose} aria-label="Close curtain"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
     </div>
   </section>;
 }

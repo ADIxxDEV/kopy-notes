@@ -10,6 +10,8 @@ Version **0.2.0-dev.6 — development preview**. Contributions and bug reports a
 
 PDF imports retain your selected page background and warm nearby pages. Interrupted drawings are offered for recovery before changing saved pages.
 
+The optional `org-note3` appearance recreates the silver classroom controls. [Local artwork setup and ENB compatibility](docs/NOTE3_COMPATIBILITY.md) explain private theme packs, editable-ink import, preview fallbacks and experimental Note3 picture-page export.
+
 Portable [theme packs](docs/THEME_PACKS.md) include colors, custom icons and background images. Small screens use a horizontal pen family and a pinnable More menu. The Windows app shows a startup screen while loading the classroom.
 
 <a href="https://www.producthunt.com/products/kopy-notes?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-kopy-notes" target="_blank" rel="noopener noreferrer"><img alt="Kopy Notes on Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1269162&amp;theme=dark&amp;t=1791361195813"></a>
@@ -54,6 +56,8 @@ Open the displayed local URL, choose teaching defaults, and create a lesson. No 
 - Edge-docked controls with optional floating mode, individually movable buttons/panels, named layouts and import/export: [control layouts](docs/CONTROL_LAYOUTS.md).
 - Named board presets, custom default background/ink colors, patterns and reusable saved combinations.
 - Searchable offline periodic table with all 118 elements, family colors, details and element-card insertion.
+- [Science labs](docs/SCIENCE_TOOLS.md): series/parallel circuits, thin-lens ray diagrams, exact chemical equation balancing and dilution experiments, with board insertion and no external service.
+- Four-direction screen curtain with touch dragging, keyboard adjustment and complete reveal.
 - Scientific calculator with DEG/RAD, graph presets and configurable ranges, timers, subject diagrams, ideal buoyancy/displacement demonstration, camera snapshots, spotlight and magnifier.
 - Canvas recorder with optional microphone and pause/resume. Floating tools/other apps are excluded; encoded-video reliability still needs real-device verification.
 - Uncompressed editable .kopy documents, original attachments, legacy imports, autosave, three recovery generations and several synced backup folders.
@@ -102,3 +106,9 @@ Thanks to everyone improving Kopy Notes. Public contributor profiles update auto
 
 [ADIxxDEV](https://github.com/ADIxxDEV)
 <!-- CONTRIBUTORS:END -->
+
+### Public website and teaching app
+
+The public root serves a static, search-readable landing page; open `/#/app` to teach. Installed apps launch directly into teaching. The landing page includes social metadata, a sitemap, Product Hunt and Reddit links, and a clearly marked roadmap. Update the canonical URL, social URLs, robots.txt and sitemap.xml together if hosting changes.
+
+The org-note3 theme and its artwork are included in web and native builds and cached for offline use. See THIRD_PARTY.md for the separate artwork terms.

@@ -1,7 +1,7 @@
 import {selectOption} from '../helpers/custom-select';
 import {test,expect} from '@playwright/test';
 test('portrait/right import placement, lock, rotation and fit controls persist',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:'Start teaching',exact:true}).click();await page.waitForURL('**/#/library');await page.goto('/#/library?new=1');await page.getByRole('button',{name:'Create & open',exact:true}).click();
+  await page.goto('/#/app');await page.getByRole('button',{name:'Start teaching',exact:true}).click();await page.waitForURL('**/#/library');await page.goto('/#/library?new=1');await page.getByRole('button',{name:'Create & open',exact:true}).click();
   await page.getByRole('button',{name:'Import file',exact:true}).click();
   const dialog=page.getByRole('dialog');await selectOption(dialog.getByLabel('Import frame'),'16:9');await selectOption(dialog.getByLabel('Import size'),'fit');await selectOption(dialog.getByLabel('Import page orientation'),'portrait');await selectOption(dialog.getByLabel('Import alignment'),'center-right');await dialog.getByLabel('Import right margin').fill('10');
   const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=640;c.height=320;const ctx=c.getContext('2d')!;ctx.fillStyle='#145080';ctx.fillRect(0,0,640,320);return c.toDataURL('image/png').split(',')[1];});

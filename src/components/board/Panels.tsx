@@ -99,7 +99,7 @@ export function SettingsPanel({
     <Modal title="Settings" icon={<Icon name="settings" className="h-5 w-5 text-brand-light" />} onClose={onClose}>
       <div className="space-y-5">
         {saveError&&<p role="alert" className="text-sm text-red-700">{saveError}</p>}
-        <TeachingPreferences value={preferences} onChange={patch=>setPreferences(value=>({...value,...patch}))}/>
+        <TeachingPreferences value={preferences} onChange={patch=>setPreferences(value=>({...value,...patch}))} onThemeChange={patch=>{setPreferences(value=>({...value,...patch}));if(patch.accent)setAccent(patch.accent);setSaveError("");void updateProfile(patch).catch(error=>setSaveError(error instanceof Error?error.message:"Could not apply theme."));}}/>
         <BackupConnections/><ImportSources/><CommunityLinks/>
         <Field label="App / profile name" hint="Shown everywhere in the app.">
           <input

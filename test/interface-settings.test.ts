@@ -22,3 +22,8 @@ test('side settings shrink into the available edge space instead of covering the
  const owner={x:252,y:200,width:336,height:44};const p=toolPopupPosition(owner,{width:320,height:280},{x:150,y:440,width:300,height:60},{width:600,height:500},0,true);
  assert.ok(p.x+Math.min(320,p.maxWidth)<=owner.x);assert.ok(p.x>=8);assert.ok(p.maxWidth>=200);
 });
+
+test('only menu inversion defaults on and can be explicitly disabled',()=>{
+ assert.equal(interfaceSettings({flipToolsOnSwap:false}).flipMenuOnSwap,true);
+ assert.equal(interfaceSettings({flipMenuOnSwap:false}).flipToolsOnSwap,false);
+});

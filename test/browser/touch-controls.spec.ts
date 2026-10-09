@@ -3,11 +3,11 @@ import {test,expect,type Page} from '@playwright/test';
 test.use({hasTouch:true,viewport:{width:1024,height:768}});
 
 async function openBoard(page:Page){
-  await page.goto('/');
+  await page.goto('/#/app');
   await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
-    await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1})});
+    await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({ui:{toolPopupOnFirstClick:true},onboarded:1})});
     const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Finger controls'})})).json();
     for(let index=0;index<2;index++)await localRequest(`/api/notebooks/${notebook.id}/pages`,{method:'POST',body:'{}'});
     location.hash=`/board/${notebook.id}`;

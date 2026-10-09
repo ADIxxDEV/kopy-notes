@@ -21,7 +21,8 @@ export function TreasureBox({
   const [search,setSearch]=useState('');
   const subjects:{id:SubjectTool;label:string;group:string}[]=[{id:'graph',label:'Graphs',group:'Mathematics'},{id:'handwriting',label:'Handwriting',group:'Mathematics'},{id:'solids',label:'3D shapes',group:'Mathematics'},{id:'chemistry',label:'Chemistry',group:'Science'},{id:'periodic',label:'Periodic table',group:'Science'},{id:'physics',label:'Physics',group:'Science'},{id:'camera',label:'Camera',group:'Classroom'},{id:'curtain',label:'Curtain',group:'Classroom'},{id:'classroom',label:'Picker & dice',group:'Classroom'}];
   const entries=[...FLOATING_TOOLS.map(t=>({id:t.id,label:t.label,group:t.group==='Math'?'Instruments':t.group==='Time'?'Time':'Classroom',active:openTools.has(t.id),run:()=>onToggle(t.id)})),...subjects.map(t=>({...t,active:false,run:()=>onSubjectTool(t.id)}))];
-  const filtered=entries.filter(t=>t.label.toLowerCase().includes(search.trim().toLowerCase()));
+  const keywords:Record<string,string>={physics:'circuits electricity resistor switch voltage current lens optics buoyancy water',chemistry:'equation balance reaction dilution concentration solution',periodic:'elements atoms chemistry',curtain:'cover reveal screen shade'};
+  const filtered=entries.filter(t=>(t.label+' '+(keywords[t.id]??'')).toLowerCase().includes(search.trim().toLowerCase()));
   const groups=['Instruments','Mathematics','Science','Time','Classroom'];
 
   return (

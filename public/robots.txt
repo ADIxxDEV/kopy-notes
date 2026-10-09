@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kopy-notes.netlify.app/sitemap.xml

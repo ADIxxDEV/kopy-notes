@@ -1,0 +1,24 @@
+﻿import {test,expect} from '@playwright/test';
+test('Start teaching saves the selected theme and toolbar order survives side swapping',async({page})=>{
+ await page.route('**/__local-note3-theme',route=>route.fulfill({status:204,body:''}));
+ await page.goto('/#/app');await page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);const {BUILTIN_THEMES}=await import('/src/lib/theme-pack.ts' as string);await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1,theme:BUILTIN_THEMES.find((t:{id:string})=>t.id==='kopy-night')})});});
+ await page.goto('/#/onboarding');await page.reload();
+ await page.getByText('Theme packs',{exact:true}).click();await page.getByRole('button',{name:'Apply theme org-note3',exact:true}).click();await expect(page.getByRole('button',{name:'Apply theme org-note3',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('textbox',{name:'Teacher name',exact:true}).fill('Theme regression');
+ await page.getByRole('button',{name:'Start teaching',exact:true}).click();await page.waitForURL('**/#/library');
+ const saved=await page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);return(await(await localRequest('/api/profile')).json()).profile;});expect(saved.theme.id).toBe('org-note3');expect(saved.teacherName).toBe('Theme regression');
+ await page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:'{"title":"Ordered controls"}'})).json();location.hash=`/board/${notebook.id}`;});
+ await page.getByRole('button',{name:'Pen',exact:true}).waitFor();await page.setViewportSize({width:1920,height:1080});
+ const order=async(selector:string)=>page.locator(selector).evaluateAll(elements=>elements.filter(el=>el.getClientRects().length).sort((a,b)=>a.getBoundingClientRect().left-b.getBoundingClientRect().left).map(el=>el.getAttribute('aria-label')));
+ expect(await order('.kn-dock button')).toEqual(['Swap menu side','Menu','Enter fullscreen','Treasure box','Import file','Save lesson']);
+ const teaching=['Select','Pen','Eraser','Shapes','Hand','Text','Undo','Redo','Tools','More tools'];
+ expect(await order('.kn-main-tools>button,.kn-main-tools>.kn-responsive-secondary>button')).toEqual(teaching);
+ expect(await order('.kn-page-navigation>button:not(.kn-page-side)')).toEqual(['Add page','Previous page','Open slides','Next page','Swap menu and slide controls']);
+ await expect(page.locator('.kn-main-tools button[aria-label="Select"] [data-note3-artwork="select"]')).toBeVisible();
+ await page.getByRole('button',{name:'Swap menu side',exact:true}).click();
+ expect(await order('.kn-dock button')).toEqual(['Save lesson','Import file','Treasure box','Enter fullscreen','Menu','Swap menu side']);
+ expect(await order('.kn-main-tools>button,.kn-main-tools>.kn-responsive-secondary>button')).toEqual(teaching);
+ expect(await order('.kn-page-navigation>button:not(.kn-page-side)')).toEqual(['Add page','Previous page','Open slides','Next page','Swap menu and slide controls']);
+ await page.getByRole('button',{name:'Enter fullscreen',exact:true}).click();await expect(page.getByRole('button',{name:'Exit fullscreen',exact:true})).toBeVisible();await page.getByRole('button',{name:'Exit fullscreen',exact:true}).click();
+ await page.reload();await page.getByRole('button',{name:'Pen',exact:true}).waitFor({timeout:30000});await expect(page.locator('html')).toHaveAttribute('data-theme-appearance','org-note3');expect(await order('.kn-dock button')).toEqual(['Save lesson','Import file','Treasure box','Enter fullscreen','Menu','Swap menu side']);
+});

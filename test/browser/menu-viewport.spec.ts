@@ -1,10 +1,10 @@
 import {test,expect,type Page,type Locator} from '@playwright/test';
 
 async function board(page:Page) {
-  await page.goto('/');
+  await page.goto('/#/app');
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
-    await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1})});
+    await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({ui:{toolPopupOnFirstClick:true},onboarded:1})});
     const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Menu checks'})})).json();
     location.hash=`/board/${notebook.id}`;
   });

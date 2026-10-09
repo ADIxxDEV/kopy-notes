@@ -1,0 +1,20 @@
+.science-experiments{display:grid;gap:14px;color:var(--color-ink);font-size:13px}
+.experiment-content{display:grid;gap:12px;min-width:0}
+.experiment-switches{display:flex;gap:4px;border:1px solid var(--color-line);padding:4px;border-radius:12px;background:var(--color-panel-2)}
+.experiment-switches button{flex:1;min-width:0;min-height:44px;border-radius:8px;font-weight:600}
+.experiment-switches button[aria-pressed=true],.experiment-primary{background:var(--color-brand);color:#fff}
+.experiment-primary{min-height:44px;border-radius:9px;padding:10px 14px;font-weight:600;justify-self:start}
+.experiment-primary:disabled{opacity:.6}
+.experiment-diagram{width:100%;height:auto;border:1px solid var(--color-line);border-radius:12px}
+.experiment-inputs{display:grid;gap:10px}
+.experiment-slider{display:grid;gap:3px}.experiment-slider>span{display:flex;justify-content:space-between;gap:8px}.experiment-slider strong{font-variant-numeric:tabular-nums;white-space:nowrap}
+.experiment-slider input{width:100%;height:32px;accent-color:var(--color-brand);touch-action:pan-y}
+.experiment-readings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.experiment-readings>div{border:1px solid var(--color-line);border-radius:9px;padding:10px;background:var(--color-panel-2)}
+.experiment-readings dt{font-size:11px;color:var(--color-muted)}.experiment-readings dd{font-size:16px;font-weight:650;margin-top:3px;font-variant-numeric:tabular-nums}
+.experiment-note{font-size:12px;line-height:1.5;color:var(--color-muted)}
+.experiment-field{display:grid;gap:6px}.experiment-field input{width:100%;min-width:0;min-height:48px;padding:10px;border:1px solid var(--color-line);border-radius:9px;background:var(--color-panel-2);color:var(--color-ink)}
+.experiment-presets{display:flex;flex-wrap:wrap;gap:6px}.experiment-presets button{min-height:44px;padding:8px 10px;border:1px solid var(--color-line);border-radius:9px}
+.experiment-equation{font-size:19px;font-weight:650;line-height:1.6;overflow-wrap:anywhere;padding:12px;background:var(--color-panel-2);border-radius:9px}
+.experiment-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.experiment-table caption{text-align:left;font-weight:600;padding-bottom:8px}.experiment-table th,.experiment-table td{text-align:left;padding:8px;border-bottom:1px solid var(--color-line)}
+.experiment-error{border-inline-start:3px solid #d76161;padding:8px;line-height:1.5}
+.experiment-library{margin-top:14px;border-top:1px solid var(--color-line)}.experiment-library summary{min-height:44px;padding:12px 0;font-size:13px;cursor:pointer}

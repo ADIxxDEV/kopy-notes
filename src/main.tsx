@@ -10,10 +10,12 @@ import Library from '@/app/library/page';
 import Board from '@/app/board/[id]/page';
 import '@/app/globals.css';
 import '@/app/reference-ui.css';
+import '@/app/org-note3.css';
 if (import.meta.env.PROD && /^https?:$/.test(location.protocol) && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => { void navigator.serviceWorker.register('./sw.js').catch(error => import.meta.env.DEV && console.warn('Offline cache could not initialize', error)); });
 }
 function App() {
+  useEffect(()=>{document.documentElement.classList.add("app-ready");},[]);
   const location = useLocation();
   useEffect(() => { void navigator.storage?.persist?.(); }, []);
   const page = location.startsWith('/board/') ? <Board key={location.split('?')[0]}/> : location.startsWith('/library') ? <Library/> : location === '/onboarding' ? <Onboarding/> : <Home/>;

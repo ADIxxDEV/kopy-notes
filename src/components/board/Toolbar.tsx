@@ -1,3 +1,5 @@
+import {interfaceSettings} from '@/lib/interface-settings';
+import {Note3Artwork} from './Note3Artwork';
 import {CustomSelect} from '@/components/CustomSelect';
 import {BrushSizePreview} from './BrushSizePreview';
 import {SlideToErase} from './SlideToErase';
@@ -68,6 +70,10 @@ export function Toolbar({
   canRedo: boolean;
   onOpenTreasure: () => void;eraserMode:EraserMode;onEraserMode:(mode:EraserMode)=>void;palmEraser:boolean;onPalmEraser:(enabled:boolean)=>void;onClearAnnotations:()=>void;
 }) {
+  const {profile}=useApp();
+  const {toolPopupOnFirstClick}=interfaceSettings(profile.ui);
+  const lastToolClick=useRef<string|null>(null);
+  const openSettings=(id:string,active:boolean,open:boolean)=>{const show=toolPopupOnFirstClick||(active&&lastToolClick.current===id);lastToolClick.current=id;return show?!(active&&open):false;};
   const brushSizes=useRef<Record<string,number>>((()=>{try{return JSON.parse(localStorage.getItem('kopy-brush-sizes')??'{}');}catch{return {};}})());
   const chooseBrush=(id:string,nextTool:ActiveTool)=>{
     const old=tool==='pen'?(pen.brush??'normal'):tool;
@@ -117,7 +123,7 @@ export function Toolbar({
           </div>
           <div className="kn-pen-family" aria-label="Pen type">{[
             {id:'normal',label:'Normal',tool:'pen'},{id:'pencil',label:'Pencil',tool:'pen'},{id:'paint',label:'Paint',tool:'pen'},{id:'chinese',label:'Chinese brush',tool:'pen'},{id:'crayon',label:'Crayon',tool:'pen'},{id:'highlighter',label:'Highlighter',tool:'highlighter'},{id:'laser',label:'Laser pointer',tool:'laser'},{id:'stamp',label:'Stamp pen',tool:'pen'},
-          ].map(item=><button key={item.id} type="button" aria-label={item.label.toLowerCase()==='crayon'?'crayon':item.label} aria-pressed={item.tool==='pen'?tool==='pen'&&(pen.brush??'normal')===item.id:tool===item.tool} onClick={()=>{chooseBrush(item.id,item.tool as ActiveTool);}}><ToolArtwork id={item.id} icon="pen" color={pen.color}/><span>{item.label}</span></button>)}</div>
+          ].map(item=><button key={item.id} type="button" aria-label={item.label.toLowerCase()==='crayon'?'crayon':item.label} aria-pressed={item.tool==='pen'?tool==='pen'&&(pen.brush??'normal')===item.id:tool===item.tool} onClick={()=>{chooseBrush(item.id,item.tool as ActiveTool);}}><ToolArtwork id={item.id} icon="pen" color={pen.color} palette/><span>{item.label}</span></button>)}</div>
           {tool==='pen'&&pen.brush==='stamp'&&<div className="kn-stamp-options">{(['smile','star','heart','sun'] as const).map(stamp=><button type="button" key={stamp} aria-label={`Stamp ${stamp}`} aria-pressed={(pen.stamp??'smile')===stamp} onClick={()=>setPen({...pen,stamp,size:Math.max(20,pen.size)})}><StampGlyph kind={stamp}/><span>{stamp}</span></button>)}</div>}
           <div className="mb-3 grid grid-cols-5 gap-1.5">
             {(tool === "highlighter" ? HIGHLIGHTER_COLORS : INK_COLORS).map((c) => (
@@ -190,11 +196,11 @@ export function Toolbar({
       )}
 
       <div data-toolbar-surface className="kn-main-tools pointer-events-auto flex max-w-[calc(100vw-24px)] flex-wrap items-center justify-center gap-1 rounded-2xl border border-line bg-panel/95 p-1.5 shadow-2xl backdrop-blur">
-        {MAIN_TOOLS.map((t) => (
+        {MAIN_TOOLS.filter(t=>t.id!=="pan"&&t.id!=="text").map((t) => (
           <ToolButton
             key={t.id}
             active={t.id==="pen"?isPen:tool === t.id}
-            onClick={() => { setMoreOpen(false);setShapeOpen(false);setOptionsOpen(t.id==="pen"?(isPen?!optionsOpen:true):tool === t.id ? !optionsOpen : t.id === "eraser");if(t.id!=="pen"||!isPen)setTool(t.id); }}
+            onClick={() => { setMoreOpen(false);setShapeOpen(false);setTouchOpen(false);setOptionsOpen((t.id==="pen"||t.id==="eraser")?openSettings(t.id,t.id==="pen"?isPen:tool===t.id,optionsOpen):false);if(t.id==="select")lastToolClick.current=t.id;if(t.id!=="pen"||!isPen)setTool(t.id); }}
             secondary={t.id==="select"||t.id==="text"} pinned={pinned.includes(t.label)} art={t.id==="pen"?(tool==="laser"?"laser":tool==="highlighter"?"highlighter":pen.brush??"normal"):undefined} color={pen.color}
             icon={t.icon}
             label={t.label}
@@ -205,7 +211,7 @@ export function Toolbar({
         <div className={`relative kn-responsive-secondary ${pinned.includes("Shapes")?"kn-pinned":""}`}>
           <ToolButton
             active={isShape}
-            onClick={() => {if(!isShape)setTool('auto-shape');setShapeOpen((o) => !o);setOptionsOpen(false);}}
+            onClick={() => {setShapeOpen(openSettings('shapes',isShape,shapeOpen));if(!isShape)setTool('auto-shape');setOptionsOpen(false);setTouchOpen(false);}}
             icon="shapes"
             label="Shapes"
           />
@@ -226,6 +232,9 @@ export function Toolbar({
             </section></ToolPopover>
           )}
         </div>
+
+        <ToolButton active={tool==='pan'} onClick={()=>{lastToolClick.current='pan';setTool('pan');setOptionsOpen(false);setShapeOpen(false);setMoreOpen(false);}} icon="hand" label="Hand"/>
+        <ToolButton active={tool==='text'} secondary pinned={pinned.includes('Text')} onClick={()=>{lastToolClick.current='text';setOptionsOpen(false);setTool('text');setShapeOpen(false);setMoreOpen(false);}} icon="text" label="Text"/>
 
         <div className="mx-1 h-8 w-px bg-line" />
 
@@ -274,5 +283,5 @@ function ToolButton({
   );
 }
 
-function ToolArtwork({id,icon,color}:{id:string;icon:IconName;color?:string}){const {profile}=useApp();const source=profile.theme?.icons[id==='normal'?'pen':id as ThemeIconId];if(source)return <img alt="" className="kn-theme-tool-image" src={source}/>;if(['normal','pen','pencil','paint','chinese','crayon','highlighter','laser','stamp'].includes(id))return <PenIllustration kind={id==='chinese'?'paint':id} color={color}/>;return <Icon name={icon} className="h-5 w-5"/>;}
+function ToolArtwork({id,icon,color,palette=false}:{id:string;icon:IconName;color?:string;palette?:boolean}){const {profile}=useApp();const key=id==='normal'?'pen':id;const source=(palette?profile.theme?.icons[`${key}Preview` as ThemeIconId]:undefined)??profile.theme?.icons[key as ThemeIconId];if(source)return <img alt="" className="kn-theme-tool-image" src={source}/>;if(profile.theme?.appearance==='org-note3')return <Note3Artwork name={key}/>;if(['normal','pen','pencil','paint','chinese','crayon','highlighter','laser','stamp'].includes(id))return <PenIllustration kind={id==='chinese'?'paint':id} color={color}/>;return <Icon name={icon} className="h-5 w-5"/>;}
 function StampGlyph({kind}:{kind:string}){return <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6">{kind==='star'?<path d="m12 2 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>:kind==='heart'?<path d="M12 21C-5 10 5-1 12 7c7-8 17 3 0 14z"/>:<><circle cx="12" cy="12" r="8"/>{kind==='smile'?<><path d="M8 10h1m6 0h1M8 14q4 5 8 0"/></>:<path d="M12 0v3m0 18v3M0 12h3m18 0h3M3 3l2 2m14 14 2 2M3 21l2-2M19 5l2-2"/>}</>}</svg>;}

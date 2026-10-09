@@ -1,6 +1,6 @@
 import {test,expect,type Page} from '@playwright/test';
 async function board(page:Page){
- await page.goto('/');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
+ await page.goto('/#/app');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
  const id=await page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1})});const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Smartboard UI',subject:'Mathematics'})})).json();return notebook.id;});
  await page.goto(`/#/board/${id}`);await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();return id;
 }

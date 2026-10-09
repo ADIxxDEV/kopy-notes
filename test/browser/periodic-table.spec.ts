@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test('periodic table searches, selects and inserts a persistent element while offline',async({page,context})=>{
-  await page.goto('/');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
+  await page.goto('/#/app');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
   await page.evaluate(async()=>{
     const db=await new Promise<IDBDatabase>(resolve=>{const r=indexedDB.open('kopy-notes',1);r.onsuccess=()=>resolve(r.result);});const tx=db.transaction(['profile','notebooks','pages'],'readwrite');const now=new Date();
     tx.objectStore('profile').put({id:1,appName:'Kopy Notes',teacherName:'Teacher',institution:'',accent:'#526677',boardBg:'#ffffff',boardPattern:'none',defaultPenColor:'#10151b',onboarded:1,createdAt:now,updatedAt:now});

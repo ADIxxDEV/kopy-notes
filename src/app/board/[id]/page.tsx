@@ -10,7 +10,7 @@ import {ThemeSettings} from '@/components/ThemeSettings';
 import {controlContrast,controlPalette,BUILTIN_THEMES} from '@/lib/theme-pack';
 import {BoardPresets} from '@/components/BoardPresets';
 import {ControlLayoutEditor} from '@/components/board/ControlLayoutEditor';
-import {BoardFullscreen} from '@/components/board/BoardFullscreen';
+
 "use client";
 import { LocalAssistant } from "@/components/board/LocalAssistant";
 import { ResizeHandles } from "@/components/board/ResizeHandles";
@@ -348,6 +348,16 @@ export default function BoardPage() {
     catch { push("Could not export the lesson.", "error"); }finally{setOperation(null);void setWorkActivity(id,undefined).catch(()=>{});}
   }, [id, notebook, flushSave, push]);
 
+  const exportENB = useCallback(async () => {
+    await flushSave();
+    const response=await localRequest(`/api/notebooks/${id}`);
+    if(!response.ok)throw new Error('Could not read the lesson.');
+    const {pages}=await response.json() as {pages:Page[]};
+    const {exportEnb}=await import('@/lib/enb');
+    const blob=await exportEnb(id,pages);
+    download(URL.createObjectURL(blob),`${notebook?.title??'lesson'}.enb`);
+  },[flushSave,id,notebook]);
+
   const printPage = useCallback(() => {
     const canvas = wb.renderToCanvas();
     if (!canvas) return;
@@ -660,7 +670,7 @@ export default function BoardPage() {
           />
         )}
 
-        <BoardTooltips/><ControlLayoutEditor/><BoardFullscreen/><TeachingControls onCustomize={()=>window.dispatchEvent(new Event('kopy-customize-controls'))} layout={toolbarLayout} onLayout={setToolbarLayout} recorder={showRecorder} backups={showBackups} comments={commentsOpen} recording={recording} onRecorder={setShowRecorder} onBackups={setShowBackups} onComments={setCommentsOpen}/>
+        <BoardTooltips/><ControlLayoutEditor/><TeachingControls onCustomize={()=>window.dispatchEvent(new Event('kopy-customize-controls'))} layout={toolbarLayout} onLayout={setToolbarLayout} recorder={showRecorder} backups={showBackups} comments={commentsOpen} recording={recording} onRecorder={setShowRecorder} onBackups={setShowBackups} onComments={setCommentsOpen}/>
         <div hidden={!showBackups}><RecoveryPanel lessonId={id} flush={flushSave}/></div>
         {commentsOpen&&<LiveComments onClose={()=>setCommentsOpen(false)}/>}
         {profile.ai?.enabled&&<button className="local-assistant-launch" onClick={()=>setAssistantOpen(value=>!value)} aria-label="Local assistant">AI assistant</button>}
@@ -717,16 +727,14 @@ export default function BoardPage() {
                 active={panel}
                 onSwap={()=>setSlidesSide(side=>side==='left'?'right':'left')}
                 onOpen={(d) => {setThumbsOpen(false);if(d==='import'||d==='export'){setPanel('file');setModal(d);}else {setModal(null);setPanel((p) => (p === d ? null : d));}}}
-                presenting={presenting}
-                onTogglePresent={() => setPresenting(true)}
-                onExit={() => { if (recording) { push("Stop recording before leaving the board.", "error"); return; } void flushSave().then(() => router.push("/library")).catch(()=>push("Save failed. Please keep this lesson open.", "error")); }}
+                onSave={()=>onFileAction('save')}
               />
               {panel === "file" && (
                 <FileMenu appName={profile.appName} onAction={onFileAction} onClose={() => {setPanel(null);setModal(null);}} />
               )}
             </div>
             {panel === "treasure" && (
-              <TreasureBox onSubjectTool={setSubjectTool} openTools={openTools} onToggle={toggleTool} onClose={() => setPanel(null)} />
+              <TreasureBox onSubjectTool={tool=>{setSubjectTool(tool);if(tool==='curtain')setPanel(null);}} openTools={openTools} onToggle={toggleTool} onClose={() => setPanel(null)} />
             )}
           </>
         )}
@@ -760,7 +768,6 @@ export default function BoardPage() {
             pageCount={pages.length}
             onAdd={addPage}
             onGo={i=>{void goTo(i).catch(()=>push('Could not save this slide. Please try again.','error'));}}
-            onDelete={()=>void deletePage()}
             onSwap={()=>setSlidesSide(side=>side==='left'?'right':'left')}
             onToggleThumbs={() => {setPanel(null);setThumbsOpen((o) => !o);}}
             thumbsOpen={thumbsOpen}
@@ -819,6 +826,7 @@ export default function BoardPage() {
           onPNG={exportPNG}
           onPDF={exportPDF}
           onJSON={exportJSON}
+          onENB={exportENB}
           onPrint={printPage}
         />
       )}

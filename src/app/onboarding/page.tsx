@@ -1,7 +1,7 @@
 import {CommunityLinks} from '@/components/CommunityLinks';
 import {BackupConnections} from '@/components/BackupConnections';
 "use client";
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {useRouter} from '@/lib/navigation';
 import {useApp} from '@/lib/app-context';
 import type {AppProfile} from '@/db/schema';
@@ -11,9 +11,10 @@ import {Icon} from '@/components/Icon';
 
 const accents=[{label:'Forest',value:'#183c36'},{label:'Slate',value:'#526677'},{label:'Blue',value:'#2563eb'},{label:'Violet',value:'#7c3aed'},{label:'Crimson',value:'#e11d48'},{label:'Brass',value:'#966b24'}];
 export default function OnboardingPage(){
-  const router=useRouter();const {profile,updateProfile}=useApp();const [draft,setDraft]=useState<Partial<AppProfile>>(profile),[saving,setSaving]=useState(false),[error,setError]=useState('');
-  useEffect(()=>setDraft(profile),[profile]);
-  const change=(patch:Partial<AppProfile>)=>setDraft(v=>({...v,...patch}));
+  const router=useRouter();const {profile,loading,updateProfile}=useApp();const [draft,setDraft]=useState<Partial<AppProfile>>(profile),[saving,setSaving]=useState(false),[error,setError]=useState('');
+  const edited=useRef(false);
+  useEffect(()=>{if(!loading&&!edited.current)setDraft(profile);},[profile,loading]);
+  const change=(patch:Partial<AppProfile>)=>{edited.current=true;setDraft(v=>({...v,...patch}));};
   async function chooseIcon(file:File|undefined){
     if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>512*1024){setError('Choose a PNG, JPEG or WebP icon smaller than 512 KB.');return;}
     const reader=new FileReader();reader.onload=()=>{change({iconData:String(reader.result)});setError('');};reader.onerror=()=>setError('The icon could not be read.');reader.readAsDataURL(file);
@@ -21,7 +22,7 @@ export default function OnboardingPage(){
   async function finish(){
     if(draft.ai?.enabled){try{const url=new URL(draft.ai.endpoint);if(!['http:','https:'].includes(url.protocol)||url.username||url.password||!draft.ai.model.trim())throw new Error();}catch{setError('Set a valid local AI server URL and an installed model, or turn the assistant off.');return;}}
     setSaving(true);setError('');
-    try{await updateProfile({appName:draft.appName?.trim()||'Kopy Notes',teacherName:draft.teacherName?.trim()||'',institution:draft.institution?.trim()||'',accent:draft.accent||'#183c36',boardBg:draft.boardBg||'#83d131',boardPattern:draft.boardPattern||'none',defaultPenColor:draft.defaultPenColor||'#10151b',iconData:draft.iconData||'',splashText:draft.splashText||'',watermark:draft.watermark,calibrationPxPerMm:draft.calibrationPxPerMm,ai:draft.ai,boardPresets:draft.boardPresets,onboarded:1});router.replace('/library');}catch{setError('Settings could not be saved. Try again.');setSaving(false);}
+    try{await updateProfile({...draft,appName:draft.appName?.trim()||'Kopy Notes',teacherName:draft.teacherName?.trim()||'',institution:draft.institution?.trim()||'',accent:draft.accent||'#183c36',boardBg:draft.boardBg||'#83d131',boardPattern:draft.boardPattern||'none',defaultPenColor:draft.defaultPenColor||'#10151b',iconData:draft.iconData||'',splashText:draft.splashText||'',watermark:draft.watermark,calibrationPxPerMm:draft.calibrationPxPerMm,ai:draft.ai,boardPresets:draft.boardPresets,onboarded:1});router.replace('/library');}catch{setError('Settings could not be saved. Try again.');setSaving(false);}
   }
   const dark=['#111214','#000000','#1e293b'].includes(draft.boardBg??'');
   const pattern=draft.boardPattern==='grid'?'linear-gradient(#52667730 1px,transparent 1px),linear-gradient(90deg,#52667730 1px,transparent 1px)':draft.boardPattern==='dots'?'radial-gradient(#52667770 1px,transparent 1px)':draft.boardPattern==='lines'?'linear-gradient(#52667730 1px,transparent 1px)':undefined;
