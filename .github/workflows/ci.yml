@@ -29,13 +29,13 @@ jobs:
       - run: node scripts/check-privacy.mjs
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: web-browser-failure
           path: test-results
           retention-days: 7
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kopy-notes-web
           path: dist
@@ -53,7 +53,7 @@ jobs:
       - run: npm ci
       - run: npm run desktop:build
       - run: npx playwright test --config=playwright.desktop.config.ts
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kopy-notes-windows-unsigned-test
           path: release/*.exe
@@ -80,7 +80,7 @@ jobs:
       - run: node scripts/apply-native-branding.mjs
       - run: node scripts/android-permissions.mjs
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kopy-notes-android-debug-test
           path: android/app/build/outputs/apk/debug/*.apk
