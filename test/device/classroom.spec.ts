@@ -9,6 +9,7 @@ async function board(page:Page){
     const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Device checks'})})).json();
     location.hash=`/board/${notebook.id}`;
   });
+  await page.reload();
   await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();
 }
 async function stored(page:Page){return page.evaluate(async()=>{

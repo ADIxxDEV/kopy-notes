@@ -112,3 +112,9 @@ Thanks to everyone improving Kopy Notes. Public contributor profiles update auto
 The public root serves a static, search-readable landing page; open `/#/app` to teach. Installed apps launch directly into teaching. The landing page includes social metadata, a sitemap, Product Hunt and Reddit links, and a clearly marked roadmap. Update the canonical URL, social URLs, robots.txt and sitemap.xml together if hosting changes.
 
 The org-note3 theme and its artwork are included in web and native builds and cached for offline use. See THIRD_PARTY.md for the separate artwork terms.
+
+### Support development
+
+[Buy adixdev a coffee](https://www.buymeacoffee.com/adixdev) to support continued development.
+
+<a href="https://www.buymeacoffee.com/adixdev"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="200"></a>

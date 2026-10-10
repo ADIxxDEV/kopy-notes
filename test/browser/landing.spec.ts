@@ -3,6 +3,7 @@ test('landing is readable, responsive and opens the teaching app',async({page})=
  await page.goto('/');
  await expect(page).toHaveTitle(/Note3.*Note5/);
  await expect(page.locator('#landing h1')).toContainText('Your classroom.');
+ await expect(page.getByRole('link',{name:'Buy adixdev a coffee',exact:true})).toHaveAttribute('href','https://www.buymeacoffee.com/adixdev');
  expect(await page.locator('script[type="application/ld+json"]').textContent()).toContain('SoftwareApplication');
  for(const width of [1440,768,390]){
   await page.setViewportSize({width,height:900});

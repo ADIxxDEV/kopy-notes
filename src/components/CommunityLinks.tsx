@@ -11,5 +11,12 @@ export function CommunityLinks() {
         <span>r/kopynotes</span><span aria-hidden="true" className="ml-auto text-muted">↗</span>
       </a>
     </div>
+    <section className="mt-4 border-t border-line pt-4" aria-label="Support Kopy Notes">
+      <h3 className="mb-2 text-sm font-semibold">Support Kopy Notes</h3>
+      <p className="mb-3 text-xs text-muted">Enjoy teaching with Kopy? You can support adixdev with a coffee.</p>
+      <a href="https://www.buymeacoffee.com/adixdev" target="_blank" rel="noopener noreferrer" aria-label="Buy adixdev a coffee" className="kn-focus inline-flex min-h-11 items-center rounded-lg border border-line bg-base p-2">
+        <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" loading="lazy" width="180" height="50" style={{objectFit:'contain'}}/>
+      </a>
+    </section>
   </nav>;
 }

@@ -18,6 +18,8 @@ jobs:
       development: ${{ steps.metadata.outputs.development }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -30,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -51,6 +55,8 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -74,6 +80,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -129,6 +137,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -143,7 +153,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Kopy Notes ${{ github.ref_name }}
           draft: ${{ needs.prepare.outputs.development != 'true' }}
-          prerelease: true
+          prerelease: ${{ needs.prepare.outputs.development == 'true' }}
           make_latest: 'false'
           generate_release_notes: true
           fail_on_unmatched_files: true

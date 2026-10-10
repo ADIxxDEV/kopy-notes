@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test('periodic table searches, selects and inserts a persistent element while offline',async({page,context})=>{
-  await page.goto('/#/app');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
+  await page.goto('/#/app');await page.getByRole('button',{name:'Start teaching',exact:true}).waitFor();
   await page.evaluate(async()=>{
     const db=await new Promise<IDBDatabase>(resolve=>{const r=indexedDB.open('kopy-notes',1);r.onsuccess=()=>resolve(r.result);});const tx=db.transaction(['profile','notebooks','pages'],'readwrite');const now=new Date();
     tx.objectStore('profile').put({id:1,appName:'Kopy Notes',teacherName:'Teacher',institution:'',accent:'#526677',boardBg:'#ffffff',boardPattern:'none',defaultPenColor:'#10151b',onboarded:1,createdAt:now,updatedAt:now});
@@ -9,7 +9,7 @@ test('periodic table searches, selects and inserts a persistent element while of
     tx.objectStore('pages').put({id:'periodic-page',notebookId:'periodic-test',position:0,background:'#ffffff',pattern:'none',objects:[],media:[],createdAt:now,updatedAt:now});
     await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
   });
-  await page.goto('/#/board/periodic-test');await page.getByRole('button',{name:'Treasure box',exact:true}).click();await page.getByRole('button',{name:'Periodic table',exact:true}).click();
+  await page.goto('/#/board/periodic-test');await page.reload();await page.getByRole('button',{name:'Treasure box',exact:true}).click();await page.getByRole('button',{name:'Periodic table',exact:true}).click();
   const tool=page.getByRole('region',{name:'Interactive periodic table'});await expect(tool.locator('.periodic-cell')).toHaveCount(118);
   await context.setOffline(true);
   await page.getByLabel('Search elements').fill('118');await page.getByRole('button',{name:'118 · Og · Oganesson',exact:true}).click();

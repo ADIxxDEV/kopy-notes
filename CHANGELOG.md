@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.2.0-dev.7 (2026-10-10)
+
+- Prepared release downloads with platform build gates and SHA-256 checksums; configured Git LFS for future large source assets. All existing runtime assets remain ordinary Git files.
+
+- Added a Buy Me a Coffee support tab, embedded button and GitHub sponsor link for adixdev.
+- Stabilized browser setup by waiting for database initialization and reloading seeded preferences before interactions.
+
+
 - PDF textbooks support up to 1500 pages with bounded page rendering and responsive metadata processing. Invalid and protected PDFs show a specific reason instead of a generic import failure.
 
 

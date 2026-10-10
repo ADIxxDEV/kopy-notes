@@ -141,7 +141,7 @@ function LibraryInner() {
       {creating && (
         <Modal title="New lesson" icon={<Icon name="plus" className="h-5 w-5 text-brand-light" />} onClose={() => setCreating(false)}>
                       <div className="space-y-4">
-              <label className="block text-sm">Start from PDF (optional)<input aria-label="Start lesson from PDF" type="file" accept=".pdf,application/pdf" disabled={busy} onChange={e=>{const file=e.target.files?.[0]??null;setPdfFile(file);if(file&&!title)setTitle(file.name.replace(/\.pdf$/i,''));}} className="mt-2 block w-full"/><span className="mt-1 block text-xs text-muted">One PDF page per board page, ready to annotate. Up to 25 MB / 300 pages.</span></label>
+              <label className="block text-sm">Start from PDF (optional)<input aria-label="Start lesson from PDF" type="file" accept=".pdf,application/pdf" disabled={busy} onChange={e=>{const file=e.target.files?.[0]??null;setPdfFile(file);if(file&&!title)setTitle(file.name.replace(/\.pdf$/i,''));}} className="mt-2 block w-full"/><span className="mt-1 block text-xs text-muted">One PDF page per board page, ready to annotate. Up to 25 MB / 1500 pages.</span></label>
             <div>
               <label className="mb-1.5 block text-sm font-medium">Lesson title</label>
               <input
