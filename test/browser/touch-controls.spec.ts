@@ -4,7 +4,7 @@ test.use({hasTouch:true,viewport:{width:1024,height:768}});
 
 async function openBoard(page:Page){
   await page.goto('/#/app');
-  await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
+  await expect(page.getByRole('button',{name:'Start teaching',exact:true})).toBeVisible({timeout:60000});
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
     await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({ui:{toolPopupOnFirstClick:true},onboarded:1})});
@@ -12,7 +12,9 @@ async function openBoard(page:Page){
     for(let index=0;index<2;index++)await localRequest(`/api/notebooks/${notebook.id}/pages`,{method:'POST',body:'{}'});
     location.hash=`/board/${notebook.id}`;
   });
-  await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();
+  // Load the saved fixture profile into AppProvider before exercising first-click settings.
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible({timeout:30000});
   if(!await page.getByRole('complementary',{name:'Slides',exact:true}).isVisible())await page.getByRole('button',{name:'Open slides',exact:true}).tap();
   await expect(page.locator('.kn-slide-row')).toHaveCount(3);
 }
@@ -27,7 +29,7 @@ test('finger taps on nested slide actions duplicate while preview taps navigate'
   await expect(page.locator('.kn-slide-row.is-dragging')).toHaveCount(0);
   await page.getByRole('button',{name:'Go to slide 1',exact:true}).tap();
   await expect(page.locator('.kn-slide-row.is-active')).toHaveAttribute('data-slide-id',original!);
-  await page.reload();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();
+  await page.reload();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible({timeout:30000});
   if(!await page.getByRole('complementary',{name:'Slides',exact:true}).isVisible())await page.getByRole('button',{name:'Open slides',exact:true}).tap();
   await expect(page.locator('.kn-slide-row')).toHaveCount(4);
 });

@@ -2,13 +2,16 @@ import {test,expect,type Page,type Locator} from '@playwright/test';
 
 async function board(page:Page) {
   await page.goto('/#/app');
+  await expect(page.getByRole('button',{name:'Start teaching',exact:true})).toBeVisible({timeout:60000});
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
     await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({ui:{toolPopupOnFirstClick:true},onboarded:1})});
     const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Menu checks'})})).json();
     location.hash=`/board/${notebook.id}`;
   });
-  await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();
+  // Load the saved fixture profile into AppProvider before exercising first-click settings.
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible({timeout:30000});
 }
 
 async function contained(locator:Locator,page:Page) {

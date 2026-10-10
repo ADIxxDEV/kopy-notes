@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.0-dev.8 (2026-10-10)
+
+- Fixed remaining menu and touch browser tests by loading saved fixture preferences before checking tool popups.
+- Includes the official blue Buy Me a Coffee embed configured for adixdev.
+- Replaces the unpublished dev.7 build, whose web test gate prevented release publication.
+
 ## 0.2.0-dev.7 (2026-10-10)
 
 - Prepared release downloads with platform build gates and SHA-256 checksums; configured Git LFS for future large source assets. All existing runtime assets remain ordinary Git files.
