@@ -24,7 +24,7 @@
     "@capacitor/core": "8.5.2",
     "dompurify": "3.4.16",
     "html2canvas": "1.4.1",
-    "idb": "8.0.3",
+    "idb": "8.0.4",
     "jspdf": "4.2.1",
     "jszip": "3.10.2",
     "mammoth": "1.13.0",
