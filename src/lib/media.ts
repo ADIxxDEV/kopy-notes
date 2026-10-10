@@ -199,7 +199,7 @@ export function classifyFile(file: File): { kind: MediaKind; message?: string } 
   const name = file.name.toLowerCase();
   const type = file.type;
   if(name.endsWith('.pptx')||name.endsWith('.odp'))return {kind:'presentation'};
-  if (type.startsWith("image/")) return { kind: "image" };
+  if (type.startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(name)) return { kind: "image" };
   if (type === "application/pdf" || name.endsWith(".pdf")) return { kind: "pdf" };
   if (
     type ===

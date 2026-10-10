@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 test('custom defaults and saved presets survive reopening; Hand pans without drawing',async({page})=>{
+ await page.route('**/__local-note3-theme',route=>route.fulfill({status:204,body:''}));
  await page.goto('/#/app');await page.getByRole('button',{name:'Apply preset Classic chalkboard',exact:true}).click();await page.getByLabel('Custom default board color').fill('#183c55');await page.getByLabel('Board preset name').fill('Physics');await page.getByRole('button',{name:'Save preset',exact:true}).click();await page.getByRole('button',{name:'Start teaching',exact:true}).click();
  await page.waitForURL('**/#/library');await page.goto('/#/onboarding');await expect(page.getByRole('button',{name:'Apply preset Physics',exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('button',{name:'Apply preset Physics',exact:true})).toBeVisible();
  await page.goto('/#/library?new=1');await page.getByRole('button',{name:'Create & open',exact:true}).click();
@@ -10,8 +11,8 @@ test('custom defaults and saved presets survive reopening; Hand pans without dra
 });
 test('import starts with file selection and explains invalid margins',async({page})=>{
  await page.goto('/#/app');await page.getByRole('button',{name:'Start teaching',exact:true}).click();await page.waitForURL('**/#/library');await page.goto('/#/library?new=1');await page.getByRole('button',{name:'Create & open',exact:true}).click();await page.getByRole('button',{name:'Import file',exact:true}).click();
- const dialog=page.getByRole('dialog');const pick=await dialog.getByRole('button',{name:'Choose import files',exact:true}).boundingBox(),frame=await dialog.getByLabel('Import frame').boundingBox();expect(pick!.y).toBeLessThan(frame!.y);
- await dialog.getByLabel('Import right margin').fill('1000');await expect(dialog.getByRole('alert')).toBeVisible();await expect(dialog.getByRole('button',{name:'Import',exact:true})).toBeDisabled();
+ const dialog=page.getByRole('dialog');const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=20;return c.toDataURL().split(',')[1];});await dialog.locator('input[type=file]').setInputFiles({name:'preview.png',mimeType:'image/png',buffer:Buffer.from(image,'base64')});const pick=await dialog.getByRole('button',{name:'Choose import files',exact:true}).boundingBox(),frame=await dialog.getByLabel('Import frame').boundingBox();expect(pick!.y).toBeLessThan(frame!.y);
+ await dialog.getByText('Margins and document locking',{exact:true}).click();await dialog.getByLabel('Import right margin').fill('1000');await expect(dialog.getByRole('alert')).toBeVisible();await expect(dialog.getByRole('button',{name:'Import',exact:true})).toBeDisabled();
  await dialog.getByLabel('Import right margin').fill('10');await expect(dialog.getByRole('alert')).toHaveCount(0);await expect(dialog.getByLabel('Import placement preview')).toBeVisible();
 });
 

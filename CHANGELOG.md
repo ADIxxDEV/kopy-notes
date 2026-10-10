@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- PDF textbooks support up to 1500 pages with bounded page rendering and responsive metadata processing. Invalid and protected PDFs show a specific reason instead of a generic import failure.
+
+
+- Improved import file feedback, grouped layout controls and per-file retry. Files save as original Blobs to reduce memory use; mixed imports save current-page media before switching to imported slides.
+
+
 - Paint saved lesson content when the canvas mounts, including after asynchronous loading, without requiring a click. Repaint when its visible size changes.
 
 

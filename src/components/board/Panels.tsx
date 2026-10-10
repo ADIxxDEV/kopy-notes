@@ -29,7 +29,7 @@ export function Modal({
   useEffect(() => { const element=dialog.current;if(element&&!element.open)element.showModal();return()=>{if(element?.open)element.close();}; }, []);
   if(attached)return <MenuScreen title={title} icon={icon} onClose={onClose} width={width}>{children}</MenuScreen>;
   return (
-    <dialog ref={dialog} onCancel={onClose} onClick={event=>{if(event.target===event.currentTarget)onClose();}} aria-label={title} className="kn-dialog kn-fade fixed inset-0 z-[60] m-0 max-h-none w-full max-w-none bg-transparent text-ink backdrop:bg-black/60" style={{height:'100dvh',padding:'max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))'}}>
+    <dialog ref={dialog} onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===event.currentTarget)onClose();}} aria-label={title} className="kn-dialog kn-fade fixed inset-0 z-[60] m-0 max-h-none w-full max-w-none bg-transparent text-ink backdrop:bg-black/60" style={{height:'100dvh',padding:'max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))'}}>
       <div
         className="kn-modal-card kn-pop flex w-full flex-col overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl"
         style={{ maxWidth: width,maxHeight:'calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)))' }}
