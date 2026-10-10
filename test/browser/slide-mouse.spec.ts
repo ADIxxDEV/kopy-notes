@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 test('visible slide handle mouse dragging works after keyboard navigation scrolls the list',async({page})=>{
-  await page.goto('/#/app');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
+  await page.goto('/#/app');await expect(page.getByRole('button',{name:'Start teaching',exact:true})).toBeVisible({timeout:60000});
   await page.evaluate(async()=>{const{localRequest}=await import('/src/lib/local-store.ts' as string);await localRequest('/api/profile',{method:'PUT',body:'{"onboarded":1}'});const{notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:'{"title":"Drag debug"}'})).json();for(let i=0;i<2;i++)await localRequest(`/api/notebooks/${notebook.id}/pages`,{method:'POST',body:'{}'});location.hash=`/board/${notebook.id}`;});
   await expect(page.locator('.kn-slide-row')).toHaveCount(3);await page.getByLabel('Reorder slide 3').focus();await page.getByLabel('Reorder slide 3').press('ArrowUp');
   await expect(page.locator('.kn-slides-list')).toHaveAttribute('aria-busy','false');

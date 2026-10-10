@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 
 test('native touch long press reorders slides and a normal tap still navigates',async({page,context})=>{
-  await page.goto('/#/app');await page.waitForFunction(()=>document.body.textContent?.includes('Kopy'));
+  await page.goto('/#/app');await expect(page.getByRole('button',{name:'Start teaching',exact:true})).toBeVisible({timeout:60000});
   await page.evaluate(async()=>{
     const {localRequest}=await import('/src/lib/local-store.ts' as string);
     await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1})});
