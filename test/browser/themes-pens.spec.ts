@@ -11,7 +11,7 @@ test('themes export portable artwork and new pages inherit their image and patte
 });
 test('small boards keep a horizontal pen family and let teachers pin secondary tools',async({page})=>{
   await page.setViewportSize({width:390,height:844});await board(page);
-  const toolbar=page.locator('.board-toolbar');expect(await toolbar.evaluate(el=>{const r=el.getBoundingClientRect();return r.width>r.height&&Math.abs(r.bottom-innerHeight)<2;})).toBe(true);
+  const toolbar=page.locator('.board-toolbar');expect(await toolbar.evaluate(el=>{const r=el.getBoundingClientRect();const navigation=document.querySelector('.page-toolbar')!.getBoundingClientRect();return r.width>r.height&&r.bottom<=navigation.top+2&&navigation.top-r.bottom<12&&Math.abs(navigation.bottom-innerHeight)<2;})).toBe(true);
   await page.getByRole('button',{name:'Pen',exact:true}).click();for(const name of ['Pencil','Paint','Chinese brush','crayon','Highlighter','Laser pointer','Stamp pen'])await expect(page.getByRole('button',{name,exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Pen',exact:true}).click();await page.getByRole('button',{name:'More tools',exact:true}).click();await page.getByLabel('Pin Text').check();await page.getByRole('button',{name:'Close more tools'}).click();await expect(page.locator('.kn-main-tools>button[aria-label="Text"]')).toBeVisible();
 });

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.0-dev.10 (2026-10-11)
+
+- Restore immediate dragging of objects with smart rectangle selection.
+- Close expanded selection styles when the viewport width changes, keeping the inspector accessible.
+- Update brush coverage, chemistry output and mobile dock checks for the current interface.
+- Supersedes dev.9, whose release was withheld after browser checks failed.
+
 ## 0.2.0-dev.9 (2026-10-11)
 
 - Added a contributor Code of Conduct and community reporting/enforcement guidance.

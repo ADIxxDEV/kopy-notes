@@ -36,7 +36,7 @@ test('chemistry balances atoms, rejects invalid equations and dilutes without lo
   await board(page);await page.getByRole('button',{name:'Chemistry',exact:true}).click();
   const lab=page.getByRole('region',{name:'Chemistry lab',exact:true});
   await lab.getByRole('button',{name:'Balance equation',exact:true}).click();
-  await expect(lab.locator('output')).toHaveText('4 Fe + 3 O2 → 2 Fe2O3');
+  await expect(lab.getByLabel('Balanced equation',{exact:true})).toHaveText('4 Fe + 3 O2 → 2 Fe2O3');
   await lab.getByRole('button',{name:'Insert equation',exact:true}).click();
   await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeEnabled();
   await lab.getByLabel('Chemical equation').fill('H2 -> H2O');

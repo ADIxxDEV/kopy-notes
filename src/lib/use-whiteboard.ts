@@ -619,7 +619,7 @@ export function useWhiteboard(options: {
 
       if (t === "select" && !palmErase) {
         const hit = hitTest(world);
-        if (hit && (selectedIdsRef.current.includes(hit.id)||e.shiftKey)) {
+        if (hit && (selectedIdsRef.current.includes(hit.id)||e.shiftKey||(selectionSettingsRef.current.smart&&selectionSettingsRef.current.mode==='rectangle'))) {
           if(e.shiftKey){const ids=selectedIdsRef.current.includes(hit.id)?selectedIdsRef.current.filter(id=>id!==hit.id):[...selectedIdsRef.current,hit.id];selectIds(ids);scheduleRender();return;}
           if(!selectedIdsRef.current.includes(hit.id))setSelection(hit);
           if(hit.kind==='media'&&mediaRef.current.find(m=>m.id===hit.id)?.locked){modeRef.current='idle';scheduleRender();return;}
