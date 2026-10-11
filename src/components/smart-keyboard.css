@@ -9,3 +9,6 @@ body:has(.kn-smart-keyboard.is-bottom) .kn-layout-settings{max-height:calc(100dv
 body:has(.kn-smart-keyboard.is-bottom) [data-layout-panel]:has(.live-comments){top:12px!important;max-height:calc(100dvh - var(--keyboard-height,310px) - 24px)!important}
 
 body:has(.kn-smart-keyboard.is-bottom) .kn-scroll.h-dvh{height:calc(100dvh - var(--keyboard-height,310px));scroll-padding-bottom:16px}
+
+/* Keep subject tools usable while their input opens the docked keyboard. */
+body:has(.kn-smart-keyboard.is-bottom) [data-layout-panel]{top:12px!important;max-height:calc(100dvh - var(--keyboard-height,310px) - 24px)!important;scroll-padding-block:12px}

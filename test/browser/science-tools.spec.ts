@@ -40,6 +40,8 @@ test('chemistry balances atoms, rejects invalid equations and dilutes without lo
   await lab.getByRole('button',{name:'Insert equation',exact:true}).click();
   await expect(page.getByRole('button',{name:'Undo',exact:true})).toBeEnabled();
   await lab.getByLabel('Chemical equation').fill('H2 -> H2O');
+  await expect(page.getByRole('region',{name:'On-screen keyboard',exact:true})).toBeVisible();
+  await expect.poll(async()=>{const panel=await lab.boundingBox(),keyboard=await page.getByRole('region',{name:'On-screen keyboard',exact:true}).boundingBox();return !!panel&&!!keyboard&&panel.y+panel.height<=keyboard.y;}).toBe(true);
   await lab.getByRole('button',{name:'Balance equation',exact:true}).click();
   await expect(lab.getByRole('alert')).toContainText('cannot be balanced');
   await expect(lab.getByRole('button',{name:'Insert equation',exact:true})).toHaveCount(0);

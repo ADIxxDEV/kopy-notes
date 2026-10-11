@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.0-dev.11 (2026-10-11)
+
+- Keep floating subject tools above the docked on-screen keyboard, with reachable scrolling controls.
+- Verify brush texture and coverage across raster backends without assuming identical shade quantization.
+- Supersedes dev.10, whose download release was withheld after web checks failed.
+
 ## 0.2.0-dev.10 (2026-10-11)
 
 - Restore immediate dragging of objects with smart rectangle selection.
