@@ -1,6 +1,6 @@
 {
   "name": "kopy-notes",
-  "version": "0.2.0-dev.8",
+  "version": "0.2.0-dev.9",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -63,7 +63,9 @@
       "desktop/**/*",
       "package.json",
       "LICENSE",
-      "THIRD_PARTY.md"
+      "THIRD_PARTY.md",
+      "CODE_OF_CONDUCT.md",
+      "CONTRIBUTING.md"
     ],
     "win": {
       "icon": "branding/icon.ico",

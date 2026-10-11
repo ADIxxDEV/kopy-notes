@@ -62,3 +62,9 @@ test('uncompressed .kopy retains editable text, pen pressure, shapes and origina
 test('legacy compressed .kopy files remain readable',async()=>{
  const id=await create(),data=JSON.parse(await (await exportLesson(id)).text());data.version=1;const zip=new JSZip();zip.file('lesson.json',JSON.stringify(data));const bytes=await zip.generateAsync({type:'uint8array'});const restored=await importLesson(new Blob([new Uint8Array(bytes)]));assert.equal((await (await localRequest(`/api/notebooks/${restored}`)).json()).notebook.title,'Algebra');
 });
+
+test('portable lessons preserve editable 3D orientation and reject invalid solid metadata',async()=>{
+ const id=await create(),{pages}=await(await localRequest(`/api/notebooks/${id}`)).json();const {createSolid}=await import('../src/lib/solid-shapes');const solid=createSolid('cylinder',20,30,'#235678');solid.solid!.yaw=85;solid.solid!.pitch=40;solid.solid!.wireframe=true;
+ await write(`/api/pages/${pages[0].id}`,{objects:[solid]},'PUT');const file=await exportLesson(id),copy=await importLesson(file),restored=await(await localRequest(`/api/notebooks/${copy}`)).json();assert.deepEqual(restored.pages[0].objects[0].solid,solid.solid);
+ const invalid=JSON.parse(await file.text());invalid.pages[0].objects[0].solid.yaw=10000;await assert.rejects(()=>importLesson(new Blob([JSON.stringify(invalid)])),/Invalid 3D shape/);
+});

@@ -1,4 +1,9 @@
-import {penOutline,drawStamp,laserOpacity,brushTexture} from './pen-strokes';
+import {drawSolid} from './render-solid';
+import {isSolid} from './solid-shapes';
+import {brushSettings} from './brush-presets';
+import {isEquipment} from './chemistry-equipment';
+import {drawChemistryEquipment} from './render-chemistry';
+import {penOutline,drawStamp,laserOpacity,brushTexture,paintBristles} from './pen-strokes';
 import type {
   BoardObject,
   Point,
@@ -42,7 +47,7 @@ export function drawStroke(ctx: CanvasRenderingContext2D, stroke: StrokeObject) 
   if (pts.length === 0) return;
 
   ctx.save();
-  const inheritedAlpha = ctx.globalAlpha;
+  const inheritedAlpha = ctx.globalAlpha * Math.max(0,Math.min(1,stroke.opacity??1));
   applyToolStyle(ctx, stroke.tool);
   ctx.globalAlpha *= inheritedAlpha;
   ctx.strokeStyle = stroke.color;
@@ -56,10 +61,14 @@ export function drawStroke(ctx: CanvasRenderingContext2D, stroke: StrokeObject) 
     const outline=penOutline(stroke);
     if(outline.length){
       ctx.beginPath();ctx.moveTo(outline[0][0],outline[0][1]);for(let i=1;i<outline.length;i++)ctx.lineTo(outline[i][0],outline[i][1]);ctx.closePath();
-      const textured=['paint','crayon','pencil'].includes(stroke.brush??'');
+      const kind=stroke.brush??'normal',grain=brushSettings(kind,stroke.brushSettings).grain;
+      const textured=['paint','oil-paint','crayon','oil-pastel','chalk','pencil'].includes(kind);
       ctx.fillStyle=stroke.color;
-      ctx.globalAlpha=inheritedAlpha*(stroke.brush==='pencil'?.3:stroke.brush==='crayon'?.32:stroke.brush==='paint'?.86:1);ctx.fill();
-      if(textured){const pigment=brushTexture(ctx,stroke.brush!,stroke.color);if(pigment){ctx.fillStyle=pigment;ctx.globalAlpha=inheritedAlpha*(stroke.brush==='paint'?.5:.85);ctx.fill();}}
+      const base=kind==='pencil'?.14:kind==='crayon'?.7:kind==='chalk'?.06:kind==='oil-pastel'?.84:kind==='paint'?.65:kind==='oil-paint'?.93:1;
+      ctx.globalAlpha=inheritedAlpha*(textured?1-grain*(1-base):1);ctx.fill();
+      if(textured&&grain>0&&!['paint','oil-paint'].includes(kind)){const pigment=brushTexture(ctx,kind,stroke.color);if(pigment){ctx.fillStyle=pigment;ctx.globalAlpha=inheritedAlpha*grain;ctx.fill();}}
+      if(kind==='paint'||kind==='oil-paint'){ctx.globalAlpha=inheritedAlpha;paintBristles(ctx,stroke,grain);}
+
     }
     ctx.restore();return;
   }
@@ -155,6 +164,8 @@ function hatchFill(ctx:CanvasRenderingContext2D,shape:ShapeObject){
 }
 
 export function drawShape(ctx: CanvasRenderingContext2D, shape: ShapeObject) {
+  if(isSolid(shape)){drawSolid(ctx,shape);return;}
+  if(isEquipment(shape)){drawChemistryEquipment(ctx,shape);return;}
   ctx.save();
   const {x,y,w,h}=shape;ctx.translate(x+w/2,y+h/2);ctx.rotate(shape.rotation);if(shape.mirrorX||shape.mirrorY)ctx.scale(shape.mirrorX?-1:1,shape.mirrorY?-1:1);ctx.translate(-(x+w/2),-(y+h/2));
   ctx.globalAlpha=1;ctx.strokeStyle=shape.color;ctx.fillStyle=shape.fillColor??shape.color;ctx.lineWidth=shape.width;

@@ -1,6 +1,26 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Decide before styles, assets or application modules load. -->
+<script>
+(function () {
+ var nativeApp = location.protocol === 'file:' ||
+   (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ||
+   window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+ function showLoader() {
+  if (nativeApp || location.hash.indexOf('#/') === 0) document.documentElement.classList.add('app-open');
+ }
+ showLoader();
+ window.addEventListener('hashchange', showLoader);
+})();
+</script>
+<style>
+#app-loader{display:none}.app-open #landing{display:none!important}html:not(.app-open) #root{display:none}
+.app-open:not(.app-ready) #app-loader{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;padding:24px;box-sizing:border-box;text-align:center;background:#f7f6ef;color:#173f34;font-family:Arial,sans-serif}
+.app-open:not(.app-ready) #app-loader strong{font-size:22px}#app-loader img{width:64px;height:64px;object-fit:contain}#app-loader span{font-size:14px;color:#526259}
+#app-loader button{font:inherit;border:1px solid #173f34;border-radius:8px;background:#173f34;color:white;padding:12px 24px;cursor:pointer}#app-loader button[hidden]{display:none}
+#app-loader button:focus-visible{outline:3px solid #bc612d;outline-offset:4px}
+</style>
 <title>Kopy Notes &mdash; Free, Open-Source Note3 &amp; Note5 Alternative for Teachers</title>
 <meta name="description" content="Meet Kopy Notes: a free, open-source teaching whiteboard and Note3 / Note5 alternative. Write, import lessons, use classroom tools and save editable notes. &#8377;0 to start.">
 <meta name="theme-color" content="#123c32"><link rel="canonical" href="https://kopy-notes.netlify.app/">
@@ -47,4 +67,4 @@
 <section class="lp-section lp-faq"><div class="lp-section-heading"><p class="lp-eyebrow">BEFORE YOUR FIRST LESSON</p><h2>A few useful answers.</h2></div><details><summary>Is Kopy Notes really free?</summary><p>Yes. The current app is free to use and the core source code is available under MIT. Third-party artwork has separate terms. Future premium themes are a roadmap idea, not a current requirement or subscription.</p></details><details><summary>Will it work without the internet?</summary><p>Lessons are stored locally. Once the web app and required resources are cached, you can use supported offline features. Keep exported backups: clearing browser storage can remove local lessons.</p></details><details><summary>Can I replace Note3 or Note5 with it?</summary><p>Try your everyday lessons first. Kopy Notes offers an independent teaching workflow and a familiar org-note3 theme. It is still in development; document fidelity and device support vary.</p></details><details><summary>Where can I download the Windows or Android app?</summary><p>Available development downloads are listed on <a href="https://github.com/ADIxxDEV/kopy-notes/releases">GitHub Releases</a>. Builds may be unsigned. You can also run the web version or build the open-source app yourself.</p></details></section>
 <section class="lp-final"><h2>Your next great lesson<br>starts with one mark.</h2><a class="lp-button" data-launch href="#/app">Open your free board &#8599;</a></section>
 </main><footer class="lp-footer"><a class="lp-brand" href="./"><img src="./icon.svg" width="30" height="30" alt="">kopy notes</a><span>Made for teaching. Made to be yours.</span><div><a href="https://github.com/ADIxxDEV/kopy-notes/blob/main/LICENSE">License</a><a href="https://github.com/ADIxxDEV/kopy-notes/issues">Report an issue</a><a href="https://github.com/ADIxxDEV/kopy-notes/releases">Releases</a></div></footer>
-</div><div id="app-loader" role="status"><img src="./icon.svg" width="64" height="64" alt=""><strong>Opening your board</strong><span>Please wait...</span></div><div id="root"></div><script type="module" src="/src/entry.ts"></script></body></html>
+</div><div id="app-loader" role="status"><img src="./icon.svg" width="64" height="64" alt=""><strong>Opening your board</strong><span id="app-load-message">Please wait...</span><button id="app-load-retry" type="button" hidden>Retry</button></div><div id="root"></div><script type="module" src="/src/entry.ts"></script></body></html>

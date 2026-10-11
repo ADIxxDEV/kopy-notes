@@ -5,7 +5,7 @@ Reference: supplied screenshots in `Downloads/Video/note3`, [official Note3 prod
 | Area | Current development implementation | Remaining parity work |
 | --- | --- | --- |
 | Board | Green/dark/paper backgrounds, grid/dots/lines; flexible screen sizes, visible Hand/panning, custom defaults and saved presets | Subject-specific independent workspaces, background image gallery |
-| Writing | Pressure-rendered pen, coalesced samples, highlighter, shape recognition, pen-only touch rejection, optional wide-contact eraser, fading laser | Hardware testing of pressure/palm signals, textured pens, multi-user writing, OCR |
+| Writing | Pressure-rendered pen, coalesced samples, highlighter, shape recognition, pen-only touch rejection, optional wide-contact eraser, fading laser, textured pencil/crayon/chalk/paint/oil brushes, custom pen presets with test pad and import/export | Hardware testing of pressure/palm signals, physical pigment mixing, multi-user writing, OCR |
 | Editing | Multi-object marquee/Shift selection, group move/resize, editable text, duplicate/delete/recolor | Persistent groups, locks, layers, hyperlinks, animation, drag-to-clone |
 | Geometry | Transparent instruments with attached move/rotate/resize handles; ruler/set-square tracing, adjustable protractor ray, compass arc/circle sweeps; screen-pixel scales and optional physical calibration | Calibration hardware validation and touch hardware validation |
 | Shapes | Thirteen figures, independent stroke/fill colors, thickness and line patterns, existing-shape styling | Vertex editing and editable angle annotations |
@@ -33,3 +33,10 @@ The viewport accepts arbitrary aspect ratios. This does not mean every file form
 | ENB export | Experimental native Picture pages; editable Kopy payload retained for unchanged round trips |
 
 See [format limits and setup](NOTE3_COMPATIBILITY.md).
+
+### Local compatibility update (unreleased)
+
+- Stylus pressure and coalesced input, eraser tips, configurable side buttons, pen priority over touch, and a short palm rejection interval after lifting the pen.
+- Independent menu and slide-control edge settings; drawing tools can dock at the top, bottom, left or right. Existing custom layouts remain available.
+- Shapes: swipeable 2D/3D groups; cube, cuboid, pyramid, triangular prism, cylinder, cone and sphere. Native objects support yaw/pitch/roll, wireframe, resize, mirror, undo and editable .kopy persistence.
+- Browser checks simulate stylus/touch events. Physical stylus button support depends on the device and browser exposing standard Pointer Events.

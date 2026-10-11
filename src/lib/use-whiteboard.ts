@@ -1,3 +1,4 @@
+import {readSelectionSettings,rectangleRegion,selectRegion,regionContainsBounds,type SelectionSettings} from './selection-region';
 import {readEraserMode,eraseSelection,type EraserMode} from './eraser-modes';
 import {transformObject,transformMedia,type ObjectTransform} from './object-transform';
 "use client";
@@ -81,6 +82,9 @@ export function useWhiteboard(options: {
   useEffect(()=>{if(!shapeFeedback)return;const timeout=setTimeout(()=>setShapeFeedback(''),2600);return()=>clearTimeout(timeout);},[shapeFeedback]);
   const [tool, setTool] = useState<ActiveTool>("pen");
   const [pen, setPen] = useState<Pen>({ color: options.defaultPenColor??"#10151b", size: 4, opacity: 1, smartShapes: false, pressure: true, touchMode: "draw" });
+  const [selectionSettings,setSelectionSettings]=useState<SelectionSettings>(()=>{try{return readSelectionSettings(JSON.parse(localStorage.getItem('kopy-selection-settings')??'null'));}catch{return readSelectionSettings(null);}});
+  const selectionSettingsRef=useRef(selectionSettings);selectionSettingsRef.current=selectionSettings;
+  useEffect(()=>{try{localStorage.setItem('kopy-selection-settings',JSON.stringify(selectionSettings));}catch{}},[selectionSettings]);
   const [eraserSize, setEraserSize] = useState(24);
   const [eraserMode,setEraserMode]=useState<EraserMode>(()=>{try{return readEraserMode(localStorage.getItem('kopy-eraser-mode'));}catch{return 'ink';}});
   const [palmEraser,setPalmEraser]=useState(()=>{try{return localStorage.getItem('kopy-palm-eraser')==='true';}catch{return false;}});
@@ -93,7 +97,7 @@ export function useWhiteboard(options: {
   const selectedIdsRef=useRef<string[]>([]);
   const setSelection=(next:Selection)=>{setSelectionState(next);const ids=next?[next.id]:[];selectedIdsRef.current=ids;setSelectedIds(ids);};
   const selectIds=(ids:string[])=>{selectedIdsRef.current=ids;setSelectedIds(ids);const first=ids[0];setSelectionState(first?{kind:objectsRef.current.some(o=>o.id===first)?'object':'media',id:first}:null);};
-  const marquee=useRef<{a:Point;b:Point}|null>(null);
+  const marquee=useRef<{a:Point;b:Point;points?:Point[]}|null>(null);
   const moveOriginal=useRef<Snap|null>(null);
   const [editingText, setEditingText] = useState<EditingText>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -106,6 +110,7 @@ export function useWhiteboard(options: {
   const penRef = useRef(pen);
   const eraserSizeRef = useRef(eraserSize);
   const activePen = useRef<number | null>(null);
+  const penQuietUntil=useRef(0);
   const gestureRadius = useRef(24);
   const lastErasePoint=useRef<Point|null>(null);
   const guideEdges = useRef(new Map<string,GuideEdge[]>());
@@ -283,7 +288,7 @@ export function useWhiteboard(options: {
       ctx.save();ctx.globalAlpha=(modeRef.current==='draw'&&toolRef.current==='laser'?1:Math.min(1,(1200-(now-head.last))/300));ctx.shadowColor='#ff244b';ctx.shadowBlur=18;
       ctx.fillStyle='#ff244b';ctx.beginPath();ctx.arc(head.point.x,head.point.y,7/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#fff3db';ctx.beginPath();ctx.arc(head.point.x,head.point.y,2.5/viewRef.current.scale,0,Math.PI*2);ctx.fill();ctx.restore();
     }
-    if(marquee.current){const {a,b}=marquee.current;ctx.strokeStyle=modeRef.current==='erase-marquee'?'#e15a66':'#217cb8';ctx.lineWidth=1.5/v.scale;ctx.setLineDash([6/v.scale,4/v.scale]);ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.setLineDash([]);}
+    if(marquee.current){const {a,b}=marquee.current;ctx.strokeStyle=modeRef.current==='erase-marquee'?'#e15a66':'#217cb8';ctx.lineWidth=1.5/v.scale;ctx.setLineDash([6/v.scale,4/v.scale]);if(marquee.current.points){ctx.beginPath();marquee.current.points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.stroke();}else ctx.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);ctx.setLineDash([]);}
     // selection outline
     if (selectionRef.current) {
       const sel = selectionRef.current;
@@ -469,6 +474,7 @@ export function useWhiteboard(options: {
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
   }, []);
 
+  const centerBounds=useCallback((b:{x:number;y:number;width:number;height:number})=>{const canvas=canvasRef.current;if(!canvas)return;const scale=viewRef.current.scale;setView({tx:(canvas.clientWidth-b.width*scale)/2-b.x*scale,ty:(canvas.clientHeight-b.height*scale)/2-b.y*scale,scale});scheduleRender();},[setView,scheduleRender]);
   const fitToBounds = useCallback((b:{x:number;y:number;width:number;height:number})=>{
     const canvas=canvasRef.current;if(!canvas||b.width<=0||b.height<=0)return;
     const scale=clamp(Math.min(canvas.clientWidth/b.width,canvas.clientHeight/b.height),MIN_SCALE,MAX_SCALE);
@@ -565,12 +571,13 @@ export function useWhiteboard(options: {
       if (!canvas) return;
       // Contact size alone is not a reliable palm signal on iPad/large touchscreens.
       // Reject touches while a stylus is active; let explicit Hand/Select work in pen-only mode.
-      if (e.pointerType === "touch" && (activePen.current !== null || (penRef.current.touchMode === "reject" && !(palmEraserRef.current&&Math.max(e.width,e.height)>=35) && !['pan','select'].includes(toolRef.current)))) return;
+      if (e.pointerType === "touch" && (activePen.current !== null || performance.now()<penQuietUntil.current || (penRef.current.touchMode === "reject" && !(palmEraserRef.current&&Math.max(e.width,e.height)>=35) && !['pan','select'].includes(toolRef.current)))) return;
       if(e.pointerType==='touch'&&pointers.current.size>=1&&penRef.current.gestureMode==='off')return;
-      if(pointers.current.size>=2)return;
+      if(pointers.current.size>=2&&e.pointerType!=="pen")return;
       if (e.pointerType === "pen") {
+        for(const id of pointers.current.keys()){try{if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);}catch{}}
         activePen.current = e.pointerId;
-        pointers.current.clear(); draft.current = null; pinch.current = null; eraseWorking.current = null;
+        pointers.current.clear(); draft.current = null; pinch.current = null; eraseWorking.current = null; marquee.current=null;
       }
       if (pointers.current.size && e.pointerType !== "touch") return;
       try { canvas.setPointerCapture?.(e.pointerId); } catch { /* A cancelled native pointer may already have gone. */ }
@@ -599,7 +606,7 @@ export function useWhiteboard(options: {
       const t = toolRef.current;
       if(t!=="select")setSelection(null);
       const palmErase=e.pointerType==='touch'&&palmEraserRef.current&&Math.max(e.width,e.height)>=35;
-      const wantPan = !palmErase && ( t === "pan" || spaceHeld.current || e.button === 1 || (e.pointerType === "touch" && penRef.current.touchMode === "pan"));
+      const wantPan = !palmErase && ( t === "pan" || spaceHeld.current || e.button === 1 || (e.pointerType === "pen" && (e.buttons & 2)!==0 && penRef.current.barrelButton==="pan") || (e.pointerType === "touch" && penRef.current.touchMode === "pan"));
       if (wantPan) {
         modeRef.current = "pan";
         panStart.current = { sx: e.clientX, sy: e.clientY, tx: viewRef.current.tx, ty: viewRef.current.ty };
@@ -612,7 +619,7 @@ export function useWhiteboard(options: {
 
       if (t === "select" && !palmErase) {
         const hit = hitTest(world);
-        if (hit) {
+        if (hit && (selectedIdsRef.current.includes(hit.id)||e.shiftKey)) {
           if(e.shiftKey){const ids=selectedIdsRef.current.includes(hit.id)?selectedIdsRef.current.filter(id=>id!==hit.id):[...selectedIdsRef.current,hit.id];selectIds(ids);scheduleRender();return;}
           if(!selectedIdsRef.current.includes(hit.id))setSelection(hit);
           if(hit.kind==='media'&&mediaRef.current.find(m=>m.id===hit.id)?.locked){modeRef.current='idle';scheduleRender();return;}
@@ -620,7 +627,7 @@ export function useWhiteboard(options: {
           moveOriginal.current={objects:objectsRef.current,media:mediaRef.current};
           moveState.current = { sel: hit, lastWorld: world };
         } else {
-          setSelection(null);modeRef.current="marquee";marquee.current={a:world,b:world};
+          setSelection(null);modeRef.current="marquee";marquee.current={a:world,b:world,...(selectionSettingsRef.current.mode==='lasso'?{points:[world]}:{})};
         }
         scheduleRender();return;
       }
@@ -633,7 +640,7 @@ export function useWhiteboard(options: {
 
       if(t==='eraser'&&!palmErase&&eraserModeRef.current==='selection'){modeRef.current='erase-marquee';marquee.current={a:world,b:world};scheduleRender();return;}
       if(t==='eraser'&&!palmErase&&eraserModeRef.current==='all'){modeRef.current='idle';return;}
-      if (t === "eraser" || palmErase || (e.pointerType === "pen" && (e.button === 5 || (e.buttons & 32) !== 0))) {
+      if (t === "eraser" || palmErase || (e.pointerType === "pen" && (e.button === 5 || (e.buttons & 32) !== 0 || ((e.buttons & 2)!==0 && (penRef.current.barrelButton??"eraser")==="eraser")))) {
         gestureRadius.current = palmErase ? Math.max(e.width, e.height) / (2 * viewRef.current.scale) : eraserSizeRef.current;
         gestureEraserMode.current=!palmErase&&eraserModeRef.current==='object'?'object':'ink';
         modeRef.current = "erase";
@@ -658,6 +665,8 @@ export function useWhiteboard(options: {
           tool: t==='auto-shape'?'pen':t,
           brush: t==='auto-shape'?'normal':t==='pen'?p.brush:undefined,
           stamp:p.stamp,
+          opacity:p.opacity,
+          ...(t==='pen'&&p.brushSettings?{brushSettings:{...p.brushSettings}}:{}),
           ...(t==='laser'?{laserExpiresAt:performance.now()+6000,laserCreatedAt:performance.now()}:{}),
           color: p.color,
           width: p.size,
@@ -720,7 +729,7 @@ export function useWhiteboard(options: {
         return;
       }
 
-      if((modeRef.current==='marquee'||modeRef.current==='erase-marquee')&&marquee.current){marquee.current.b=screenToWorld(e.clientX,e.clientY);scheduleRender();return;}
+      if((modeRef.current==='marquee'||modeRef.current==='erase-marquee')&&marquee.current){marquee.current.b=screenToWorld(e.clientX,e.clientY);const path=marquee.current.points;if(path&&dist(path.at(-1)!,marquee.current.b)>2/viewRef.current.scale&&path.length<3000)path.push(marquee.current.b);scheduleRender();return;}
       if (modeRef.current === "pan" && panStart.current) {
         const dx = e.clientX - panStart.current.sx;
         const dy = e.clientY - panStart.current.sy;
@@ -791,7 +800,7 @@ export function useWhiteboard(options: {
   const onPointerUp = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!pointers.current.has(e.pointerId)) return;
-      if (activePen.current === e.pointerId) activePen.current = null;
+      if (activePen.current === e.pointerId) {activePen.current = null;penQuietUntil.current=performance.now()+350;}
       pointers.current.delete(e.pointerId);
       const canvas = canvasRef.current;
       try { if(canvas?.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId); } catch { /* Native cancellation may release capture first. */ }
@@ -809,9 +818,9 @@ export function useWhiteboard(options: {
 
       if(modeRef.current==='erase-marquee'&&marquee.current){const {a,b}=marquee.current;commit(eraseSelection(objectsRef.current,a,b,canvas?.getContext('2d')??undefined),mediaRef.current);marquee.current=null;modeRef.current='idle';scheduleRender();return;}
       if(modeRef.current==='marquee'&&marquee.current){
-        const {a,b}=marquee.current,left=Math.min(a.x,b.x),top=Math.min(a.y,b.y),right=Math.max(a.x,b.x),bottom=Math.max(a.y,b.y);
-        const intersects=(r:{x:number;y:number;w:number;h:number})=>r.x<=right&&r.x+r.w>=left&&r.y<=bottom&&r.y+r.h>=top;
-        selectIds([...objectsRef.current.filter(o=>intersects(objectBounds(o,canvas?.getContext('2d')??undefined))).map(o=>o.id),...mediaRef.current.filter(m=>intersects(mediaBounds(m))).map(m=>m.id)]);
+        const {a,b,points}=marquee.current,ctx=canvas?.getContext('2d')??undefined;
+        if(dist(a,b)<3/viewRef.current.scale&&(points?.length??0)<3){const hit=hitTest(world);setSelection(hit);}
+        else{const polygon=points??rectangleRegion(a,b);if(polygon.length>=3){const smart=selectionSettingsRef.current.smart,result=selectRegion(objectsRef.current,polygon,smart,o=>objectBounds(o,ctx));const mediaIds=mediaRef.current.filter(m=>regionContainsBounds(mediaBounds(m),polygon,smart)).map(m=>m.id);if(result.objects!==objectsRef.current)commit(result.objects,mediaRef.current);selectIds([...result.ids,...mediaIds]);}}
         marquee.current=null;modeRef.current='idle';scheduleRender();return;
       }
       if (modeRef.current === "pan") {
@@ -1072,7 +1081,7 @@ export function useWhiteboard(options: {
   const brushProfiles=useRef<Record<string,Pen>>({});
   const previousBrush=useRef(tool);
   useEffect(()=>{try{const stored=JSON.parse(localStorage.getItem('kopy-brush-profiles')??'{}');for(const [key,value] of Object.entries(stored)){const brush=value as Pen;if(/^#[0-9a-f]{6}$/i.test(brush.color)&&Number.isFinite(brush.size)&&brush.size>=1&&brush.size<=100)brushProfiles.current[key]=brush;}if(brushProfiles.current.pen)setPen(brushProfiles.current.pen);}catch{}},[]);
-  useEffect(()=>{const previous=previousBrush.current;if(previous!==tool){if(['pen','highlighter','marker'].includes(previous))brushProfiles.current[previous]=penRef.current;if(['pen','highlighter','marker'].includes(tool))setPen(brushProfiles.current[tool]??{...penRef.current,size:tool==='highlighter'?16:tool==='marker'?10:4});previousBrush.current=tool;}},[tool]);
+  useEffect(()=>{const previous=previousBrush.current;if(previous!==tool){if(['pen','highlighter','marker'].includes(previous))brushProfiles.current[previous]=penRef.current;previousBrush.current=tool;}},[tool]);
   useEffect(()=>{if(['pen','highlighter','marker'].includes(tool)){brushProfiles.current[tool]=pen;try{localStorage.setItem('kopy-brush-profiles',JSON.stringify(brushProfiles.current));}catch{}}},[pen]);
   // re-render when external-controlled inputs change
   useEffect(() => {
@@ -1109,6 +1118,7 @@ export function useWhiteboard(options: {
     setEraserSize,
     selection,
     setSelection,
+    selectionSettings,setSelectionSettings:(value:SelectionSettings)=>{setSelectionSettings(value);setSelection(null);},
     selectedIds,selectionBounds:selectionBounds(),resizeSelected,
     selectAll:()=>{setTool('select');selectIds([...objectsRef.current.map(o=>o.id),...mediaRef.current.map(m=>m.id)]);scheduleRender();},
     editingText,
@@ -1133,12 +1143,13 @@ export function useWhiteboard(options: {
     zoomOut: () => zoomBy(1 / 1.2),
     resetView,
     fitToContent,
-    fitToBounds,
+    fitToBounds,centerBounds,
     restoreView:setView,
     hasVisibleContent:()=>{const canvas=canvasRef.current;if(!canvas)return false;const v=viewRef.current;return [...objectsRef.current.map(o=>objectBounds(o)),...mediaRef.current.map(mediaBounds)].some(b=>b.x*v.scale+v.tx<canvas.clientWidth&&(b.x+b.w)*v.scale+v.tx>0&&b.y*v.scale+v.ty<canvas.clientHeight&&(b.y+b.h)*v.scale+v.ty>0);},
     addMedia,
     setGuideEdges: (id:string, edges:GuideEdge[]) => { if(edges.length)guideEdges.current.set(id,edges);else guideEdges.current.delete(id); },
     addObjects: (items: BoardObject[]) => commit([...objectsRef.current, ...items], mediaRef.current),
+    changeObjects: (change:(objects:BoardObject[])=>BoardObject[]) => commit(change(objectsRef.current),mediaRef.current),
     removeMedia,
     setPdfPage,
     deleteSelected,transformSelected,

@@ -27,3 +27,8 @@ test('only menu inversion defaults on and can be explicitly disabled',()=>{
  assert.equal(interfaceSettings({flipToolsOnSwap:false}).flipMenuOnSwap,true);
  assert.equal(interfaceSettings({flipMenuOnSwap:false}).flipToolsOnSwap,false);
 });
+
+test('top dock options open beneath the toolbar and stay clear of bottom navigation',()=>{const p=toolPopupPosition({x:400,y:0,width:44,height:44},{width:330,height:500},{x:300,y:0,width:500,height:60},{width:1024,height:768},0,false,[{x:0,y:710,width:300,height:58}]);assert.equal(p.y,60);assert.ok(p.y+Math.min(500,p.maxHeight)<=760);});
+test('saved panel edges reject unknown values and preserve valid choices',()=>{assert.equal(interfaceSettings({menuEdge:'left',slidesEdge:'top'}).menuEdge,'left');assert.equal(interfaceSettings({slidesEdge:'top'}).slidesEdge,'top');assert.equal(interfaceSettings({menuEdge:'invalid'}).menuEdge,'auto');});
+
+test('nested phone settings stay readable and clear the bottom slide navigation',()=>{const p=toolPopupPosition({x:8,y:490,width:330,height:44},{width:280,height:350},{x:330,y:280,width:60,height:260},{width:390,height:844},0,true,[{x:130,y:790,width:260,height:54}]);assert.ok(p.maxWidth>=280);assert.ok(p.y+Math.min(350,p.maxHeight)<=790);});

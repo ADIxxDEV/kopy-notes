@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+## 0.2.0-dev.9 (2026-10-11)
+
+- Added a contributor Code of Conduct and community reporting/enforcement guidance.
+- Fixed the Select cursor in older Note3 local theme packs; added rectangle/freehand selection with remembered Smart object mode and editable partial-ink selection.
+- Removed automatic document fit-zoom on import/open, sized default import frames to the board, and aligned slide thumbnail framing/backgrounds with the live board viewport.
+- Improved phone dock placement and added top/left/right/bottom positioning for menus and slide controls.
+- Stylus priority over touch gestures, a short palm rejection interval after pen lift, and configurable side-button eraser/hand support.
+- Swipeable 2D/3D shape groups with editable three-axis 3D rotation, wireframes, undo, and portable lesson persistence.
+- Consistent Note3 charcoal submenu headings while retaining its original toolbar artwork.
+
+
+- Moved custom pen management into Settings Pen Store, with selectable menu entries and optional chalk/oil brush extras.
+- Reworked wax crayon/oil pastel coverage and direction-following paint bristles with MIT Fluid Paint lighting equations.
+
+- Improved textured and pressure-sensitive pen rendering, added chalk/oil pastel/oil paint, and preserved opacity and brush parameters with saved strokes.
+- Added a custom pen editor with a live test pad, local presets and validated .kopy-pen import/export.
+
+- Prevented landing-page flashes on app startup, with an immediate local loading screen and retry on failed loading.
+- Limited automatic GitHub builds and security checks to version releases; routine pushes no longer trigger full workflows.
+
+- Added editable chemistry equipment directly on the board, with touch/mouse pouring, capacity-aware transfer, funnel routing, horizontal liquid surfaces, undo/redo and portable saved state.
+- Grouped the treasure box into Subjects, Tools and Classroom, with Chemistry, Physics and Mathematics sections, global search and remembered categories.
+
+- Added a searchable Note3 background gallery grouped into Teaching, Sports, Scenes and Textures, with local thumbnails and offline assets.
+- Added an interactive chemistry beaker with HCl/NaOH pouring, dilution, pH indicators, draining, overflow and lesson snapshots.
+
 ## 0.2.0-dev.8 (2026-10-10)
 
 - Fixed remaining menu and touch browser tests by loading saved fixture preferences before checking tool popups.

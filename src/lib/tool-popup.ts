@@ -6,14 +6,27 @@ export function toolPopupPosition(anchor:Rect,popup:{width:number;height:number}
   const right=viewport.width-margin-anchor.x-anchor.width-g,left=anchor.x-g-margin;
   const useRight=right>=popup.width||(left<popup.width&&right>=left);
   maxWidth=Math.max(44,useRight?right:left);
+  if(Math.max(right,left)<Math.min(200,popup.width)){
+   // Narrow phones cannot fit two side-by-side panels. Keep a readable child card.
+   maxWidth=viewport.width-margin*2;maxHeight=viewport.height-margin*2;
+   const width=Math.min(popup.width,maxWidth),x=Math.max(margin,Math.min(anchor.x,viewport.width-width-margin));
+   const bottomDock=toolbar&&toolbar.width>=toolbar.height&&toolbar.y>viewport.height/2;
+   const bottom=Math.min(viewport.height-margin,...obstacles.filter(r=>r.y>viewport.height/2&&r.x<x+width&&r.x+r.width>x).map(r=>r.y-g),bottomDock?toolbar.y-g:viewport.height-margin);
+   maxHeight=Math.max(44,bottom-margin);const height=Math.min(popup.height,maxHeight);
+   return {x,y:Math.max(margin,Math.min(anchor.y,bottom-height)),maxWidth,maxHeight};
+  }
   x=useRight?anchor.x+anchor.width+g:anchor.x-g-Math.min(popup.width,maxWidth);
-  y=anchor.y;if(toolbar&&toolbar.width>=toolbar.height){maxHeight=Math.max(44,toolbar.y-g-margin);y=Math.min(y,toolbar.y-g-Math.min(popup.height,maxHeight));}
+  y=anchor.y;if(toolbar&&toolbar.width>=toolbar.height&&toolbar.y>viewport.height/2){maxHeight=Math.max(44,toolbar.y-g-margin);y=Math.min(y,toolbar.y-g-Math.min(popup.height,maxHeight));}
  }else if(toolbar&&toolbar.height>toolbar.width){
   const right=toolbar.x+toolbar.width+g,left=toolbar.x-g;
   if(toolbar.x+toolbar.width/2<viewport.width/2){x=right;maxWidth=Math.max(44,viewport.width-right-margin);}else{maxWidth=Math.max(44,left-margin);x=left-Math.min(popup.width,maxWidth);}
   const limit=Math.min(viewport.height-8,...obstacles.filter(r=>r.y>viewport.height/2&&r.x<x+Math.min(popup.width,maxWidth)&&r.x+r.width>x).map(r=>r.y-g));
   const topLimit=Math.max(margin,...obstacles.filter(r=>r.y<viewport.height/2&&r.x<x+Math.min(popup.width,maxWidth)&&r.x+r.width>x&&r.y+r.height<limit).map(r=>r.y+r.height+g));
   maxHeight=Math.max(44,limit-topLimit);y=Math.max(topLimit,Math.min(anchor.y,limit-Math.min(popup.height,maxHeight)));
+ }else if(toolbar&&toolbar.y+toolbar.height/2<viewport.height/2){
+  const bottom=toolbar.y+toolbar.height;
+  const limit=Math.min(viewport.height-margin,...obstacles.filter(r=>r.y>bottom&&r.x<x+popup.width&&r.x+r.width>x).map(r=>r.y-g));
+  maxHeight=Math.max(44,limit-bottom-g);y=bottom+g;
  }else if(toolbar){
   x=Math.max(margin,Math.min(x,viewport.width-popup.width-margin));
   const top=Math.min(toolbar.y,...obstacles.filter(r=>r.x<x+popup.width&&r.x+r.width>x&&r.y>=toolbar.y-100).map(r=>r.y));

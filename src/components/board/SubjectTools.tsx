@@ -1,3 +1,5 @@
+import {EquipmentPalette} from './BoardChemistry';
+import type {Vessel} from '@/lib/chemistry-equipment';
 import {HandwritingEquation} from './HandwritingEquation';
 import {GRAPH_PRESETS,compileTeachingExpression,sampleTeachingGraph,validatePlotRange,type PlotRange} from '@/lib/teaching-math';
 import { useEffect, useRef, useState } from 'react';
@@ -23,7 +25,7 @@ const drawings: Record<string,string> = {
   Lamp:'<path d="M30 180h60m160 0h60"/><circle cx="170" cy="180" r="80"/><path d="m115 125 110 110m0-110-110 110"/>',
   Lens:'<path d="M170 50q-90 130 0 260 90-130 0-260z"/><path stroke-dasharray="6 5" d="M20 180h300"/>',
 };
-export function SubjectTools({tool,onClose,onInsert,onInsertText}:{tool:SubjectTool;onInsertText:(text:string)=>void;onClose:()=>void;onInsert:(url:string,width:number,height:number)=>Promise<void>}) {
+export function SubjectTools({tool,onClose,onInsert,onInsertText,onAddEquipment}:{onAddEquipment:(vessel:Vessel,reagent?:'Water'|'HCl'|'NaOH')=>void;tool:SubjectTool;onInsertText:(text:string)=>void;onClose:()=>void;onInsert:(url:string,width:number,height:number)=>Promise<void>}) {
   const [formula,setFormula]=useState('sin(x)'), [error,setError]=useState(''), [busy,setBusy]=useState(false);
   const [range,setRange]=useState<PlotRange>({xMin:-10,xMax:10,yMin:-6.25,yMax:6.25});
   const canvas=useRef<HTMLCanvasElement>(null), video=useRef<HTMLVideoElement>(null);
@@ -43,9 +45,10 @@ export function SubjectTools({tool,onClose,onInsert,onInsertText}:{tool:SubjectT
     }catch(e){setError(e instanceof Error?e.message:'Could not draw this function');}finally{setBusy(false);}
   }
   const title={graph:'Function drawing',solids:'3D shapes',chemistry:'Chemistry',periodic:'Periodic table',physics:'Physics',camera:'Document camera',curtain:'Screen curtain',classroom:'Classroom tools',handwriting:'Handwriting equation'}[tool];
-  const labels=tool==='solids'?['Cube','Cylinder','Cone','Sphere','Pyramid']:tool==='chemistry'?['Beaker','Flask','Test tube','Funnel','Atom']:['Resistor','Battery','Lamp','Lens'];
+  const labels=tool==='solids'?['Cube','Cylinder','Cone','Sphere','Pyramid']:tool==='chemistry'?['Atom']:['Resistor','Battery','Lamp','Lens'];
   if(tool==='periodic')return <FloatingWindow title="Chemistry · periodic table" initialX={120} initialY={45} width={1050} onClose={onClose}><PeriodicTable onInsert={onInsert}/></FloatingWindow>;
-  if(tool==='chemistry'||tool==='physics')return <FloatingWindow title={tool==='chemistry'?'Chemistry lab':'Physics lab'} initialX={260} initialY={45} width={560} onClose={onClose}>{tool==='chemistry'?<ChemistryExperiments onInsert={onInsert} onInsertText={onInsertText}/>:<PhysicsExperiments onInsert={onInsert}/>}<details className="experiment-library"><summary>Diagram library</summary><div className="grid grid-cols-3 gap-2">{labels.map(label=><button key={label} className="lab-action" onClick={()=>void onInsert('data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="360" viewBox="0 0 340 360"><g fill="none" stroke="#142b39" stroke-width="4">${drawings[label]}</g></svg>`),340,360)}>{label}</button>)}</div></details></FloatingWindow>;
+  if(tool==='chemistry'||tool==='physics')return <FloatingWindow title={tool==='chemistry'?'Chemistry lab':'Physics lab'} initialX={260} initialY={45} width={560} onClose={onClose}>{tool==='chemistry'&&<EquipmentPalette onAdd={onAddEquipment}/>}
+{tool==='chemistry'?<ChemistryExperiments onInsert={onInsert} onInsertText={onInsertText}/>:<PhysicsExperiments onInsert={onInsert}/>}<details className="experiment-library"><summary>Diagram library</summary><div className="grid grid-cols-3 gap-2">{labels.map(label=><button key={label} className="lab-action" onClick={()=>void onInsert('data:image/svg+xml;base64,'+btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="340" height="360" viewBox="0 0 340 360"><g fill="none" stroke="#142b39" stroke-width="4">${drawings[label]}</g></svg>`),340,360)}>{label}</button>)}</div></details></FloatingWindow>;
   if(tool==='handwriting')return <HandwritingEquation onClose={onClose} onInsert={onInsertText}/>;
   if(tool==='curtain')return <ScreenCurtain onClose={onClose}/>;
   if(tool==='classroom')return <ClassroomTools onClose={onClose}/>;

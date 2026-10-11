@@ -1,5 +1,6 @@
 // Original, scale-independent line art. Every tool has its own recognizable glyph.
 export const TOOL_GLYPH_PATHS: Record<string, string> = {
+  backgrounds: "M3 5h26v22H3zM3 21l8-9 7 7 4-5 7 7M23 9h.01",
   ruler: "M3 10h26v12H3zM7 10v5m4-5v8m4-8v5m4-5v8m4-8v5m4-5v8",
   protractor: "M3 26a13 13 0 0 1 26 0zM8 26a8 8 0 0 1 16 0M16 26V13M16 26 7 17m9 9 9-9",
   setsquare: "M4 27V5l24 22zM10 23v-8l9 8z",

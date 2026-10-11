@@ -47,11 +47,12 @@ Open the displayed local URL, choose teaching defaults, and create a lesson. No 
 
 ## Classroom tools
 
-- Normal, pencil, paint, Chinese brush, crayon and stamp pens with pressure handwriting, highlighter, partial/whole-object erasing, editable temporary laser strokes, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
+- Normal, pencil, paint, Chinese brush, crayon, chalk, oil pastel, oil paint and stamp pens with pressure handwriting, highlighter, partial/whole-object erasing, editable temporary laser strokes, editable text, conservative smart shape recognition, undo/redo, multi-selection and corner resizing.
 - Thirteen shapes; separate stroke/fill colors, thickness, solid/dashed/dotted lines, hatched/crosshatched fills and rounded rectangles.
 - Transparent ruler, set square, protractor and compass with attached move/rotate/stretch grips, edge tracing, angle adjustment and arc/circle sweeps.
 - Hand tool for panning into extra board space; original-position reset, zoom and fit-to-content.
 - Slide thumbnails, visible Previous/Next buttons, mouse/touch/keyboard reorder, duplicate/add/delete and durable page order.
+- [Settings Pen Store](docs/PENS.md) with optional menu pens, custom pens and a live test pad, grain/opacity/pressure controls, local presets and portable `.kopy-pen` import/export. Each stroke preserves its brush settings inside the lesson.
 - Images, PDFs as slides or document objects, DOCX, editable basic PPTX and LibreOffice ODP slides. Landscape/portrait16:9,4:3 or custom import frames, nine anchors and independent margins. Lock, rotate, fit or align imported documents afterward.
 - Edge-docked controls with optional floating mode, individually movable buttons/panels, named layouts and import/export: [control layouts](docs/CONTROL_LAYOUTS.md).
 - Named board presets, custom default background/ink colors, patterns and reusable saved combinations.
@@ -81,7 +82,7 @@ npx playwright install chromium
 npx playwright test
 ```
 
-GitHub Actions validates the web and builds Windows installer and Android test APK artifacts. Matching development version tags automatically publish these under Releases alongside the web ZIP and checksums. Security checks scan Git history with Gitleaks, check source/build privacy patterns and dependency advisories. Release tags must match the package version and changelog. Stable signed APK builds need Android keystore secrets; development tags publish explicitly labelled debug APKs without secrets; Windows installers are currently unsigned. Read [packaging](docs/PACKAGING.md) and [release setup](docs/RELEASE.md).
+GitHub Actions runs full web, Windows and Android builds for version releases or manual checks, rather than for every routine push. Matching development version tags automatically publish these under Releases alongside the web ZIP and checksums. Security checks scan Git history with Gitleaks, check source/build privacy patterns and dependency advisories. Release tags must match the package version and changelog. Stable signed APK builds need Android keystore secrets; development tags publish explicitly labelled debug APKs without secrets; Windows installers are currently unsigned. Read [packaging](docs/PACKAGING.md) and [release setup](docs/RELEASE.md).
 
 Production dist runs on static HTTPS hosting and caches application code after first use. Camera/microphone require HTTPS or localhost. Development does not install the offline application cache.
 
@@ -118,3 +119,5 @@ The org-note3 theme and its artwork are included in web and native builds and ca
 [Buy adixdev a coffee](https://www.buymeacoffee.com/adixdev) to support continued development.
 
 <a href="https://www.buymeacoffee.com/adixdev"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="200"></a>
+
+Community participation follows our [Code of Conduct](CODE_OF_CONDUCT.md). Read the [contribution guide](CONTRIBUTING.md) to help improve Kopy Notes.

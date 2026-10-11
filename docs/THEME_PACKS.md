@@ -9,3 +9,9 @@ The file is UTF-8 JSON with `schema: "org.kopynotes.theme"`, `version: 1`, an `i
 Page presets contain `id`, `name`, `background`, `pattern`, `ink`, and optionally an embedded raster `image`. Patterns include none, grid, dots, lines, music staff, handwriting guides and isometric paper. Applying a page preset changes the current page; adding a page inherits its color, pattern and background image. Existing pages keep their own settings. Custom backgrounds remain embedded in `.kopy` lessons and PDF exports.
 
 Kopy's pen illustrations and paper/chalk textures are original MIT-licensed artwork. Installed Note3 resources were inspected as a design reference and are not distributed in Kopy. Only redistribute artwork you own or have permission to share.
+
+## Subject backgrounds
+
+Open Treasure box > Subject backgrounds, or find the gallery in Themes & page presets and the default board settings. The installed Note3 collection includes 65 backgrounds grouped into Teaching, Sports, Scenes and Textures. Search filters the selected group. Sports includes football, basketball, tennis, badminton, volleyball, American football, chess and backgammon. Teaching includes writing guides, music staff and subject boards. Textures repeat across the full page.
+
+Thumbnails load lazily. Applying a background embeds the image into the saved page rather than saving a machine-specific file path; portable .kopy exports and saved defaults retain it. Release builds cache the gallery images offline. Artwork has separate noncommercial terms documented in THIRD_PARTY.md.

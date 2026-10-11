@@ -1,3 +1,4 @@
+import {ChemistryBeaker} from './ChemistryBeaker';
 import {useRef,useState,type ReactNode,type RefObject} from 'react';
 import {balanceChemicalEquation,diluteSolution,resistorCircuit,thinLens} from '@/lib/teaching-science';
 import {ScienceLab} from './ScienceLab';
@@ -102,6 +103,6 @@ function Dilution({onInsert}:{onInsert:Insert}) {
 }
 
 export function ChemistryExperiments({onInsert,onInsertText}:{onInsert:Insert;onInsertText:(text:string)=>void}) {
-  const [tab,setTab]=useState<'Equations'|'Dilution'>('Equations');
-  return <div className="science-experiments"><Switches label="Chemistry experiment" value={tab} options={['Equations','Dilution']} onChange={setTab}/><div hidden={tab!=='Equations'}><EquationBalancer onInsertText={onInsertText}/></div><div hidden={tab!=='Dilution'}><Dilution onInsert={onInsert}/></div></div>;
+  const [tab,setTab]=useState<'Equations'|'Dilution'|'Beaker'>('Equations');
+  return <div className="science-experiments"><Switches label="Chemistry experiment" value={tab} options={['Equations','Dilution','Beaker']} onChange={setTab}/><div hidden={tab!=='Equations'}><EquationBalancer onInsertText={onInsertText}/></div><div hidden={tab!=='Dilution'}><Dilution onInsert={onInsert}/></div><div hidden={tab!=='Beaker'}><ChemistryBeaker onInsert={onInsert}/></div></div>;
 }

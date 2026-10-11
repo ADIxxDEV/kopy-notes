@@ -36,3 +36,19 @@ These are planned work, not implemented features. Test real iPad, Android smartb
 - OpenStax: [series/parallel resistors](https://openstax.org/books/university-physics-volume-2/pages/10-2-resistors-in-series-and-parallel), [thin lenses](https://openstax.org/books/university-physics-volume-3/pages/2-4-thin-lenses), [balancing equations](https://openstax.org/books/chemistry-atoms-first/pages/7-1-writing-and-balancing-chemical-equations), [molarity and dilution](https://openstax.org/books/chemistry/pages/3-3-molarity). These informed the equations; illustrations and UI are original.
 - `test/teaching-science.test.ts`: conservation, exact integer balances, focal-plane/virtual-image cases, invalid input and unsupported chemistry.
 - `test/browser/science-tools.spec.ts`: offline use, changing experiments, board insertion, mobile layout and curtain dragging/reveal.
+
+## Interactive chemistry beaker
+
+Open Treasure box > Chemistry > Beaker. Choose the pour amount and concentration, then add water, HCl or NaOH. Litmus, universal indicator and phenolphthalein change colour with calculated pH. Custom colour is also available. Drain, empty, reset and insert a snapshot into the lesson.
+
+The 500 mL vessel uses a fully mixed strong acid/base model at 25 C, including water autoionisation. Volume and solute are conserved through dilution and proportional draining; overflow removes the excess mixed solution. Indicator colours are illustrative. Weak acids/bases, thermal effects and other reaction types are not simulated. It works locally without network APIs.
+
+## Chemistry equipment directly on the board
+
+Open Treasure box > Subjects > Chemistry. The equipment palette places editable beakers, test tubes, flasks, measuring cylinders, droppers, funnels and reagent bottles on the lesson. Selecting equipment reveals liquid controls alongside the normal move, resize, duplicate, rotate and delete actions.
+
+Fill a vessel from its controls, or transfer liquid from another vessel: drag the blue pour handle onto the receiver using mouse or touch. The amount is selected in the equipment controls. You can also choose a receiving vessel and press Pour. A funnel passes liquid to the nearest aligned vessel below it; a missing receiver leaves the source unchanged. Empty sources cannot pour.
+
+Vessel capacity determines overflow, with proportional solute removal. Transfers update both objects in one undo operation. Cancelled gestures leave liquid unchanged. Liquid surfaces remain horizontal as vessels rotate. Equipment metadata, liquid amounts, indicator choice, positions and rotation persist with the page and portable .kopy files; equipment is not a flattened screenshot. PDF/image exports render its current appearance.
+
+The chemistry model remains a fully mixed strong HCl/NaOH model at 25 C with illustrative indicators. Heating, boiling, weak acids, precipitation and arbitrary chemical reactions are not modelled.

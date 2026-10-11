@@ -3,14 +3,14 @@ import {SideSettings} from './SideSettings';
 import type {ObjectTransform} from '@/lib/object-transform';
 "use client";
 import './selection-properties.css';
-import {useLayoutEffect,useRef,useState} from 'react';
+import {useLayoutEffect,useRef,useState,type ReactNode} from 'react';
 
 import { Icon } from "@/components/Icon";
 import { INK_COLORS } from "@/lib/constants";
 import type { BoardObject, MediaItem, ShapeObject } from "@/db/schema";
 
 export function SelectionBar({
-  anchor,
+  anchor,children,
   count, onResize, onSelectAll,
   selection,
   object,
@@ -24,6 +24,7 @@ export function SelectionBar({
   onDeselect,
   onEditText,onTransform,
 }: {
+  children?:ReactNode;
   anchor:{x:number;y:number;width:number;height:number};
   count:number;onResize:(factor:number)=>void;onSelectAll:()=>void;
   selection: { kind: "object" | "media"; id: string };
@@ -84,6 +85,7 @@ export function SelectionBar({
       <button type="button" onClick={onDuplicate} aria-label="Duplicate" title="Duplicate"><Icon name="copy" className="h-5 w-5"/></button>
       <button type="button" onClick={onDelete} aria-label="Delete" title="Delete" className="selection-delete"><Icon name="trash" className="h-5 w-5"/></button>
       </div>
+      {children}
       <SideSettings label="Rotate & mirror"><div className="selection-transforms">
         <button aria-label="Rotate selection left" disabled={media?.locked} onClick={()=>onTransform('rotate-left')}><Icon name="undo"/>15 degrees</button>
         <button aria-label="Rotate selection right" disabled={media?.locked} onClick={()=>onTransform('rotate-right')}><Icon name="redo"/>15 degrees</button>
@@ -135,13 +137,13 @@ export function SelectionBar({
           <label><input aria-label="Lock document position" type="checkbox" checked={media.locked??false} onChange={e=>onMediaProperties({locked:e.target.checked})}/>Lock position and size</label>
           <small>Locked documents can still be annotated. Select and unlock here to move them.</small>
         </div></SideSettings>}
-      {object?.kind==='shape' && <SideSettings key={`style-${selection.id}`} label="Style"><div>
+      {object?.kind==='shape' && !object.chemistry && <SideSettings key={`style-${selection.id}`} label="Style"><div>
           <label>Line color <input aria-label="Selected shape line color" type="color" value={object.color} onChange={e=>onShapeProperties({color:e.target.value})}/></label>
           <label>Line width <input aria-label="Selected shape line width" type="range" min="1" max="32" value={object.width} onChange={e=>onShapeProperties({width:Number(e.target.value)})}/></label>
           <label>Line style <CustomSelect aria-label="Selected shape line style" value={object.dash??'solid'} onChange={e=>onShapeProperties({dash:e.target.value as ShapeObject['dash']})}><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></CustomSelect></label>
           <label><input aria-label="Selected shape fill" type="checkbox" checked={object.filled} onChange={e=>onShapeProperties({filled:e.target.checked})}/> Fill shape</label>
           <label>Fill style <CustomSelect aria-label="Selected shape fill style" value={object.fillStyle??'solid'} onChange={e=>onShapeProperties({fillStyle:e.target.value as ShapeObject['fillStyle']})}><option value="solid">Solid</option><option value="hachure">Hatched</option><option value="crosshatch">Crosshatched</option></CustomSelect></label>
-          {object.shape==='rect'&&<label>Corners <input aria-label="Selected shape corner radius" type="range" min="0" max="40" value={object.roundness??0} onChange={e=>onShapeProperties({roundness:Number(e.target.value)})}/></label>}
+          {object.shape==='rect'&&!object.solid&&<label>Corners <input aria-label="Selected shape corner radius" type="range" min="0" max="40" value={object.roundness??0} onChange={e=>onShapeProperties({roundness:Number(e.target.value)})}/></label>}
           <label>Fill color <input aria-label="Selected shape fill color" type="color" value={object.fillColor??object.color} onChange={e=>onShapeProperties({fillColor:e.target.value})}/></label>
         </div>
       </SideSettings>}

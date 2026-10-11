@@ -1,0 +1,35 @@
+import {test,expect,type Page} from '@playwright/test';
+async function board(page:Page){await page.goto('/#/app');await expect(page.getByRole('button',{name:'Start teaching',exact:true})).toBeVisible({timeout:60000});await page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1,ui:{toolPopupOnFirstClick:true}})});const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:'{"title":"Brush checks"}'})).json();location.hash=`/board/${notebook.id}`;});await page.reload();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible({timeout:60000});}
+test('Settings Pen Store manages presets while the pen menu only selects enabled pens',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+ await board(page);await page.getByRole('button',{name:'Pen',exact:true}).click();
+ await expect(page.getByRole('button',{name:'+ Add pen',exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Import pen',exact:true})).toHaveCount(0);
+ for(const name of ['Chalk','Oil pastel','Oil paint'])await expect(page.getByRole('button',{name,exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Pen',exact:true}).click();
+ await page.getByRole('button',{name:'Menu',exact:true}).click();await page.getByRole('button',{name:'Settings',exact:true}).click();
+ const settings=page.getByRole('dialog',{name:'Settings',exact:true});await settings.getByText('Pen Store',{exact:true}).click();
+ await settings.getByLabel('Show Chalk in pen menu',{exact:true}).check();await settings.getByLabel('Show Oil paint in pen menu',{exact:true}).check();await settings.getByLabel('Show Pencil in pen menu',{exact:true}).uncheck();
+ await settings.getByRole('button',{name:'+ Add pen',exact:true}).click();await settings.getByLabel('Pen name',{exact:true}).fill('My chalk');
+ await settings.getByLabel('Custom pen brush',{exact:true}).click();await page.getByRole('option',{name:'Chalk',exact:true}).click();
+ await settings.getByLabel('Custom pen opacity',{exact:true}).fill('0.5');
+ const pad=settings.getByLabel('Test custom pen',{exact:true});await pad.scrollIntoViewIfNeeded();const rect=await pad.boundingBox();await page.mouse.move(rect!.x+20,rect!.y+85);await page.mouse.down();await page.mouse.move(rect!.x+180,rect!.y+100,{steps:15});await page.mouse.up();
+ await settings.getByRole('button',{name:'Save pen',exact:true}).click();
+ const download=page.waitForEvent('download');await settings.getByRole('button',{name:'Export pen My chalk',exact:true}).click();expect((await download).suggestedFilename()).toBe('My_chalk.kopy-pen');
+ await settings.getByRole('button',{name:'Save',exact:true}).click();
+ await page.getByRole('button',{name:'Pen',exact:true}).click();await expect(page.getByRole('button',{name:'Chalk',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Pencil',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Use pen My chalk',exact:true}).click();await expect(page.getByRole('button',{name:'Use pen My chalk',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'Pen',exact:true}).click();await page.mouse.move(390,280);await page.mouse.down();await page.mouse.move(590,320,{steps:20});await page.mouse.up();
+ await expect.poll(()=>page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);const {notebooks}=await(await localRequest('/api/notebooks')).json();const {pages}=await(await localRequest(`/api/notebooks/${notebooks[0].id}`)).json();return pages[0].objects[0];}),{timeout:30000}).toMatchObject({brush:'chalk',opacity:.5,brushSettings:{grain:.9}});
+ await page.reload();await page.getByRole('button',{name:'Pen',exact:true}).click();await expect(page.getByRole('button',{name:'Use pen My chalk',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Chalk',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Pen',exact:true}).click();await page.getByRole('button',{name:'Menu',exact:true}).click();await page.getByRole('button',{name:'Settings',exact:true}).click();await settings.getByText('Pen Store',{exact:true}).click();
+ await settings.getByLabel('Import custom pen file').setInputFiles({name:'invalid.kopy-pen',mimeType:'application/json',buffer:Buffer.from('{"schema":"other"}')});await expect(settings.getByRole('alert')).toContainText('Unsupported pen file');
+ await settings.getByLabel('Show pen My chalk in menu',{exact:true}).uncheck();await settings.getByRole('button',{name:'Save',exact:true}).click();await page.getByRole('button',{name:'Pen',exact:true}).click();await expect(page.getByRole('button',{name:'Use pen My chalk',exact:true})).toHaveCount(0);
+ expect(errors).toEqual([]);
+});
+test('material strokes have distinct stable pigment and respect opacity',async({page})=>{
+ await page.goto('/#/app');await expect(page.getByRole('button',{name:'Start teaching',exact:true})).toBeVisible({timeout:60000});
+ const result=await page.evaluate(async()=>{const {drawStroke}=await import('/src/lib/render.ts' as string);const materials=['normal','pencil','paint','crayon','chalk','oil-pastel','oil-paint'];const values:Record<string,string>={};const gallery=document.createElement('section');gallery.id='brush-material-preview';Object.assign(gallery.style,{position:'fixed',inset:'20px auto auto 20px',zIndex:'999999',background:'#ffffff',color:'#172b3b',padding:'20px',borderRadius:'12px',width:'420px',font:'14px Arial'});gallery.innerHTML='<h2>Pen materials</h2>';document.body.append(gallery);for(const brush of materials){const c=document.createElement('canvas');c.width=240;c.height=60;const ctx=c.getContext('2d')!;const stroke={id:'test',kind:'stroke',tool:'pen',brush,color:'#3976b5',width:25,points:Array.from({length:90},(_,i)=>({x:20+i*2,y:30+Math.sin(i/14)*12,p:.7}))};drawStroke(ctx,stroke);const label=document.createElement('div');label.textContent=brush;gallery.append(label,c);values[brush]=c.toDataURL();const before=ctx.getImageData(0,0,240,60).data;ctx.clearRect(0,0,240,60);drawStroke(ctx,stroke);const after=ctx.getImageData(0,0,240,60).data;let difference=0,maxDifference=0;for(let i=0;i<before.length;i++){const delta=Math.abs(before[i]-after[i]);difference+=delta;maxDifference=Math.max(maxDifference,delta);}if(difference/before.length>.1)throw new Error('Unstable '+brush+': mean='+difference/before.length+', max='+maxDifference);}const c=document.createElement('canvas');c.width=80;c.height=80;const ctx=c.getContext('2d')!;drawStroke(ctx,{id:'opacity',kind:'stroke',tool:'pen',color:'#000000',width:30,opacity:.5,points:[{x:40,y:40}]});return {unique:new Set(Object.values(values)).size,alpha:ctx.getImageData(40,40,1,1).data[3]};});
+ await page.locator('#brush-material-preview').screenshot({path:'test-results/pen-materials.png'});
+ expect(result.unique).toBe(7);expect(result.alpha).toBeGreaterThan(110);expect(result.alpha).toBeLessThan(145);
+});

@@ -1,0 +1,6 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {SOLIDS,solidMesh,rotateVertex,projectedSolid,validSolidData,createSolid,isSolid} from '../src/lib/solid-shapes';
+test('all solids have finite connected faces and depth-sorted rotated projections',()=>{for(const kind of SOLIDS){const mesh=solidMesh(kind);assert.ok(mesh.faces.length>=4);for(const face of mesh.faces)assert.ok(face.every(i=>i>=0&&i<mesh.vertices.length));const p=projectedSolid({kind,yaw:80,pitch:30,roll:-20,wireframe:false});assert.ok(p.vertices.every(v=>[v.x,v.y,v.z].every(Number.isFinite)));assert.ok(p.faces.every((f,i)=>i===0||f.depth>=p.faces[i-1].depth));}});
+test('3D axis rotations preserve lengths and change the actual mesh orientation',()=>{const v={x:1,y:2,z:3},r=rotateVertex(v,{yaw:90,pitch:0,roll:0});assert.ok(Math.abs(r.x-3)<1e-10);assert.ok(Math.abs(r.z+1)<1e-10);assert.ok(Math.abs(Math.hypot(v.x,v.y,v.z)-Math.hypot(r.x,r.y,r.z))<1e-10);});
+test('solid orientation stays editable in portable JSON and invalid imports are rejected',()=>{const object=createSolid('cube',20,30,'#123456');object.solid!.yaw=70;const copy=JSON.parse(JSON.stringify(object));assert.ok(isSolid(copy));assert.equal(copy.solid.yaw,70);assert.equal(validSolidData({...copy.solid,yaw:Infinity}),false);assert.equal(validSolidData({...copy.solid,kind:'script'}),false);});

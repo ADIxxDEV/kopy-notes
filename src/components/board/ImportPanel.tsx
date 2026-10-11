@@ -41,7 +41,7 @@ export function ImportPanel({
   const [picked, setPicked] = useState<Picked[]>([]);
   const [pdfMode,setPdfMode]=useState("pages");
   const [presentationMode,setPresentationMode]=useState<'editable'|'flattened'>('editable');
-  const [layout,setLayout]=useState<ImportLayout>(()=>({...DEFAULT_IMPORT_LAYOUT,sizing:'fit',frameWidth:1280,frameHeight:Math.max(200,Math.min(16000,1280*(document.querySelector<HTMLCanvasElement>('.kn-canvas-surface')?.clientHeight??720)/(document.querySelector<HTMLCanvasElement>('.kn-canvas-surface')?.clientWidth??1280))),margins:{...DEFAULT_IMPORT_LAYOUT.margins}}));
+  const [layout,setLayout]=useState<ImportLayout>(()=>{const canvas=document.querySelector<HTMLCanvasElement>('.kn-canvas-surface');return {...DEFAULT_IMPORT_LAYOUT,sizing:'fit',frameWidth:Math.max(200,Math.min(16000,canvas?.clientWidth??1280)),frameHeight:Math.max(200,Math.min(16000,canvas?.clientHeight??720)),margins:{...DEFAULT_IMPORT_LAYOUT.margins}};});
   const [framePreset,setFramePreset]=useState('board');
   const [previewSize,setPreviewSize]=useState({width:600,height:900});
   useEffect(()=>{let cancelled=false;const file=picked.find(p=>p.kind==='image')?.file;setPreviewSize({width:600,height:900});if(file)void imageSize(file).then(d=>{if(!cancelled)setPreviewSize({width:d.w,height:d.h});}).catch(()=>{});return()=>{cancelled=true;};},[picked]);

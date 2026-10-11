@@ -8,9 +8,11 @@ export type StrokeObject = {
   id: string;
   kind: "stroke";
   tool: PenTool;
-  brush?: 'normal' | 'pencil' | 'paint' | 'chinese' | 'crayon' | 'stamp';
+  brush?: import('../lib/brush-presets').BrushKind;
+  brushSettings?:import('../lib/brush-presets').BrushSettings;
   color: string;
   width: number;
+  opacity?:number;
   points: Point[];
   stamp?:"smile"|"star"|"heart"|"sun";
   laserExpiresAt?:number;
@@ -18,6 +20,8 @@ export type StrokeObject = {
 };
 
 export type ShapeObject = {
+  solid?:import("../lib/solid-shapes").SolidData;
+  chemistry?:import("../lib/chemistry-equipment").EquipmentData;
   mirrorX?:boolean;mirrorY?:boolean;
   id: string;
   kind: "shape";

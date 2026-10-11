@@ -11,6 +11,7 @@ export const ICON_PATHS = {
   clearAnnotations: ["M3 7h18", "M8 7V4h8v3", "M5 7l2 14h10l2-14", "M10 11v6", "M14 11v6"],
   flipHorizontal: ["M12 2v20", "M3 6v12l6-6-6-6z", "M21 6v12l-6-6 6-6z"],
   flipVertical: ["M2 12h20", "M6 3h12l-6 6-6-6z", "M6 21h12l-6-6-6 6z"],
+  lasso: ["M6 17c-5-2-5-9 1-12s14-1 14 5-8 10-15 7z", "M6 17c-3 0-4 4-1 5s4-2 2-4"],
   select: ["M3 3l7.5 18 2.5-7 7-2.5L3 3z"],
   pen: [
     "M12 19l7-7 3 3-7 7-3-3z",

@@ -6,7 +6,8 @@ $stream=$assembly.GetManifestResourceStream('EasiNote.Resource.g.resources')
 $reader=New-Object System.Resources.ResourceReader $stream
 $resources=@{}
 foreach($entry in $reader.GetEnumerator()){$resources[$entry.Key]=$entry.Value}
-$names=@{pen='pen_general';pencil='pen_general';paint='brush_general';chinese='bamboobrush';crayon='texturepen';stamp='magicpen';highlighter='markpen_general';laser='laserpen';eraser='eraser';select='arrow';hand='roam';shapes='rectangle';tools='tool_normal';menu='menu_normal';import='opendatabase';save='ui/startmenu/save.png';export='camera';board='desktop_normal';layers='pagemanagericon';plus='addnewpage';chevronLeft='prepage';chevronRight='nextpage';undo='undo';redo='redo';text='textinput';flipHorizontal='buttontoleft'}
+$names=@{pen='pen_general';pencil='pen_general';paint='brush_general';chinese='bamboobrush';crayon='texturepen';stamp='magicpen';highlighter='markpen_general';laser='laserpen';eraser='eraser';hand='roam';shapes='rectangle';tools='tool_normal';menu='menu_normal';import='opendatabase';save='ui/startmenu/save.png';export='camera';board='desktop_normal';layers='pagemanagericon';plus='addnewpage';chevronLeft='prepage';chevronRight='nextpage';undo='undo';redo='redo';text='textinput';flipHorizontal='buttontoleft'}
+# Select uses Kopy's cursor artwork: Note3 arrow.png is a drawing arrow, not a cursor.
 $previews=@{pen='penthumb';pencil='penthumb';paint='brushthumb';chinese='bamboobrushthumb';crayon='crayonthumb';stamp='magicpenthumb';highlighter='markpenthumb';laser='laserpenthumb'}
 foreach($id in $previews.Keys){$names[$id+'Preview']='ui/toolbar/popup/pen/'+$previews[$id]+'.png'}
 $icons=@{}

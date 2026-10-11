@@ -3,25 +3,26 @@ import {drawBackground} from '@/lib/render';
 "use client";
 import {useEffect,useRef,useState,type PointerEvent} from "react";
 import type {Page} from "@/db/schema";
-import {drawObject,objectBounds} from "@/lib/render";
-import {loadImage,peekDocx,peekPdfPage,renderPdfPage} from "@/lib/media";
+import {drawObject} from "@/lib/render";
+import {loadImage,peekDocx,peekPdfPage,renderPdfPage,renderDocxToCanvas} from "@/lib/media";
 import {Icon} from "@/components/Icon";
 import "./SlidesPanel.css";
 
-function SlideThumbnail({page}:{page:Page}) {
+export type PreviewFrame={x:number;y:number;width:number;height:number;zoom?:number};
+function SlideThumbnail({page,frame}:{page:Page;frame:PreviewFrame}) {
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
-    const canvas=ref.current;if(!canvas)return;let cancelled=false;
+    const target=ref.current;if(!target)return;let cancelled=false;
     const paint=async()=>{
-      const bounds=page.objects.map(object=>objectBounds(object)).concat(page.media.map(item=>({x:item.x,y:item.y,w:item.width,h:item.height})));
-      const x=Math.min(0,...bounds.map(b=>b.x)),y=Math.min(0,...bounds.map(b=>b.y));
-      const width=Math.max(1280,...bounds.map(b=>b.x+b.w))-x,height=Math.max(720,...bounds.map(b=>b.y+b.h))-y;
+      const canvas=document.createElement('canvas');
+      const {x,y,width,height}=frame;
+      canvas.width=320;canvas.height=Math.max(1,Math.round(320*height/width));
       const ctx=canvas.getContext('2d');if(!ctx)return;
-      const scale=Math.min(320/width,180/height),ox=(320-width*scale)/2,oy=(180-height*scale)/2;
-      drawBackground(ctx,320,180,page.background,page.pattern,1,page.backgroundImage?await loadBackgroundImage(page.backgroundImage).catch(()=>undefined):undefined);if(cancelled)return;ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);ctx.translate(-x,-y);
+      const scale=canvas.width/width;
+      const backgroundImage=page.backgroundImage?await loadBackgroundImage(page.backgroundImage).catch(()=>undefined):undefined;if(cancelled)return;const zoom=frame.zoom??1;drawBackground(ctx,width*zoom,height*zoom,page.background,page.pattern,scale/zoom,backgroundImage);ctx.save();ctx.scale(scale,scale);ctx.translate(-x,-y);
       for(const media of page.media){
         try{
-          const image=media.kind==='image'?await loadImage(media.assetId):media.kind==='pdf'?(peekPdfPage(media.assetId,media.pageNumber)||await renderPdfPage(media.assetId,media.pageNumber,320)):peekDocx(media.assetId);
+          const image=media.kind==='image'?await loadImage(media.assetId):media.kind==='pdf'?(peekPdfPage(media.assetId,media.pageNumber)||await renderPdfPage(media.assetId,media.pageNumber,320)):peekDocx(media.assetId)??await renderDocxToCanvas(media.assetId,900);
           if(cancelled)return;
           ctx.save();ctx.translate(media.x+media.width/2,media.y+media.height/2);ctx.rotate(media.rotation||0);ctx.scale(media.mirrorX?-1:1,media.mirrorY?-1:1);
           if(image)ctx.drawImage(image,-media.width/2,-media.height/2,media.width,media.height);
@@ -29,15 +30,15 @@ function SlideThumbnail({page}:{page:Page}) {
           ctx.restore();
         }catch{/* Missing files must not block navigation. */}
       }
-      for(const object of page.objects)drawObject(ctx,object);ctx.restore();
+      for(const object of page.objects)drawObject(ctx,object);ctx.restore();if(cancelled)return;target.width=canvas.width;target.height=canvas.height;target.getContext('2d')?.drawImage(canvas,0,0);
     };
     const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer.disconnect();void paint();}},{rootMargin:'120px'});
-    observer.observe(canvas);return()=>{cancelled=true;observer.disconnect();};
-  },[page]);
-  return <canvas ref={ref} width={320} height={180} aria-hidden="true"/>;
+    observer.observe(target);return()=>{cancelled=true;observer.disconnect();};
+  },[page,frame.x,frame.y,frame.width,frame.height,frame.zoom]);
+  return <canvas ref={ref} width={320} height={Math.max(1,Math.round(320*frame.height/frame.width))} style={{aspectRatio:`${frame.width}/${frame.height}`}} aria-hidden="true"/>;
 }
 
-export function SlidesPanel({pages,activePageId,onGo,onReorder,onClose,onAdd,onDuplicate,onDelete,onSwap}:{pages:Page[];activePageId:string;onGo:(index:number)=>void;onReorder:(ids:string[])=>Promise<void>;onClose:()=>void;onAdd:()=>void;onDuplicate?:(index:number)=>void;onDelete:(index:number)=>Promise<void>;onSwap:()=>void}){
+export function SlidesPanel({previewFrames,pages,activePageId,onGo,onReorder,onClose,onAdd,onDuplicate,onDelete,onSwap}:{previewFrames?:Record<string,PreviewFrame>;pages:Page[];activePageId:string;onGo:(index:number)=>void;onReorder:(ids:string[])=>Promise<void>;onClose:()=>void;onAdd:()=>void;onDuplicate?:(index:number)=>void;onDelete:(index:number)=>Promise<void>;onSwap:()=>void}){
   const [menuOpen,setMenuOpen]=useState(false);
   const activeIndex=Math.max(0,pages.findIndex(page=>page.id===activePageId));
   const [compact,setCompact]=useState(()=>{try{return localStorage.getItem('kopy-slides-compact')==='true';}catch{return false;}});
@@ -98,7 +99,7 @@ export function SlidesPanel({pages,activePageId,onGo,onReorder,onClose,onAdd,onD
         <button className="kn-slide-handle kn-focus" aria-label={`Reorder slide ${index+1}`} title="Drag to reorder. Arrow keys move this slide." disabled={busy} onPointerDown={event=>{event.stopPropagation();begin(event,id,true);}} onPointerMove={event=>{event.stopPropagation();move(event);}} onPointerUp={event=>{event.stopPropagation();finish(event);}} onPointerCancel={event=>{event.stopPropagation();finish(event,true);}} onKeyDown={event=>{
           if(!['ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const to=index+(event.key==='ArrowUp'?-1:1);if(to<0||to>=order.length)return;const ids=[...order];ids.splice(index,1);ids.splice(to,0,id);orderRef.current=ids;setOrder(ids);void commit(ids);
         }}><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">{[6,12,18].flatMap(y=>[8,16].map(x=><circle key={`${x}-${y}`} cx={x} cy={y} r={1.6}/>))}</g></svg></button>
-        <div className="kn-slide-content"><button className="kn-slide-preview kn-focus" onClick={()=>{if(suppressClick.current||dragId||busy)return;onGo(pages.findIndex(page=>page.id===id));}} aria-label={`Go to slide ${index+1}`} aria-current={id===activePageId?'page':undefined} disabled={busy}><SlideThumbnail page={page}/><span><strong>{index+1}</strong></span></button>
+        <div className="kn-slide-content"><button className="kn-slide-preview kn-focus" onClick={()=>{if(suppressClick.current||dragId||busy)return;onGo(pages.findIndex(page=>page.id===id));}} aria-label={`Go to slide ${index+1}`} aria-current={id===activePageId?'page':undefined} disabled={busy}><SlideThumbnail page={page} frame={previewFrames?.[page.id]??page.importFrame??{x:0,y:0,width:1280,height:720}}/><span><strong>{index+1}</strong></span></button>
 {confirmDelete===id&&<div className="kn-slide-confirm"><span>Delete this slide?</span><button onClick={()=>setConfirmDelete(null)}>Cancel</button><button onClick={async()=>{setBusy(true);try{await onDelete(pages.findIndex(page=>page.id===id));setConfirmDelete(null);}finally{setBusy(false);}}} disabled={busy}>Delete</button></div>}</div>
       </div>;})}
     </div>

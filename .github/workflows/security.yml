@@ -1,10 +1,7 @@
 name: Security and privacy
 on:
-  push:
-  pull_request:
+  workflow_call:
   workflow_dispatch:
-  schedule:
-    - cron: '19 5 * * 1'
 permissions:
   contents: read
 jobs:

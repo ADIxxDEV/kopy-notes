@@ -1,3 +1,5 @@
+import {BackgroundGallery} from './BackgroundGallery';
+import './background-gallery.css';
 import {useEffect,useRef,useState} from 'react';
 import type {AppProfile} from '@/db/schema';
 import {BOARD_PRESETS,type BoardPreset} from '@/lib/board-presets';
@@ -16,11 +18,13 @@ function PresetPreview({preset}:{preset:BoardPreset}){
   useEffect(()=>{let cancelled=false;const ctx=ref.current?.getContext('2d');if(!ctx)return;const source=preset.image??presetTexture(preset.id);const paint=(image?:HTMLImageElement)=>{if(cancelled)return;drawBackground(ctx,240,96,preset.background,preset.pattern,1,image);ctx.fillStyle=preset.ink;ctx.font='italic 24px Georgia';ctx.fillText('Aa',16,38);};paint();if(source)void loadBackgroundImage(source).then(paint).catch(()=>{});return()=>{cancelled=true;};},[preset]);
   return <canvas aria-hidden="true" ref={ref} width={240} height={96} style={{width:'100%',height:64,objectFit:'cover'}}/>;
 }
-export function BoardPresets({value,onChange}:{value:Partial<AppProfile>;onChange:(patch:Partial<AppProfile>)=>void}){
+export function BoardPresets({value,onChange,onlyGallery=false}:{value:Partial<AppProfile>;onChange:(patch:Partial<AppProfile>)=>void;onlyGallery?:boolean}){
   const [name,setName]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),input=useRef<HTMLInputElement>(null);
   const saved=value.boardPresets??[],presets=[...(value.theme?.boards??BOARD_PRESETS),...saved].filter((p,i,list)=>list.findIndex(item=>item.id===p.id)===i);
+  if(onlyGallery)return <BackgroundGallery onChange={onChange}/>;
   return <section aria-label="Board presets" className="space-y-3">
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{presets.map(p=><button key={p.id} type="button" aria-label={`Apply preset ${p.name}`} aria-pressed={value.boardBg===p.background&&value.boardPattern===p.pattern} onClick={()=>onChange({boardBg:p.background,boardPattern:p.pattern,defaultPenColor:p.ink,boardImage:p.image??presetTexture(p.id)})} className="kn-focus overflow-hidden rounded-lg border border-line text-left"><PresetPreview preset={p}/><span className="block px-2 py-2 text-xs font-medium">{p.name}</span></button>)}</div>
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{presets.map(p=><button key={p.id} type="button" aria-label={`Apply preset ${p.name}`} aria-pressed={value.boardBg===p.background&&value.boardPattern===p.pattern&&value.boardImage===(p.image??presetTexture(p.id))} onClick={()=>onChange({boardBg:p.background,boardPattern:p.pattern,defaultPenColor:p.ink,boardImage:p.image??presetTexture(p.id)})} className="kn-focus overflow-hidden rounded-lg border border-line text-left"><PresetPreview preset={p}/><span className="block px-2 py-2 text-xs font-medium">{p.name}</span></button>)}</div>
+    <BackgroundGallery onChange={onChange}/>
     <label className="block text-xs">Board color<input aria-label="Custom default board color" type="color" value={value.boardBg??'#83d131'} onChange={e=>onChange({boardBg:e.target.value,boardImage:undefined})} className="mt-1 block h-10 w-full rounded-lg border border-line bg-base p-1"/></label>
     <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} className="min-h-11 rounded-lg border border-line px-3" onClick={()=>input.current?.click()}>{busy?'Preparing image…':'Background image'}</button>{value.boardImage&&<button type="button" className="min-h-11 rounded-lg border border-line px-3" onClick={()=>onChange({boardImage:undefined})}>Remove image</button>}</div>
     <p className="text-xs text-muted">PNG, JPEG or WebP up to 64 MB. Automatically resized to fit 1280 x 720 and compressed under 550 KB; proportions are preserved.</p>

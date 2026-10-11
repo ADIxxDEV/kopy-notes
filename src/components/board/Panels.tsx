@@ -1,3 +1,4 @@
+import {PenStore} from '@/components/PenStore';
 import {MenuScreen,MenuScreenContext} from './MenuScreen';
 import {CommunityLinks} from '@/components/CommunityLinks';
 import {BackupConnections} from '@/components/BackupConnections';
@@ -100,7 +101,7 @@ export function SettingsPanel({
       <div className="space-y-5">
         {saveError&&<p role="alert" className="text-sm text-red-700">{saveError}</p>}
         <TeachingPreferences value={preferences} onChange={patch=>setPreferences(value=>({...value,...patch}))} onThemeChange={patch=>{setPreferences(value=>({...value,...patch}));if(patch.accent)setAccent(patch.accent);setSaveError("");void updateProfile(patch).catch(error=>setSaveError(error instanceof Error?error.message:"Could not apply theme."));}}/>
-        <BackupConnections/><ImportSources/><CommunityLinks/>
+        <PenStore/><BackupConnections/><ImportSources/><CommunityLinks/>
         <Field label="App / profile name" hint="Shown everywhere in the app.">
           <input
             value={appName}

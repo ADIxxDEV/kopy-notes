@@ -32,7 +32,9 @@ export type ActiveTool =
 
 export type Pen = {
   stamp?:"smile"|"star"|"heart"|"sun";
-  brush?: 'normal' | 'pencil' | 'paint' | 'chinese' | 'crayon' | 'stamp';
+  brush?: import('./brush-presets').BrushKind;
+  brushSettings?:import('./brush-presets').BrushSettings;
+  customPenId?:string;
   color: string;
   size: number;
   opacity: number;
@@ -43,6 +45,7 @@ export type Pen = {
   shapeRoundness?: number;
   shapeWidth?: number;
   shapeDash?: "solid" | "dashed" | "dotted";
+  barrelButton?: "none" | "eraser" | "pan";
   pressure?: boolean;
   touchMode?: "draw" | "reject" | "palm-erase" | "pan";
   gestureMode?: "pan-zoom" | "pan" | "off";

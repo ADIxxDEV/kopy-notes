@@ -67,3 +67,10 @@
 [data-theme-appearance="org-note3"] .board-toolbar[data-layout="right"] .kn-main-tools button[aria-pressed="true"]>:is(.kn-theme-tool-image,[data-note3-artwork]){transform:translateX(-5px)}
 [data-theme-appearance="org-note3"] .kn-dock-fullscreen>button{width:48px;height:48px}
 @media(prefers-reduced-motion:reduce){[data-theme-appearance="org-note3"] .kn-main-tools button>:is(.kn-theme-tool-image,[data-note3-artwork]){transition:none}}
+
+/* Original silver artwork with consistent charcoal submenu headings. */
+[data-theme-appearance="org-note3"] :is(.kn-options-heading,.selection-heading,.kn-more-tools>header,.kn-shape-palette>header,.kn-menu-screen>header){background:linear-gradient(#535856,#272b2a);color:#fff;border-color:#202423;border-radius:8px;padding:8px}
+[data-theme-appearance="org-note3"] .kn-options-heading .text-muted{color:#fff}
+[data-theme-appearance="org-note3"] :is(.kn-more-tools,.kn-tool-options,.kn-shape-palette,.kn-menu-screen,.selection-actions,.selection-actions-side) input:not([type="range"]):not([type="color"]):not([type="checkbox"]){color:var(--color-ink);background:var(--color-panel)}
+
+[data-theme-appearance="org-note3"] :is(.kn-file-menu>div:first-child,.teaching-options>strong,.treasure-panel>header,.selection-actions-side>header,.kn-solid-controls>strong){display:block;background:linear-gradient(#535856,#272b2a);color:#fff;border-radius:7px;padding:8px}

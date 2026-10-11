@@ -1,3 +1,7 @@
+import {createSolid,isSolid,type SolidKind} from '@/lib/solid-shapes';
+import {SolidControls} from '@/components/board/SolidControls';
+import {BoardChemistryLayer,EquipmentControls} from '@/components/board/BoardChemistry';
+import {createEquipment,isEquipment,VESSELS,type Vessel} from '@/lib/chemistry-equipment';
 import {MenuScreenContext} from '@/components/board/MenuScreen';
 import {warmPdfPages} from '@/lib/media';
 import {checkpoint,acknowledge,lastWorkActivity,setWorkActivity,unfinishedEdits,recordSession,finishSession,savedPageView,type EditCheckpoint,type PageEdit} from '@/lib/work-journal';
@@ -54,7 +58,7 @@ import {
 import {FLOATING_TOOLS, type FloatingToolId, type MediaItem } from "@/lib/constants";
 import type { Notebook, Page } from "@/db/schema";
 
-type Modal = "themes" | "settings" | "help" | "about" | "import" | "export" | null;
+type Modal = "backgrounds" | "themes" | "settings" | "help" | "about" | "import" | "export" | null;
 
 export default function BoardPage() {
   const params = useParams();
@@ -74,6 +78,7 @@ export default function BoardPage() {
   const [pattern, setPattern] = useState("none");
   const [panel, setPanel] = useState<DockId | null>(null);
   const [modal, setModal] = useState<Modal>(null);
+  const [chemistryDose,setChemistryDose]=useState(25);
   const [openTools,setOpenTools]=useState<Set<FloatingToolId>>(()=>{try{const stored=JSON.parse(localStorage.getItem('kopy-open-tools')??'[]');return new Set(Array.isArray(stored)?stored.filter(id=>id!=='screenshot'&&FLOATING_TOOLS.some(t=>t.id===id)):[]);}catch{return new Set();}});
   useEffect(()=>{try{localStorage.setItem('kopy-open-tools',JSON.stringify([...openTools].filter(id=>id!=='screenshot')));}catch{}},[openTools]);
   const [thumbsOpen, setThumbsOpen] = useState(()=>window.innerWidth>=1000);
@@ -87,7 +92,7 @@ export default function BoardPage() {
   const [showRecorder,setShowRecorder]=useState(false);
   const [showBackups,setShowBackups]=useState(false);
   const [commentsOpen,setCommentsOpen]=useState(false);
-  const [toolbarLayout,setToolbarLayout]=useState<'bottom'|'left'|'right'>(()=>{try{const value=localStorage.getItem('kopy-toolbar-layout');return value==='left'||value==='right'?value:'bottom';}catch{return 'bottom';}});
+  const [toolbarLayout,setToolbarLayout]=useState<'bottom'|'top'|'left'|'right'>(()=>{try{const value=localStorage.getItem('kopy-toolbar-layout');return value==='left'||value==='right'||value==='top'?value:'bottom';}catch{return 'bottom';}});
   useEffect(()=>{try{localStorage.setItem('kopy-toolbar-layout',toolbarLayout);window.dispatchEvent(new Event('kopy-popup-layout'));}catch{/* Layout remains usable when storage is unavailable. */}},[toolbarLayout]);
   const [assistantOpen,setAssistantOpen]=useState(false);
   const [subjectTool, setSubjectTool] = useState<SubjectTool | null>(null);
@@ -162,6 +167,9 @@ export default function BoardPage() {
 
   // -------------------------------- loading --------------------------------
 
+  const [previewSize,setPreviewSize]=useState({width:1280,height:720});
+  useEffect(()=>{const canvas=wb.canvasRef.current;if(!canvas)return;let frame=0;const update=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const width=canvas.clientWidth,height=canvas.clientHeight;if(width&&height)setPreviewSize(previous=>previous.width===width&&previous.height===height?previous:{width,height});});};const observer=new ResizeObserver(update);observer.observe(canvas);update();return()=>{observer.disconnect();cancelAnimationFrame(frame);};},[loading]);
+  const previewFrames=Object.fromEntries(pages.map(page=>{const view=page.id===currentPage?.id?wb.view:savedPageView(page.id)??{tx:0,ty:0,scale:1};return [page.id,{x:-view.tx/view.scale,y:-view.ty/view.scale,width:previewSize.width/view.scale,height:previewSize.height/view.scale,zoom:view.scale}];}));
   const loadPageIntoBoard = useCallback(
     (i: number, list: Page[]) => {
       const pg = list[i];
@@ -178,7 +186,7 @@ export default function BoardPage() {
       wb.reset(pg.objects ?? [], pg.media ?? []);
       const view=savedPageView(pg.id);
       if(view)wb.restoreView(view);
-      else if(pg.importFrame||pg.media?.length||pg.objects?.length)window.setTimeout(()=>{if(pageIdRef.current!==pg.id)return;if(pg.importFrame)wb.fitToBounds(pg.importFrame);else if(pg.media?.length||!wb.hasVisibleContent())wb.fitToContent();},100);
+      else if(pg.importFrame)window.setTimeout(()=>{if(pageIdRef.current===pg.id)wb.centerBounds(pg.importFrame!);},100);
     },
     [wb],
   );
@@ -319,7 +327,7 @@ export default function BoardPage() {
     (items: MediaItem[],frame?:Page["importFrame"]) => {
       if(frame)frameRef.current=frame;
       for (const item of items) wb.addMedia(item);
-      window.setTimeout(()=>frame?wb.fitToBounds(frame):wb.fitToContent(),100);
+      // Import placement changes the document, never the current zoom.
     },
     [wb],
   );
@@ -515,6 +523,14 @@ export default function BoardPage() {
     );
   }
 
+  function addSolid(kind:SolidKind){const center=centerWorld(),object=createSolid(kind,center.x-100,center.y-100,wb.pen.color);object.fillColor=wb.pen.shapeFillColor??'#6296bd';wb.addObjects([object]);wb.setTool('select');wb.setSelection({kind:'object',id:object.id});}
+  function addEquipment(vessel:Vessel,reagent?:'Water'|'HCl'|'NaOH') {
+    const center=centerWorld(),count=wb.objects.filter(isEquipment).length;
+    const spacing=Math.min(190,Math.max(45,(innerWidth-150)/3))/wb.view.scale;
+    const offset=innerWidth<600?(count%2?1:-1)*innerWidth/4/wb.view.scale:((count%3)-1)*spacing;
+    const object=createEquipment(vessel,center.x-VESSELS[vessel].w/2+offset,center.y-140+Math.floor(count%6/3)*70,wb.pen.color,reagent);
+    wb.addObjects([object]);wb.setTool('select');wb.setSelection({kind:'object',id:object.id});setSubjectTool(null);setPanel(null);
+  }
   const guideWindows: { id: FloatingToolId; title: string; icon: string; width: number; kind: "ruler" | "protractor" | "setsquare" | "compass" }[] = [
     { id: "ruler", title: "Ruler", icon: "📏", width: 560, kind: "ruler" },
     { id: "protractor", title: "Protractor", icon: "📐", width: 320, kind: "protractor" },
@@ -523,7 +539,7 @@ export default function BoardPage() {
   ];
 
   return (
-    <div data-toolbar-layout={toolbarLayout} data-slides-side={slidesSide} data-flip-tools={ui.flipToolsOnSwap} data-show-fullscreen={ui.showFullscreen} data-show-customize={ui.showCustomize} data-show-time={ui.showTime} data-show-slides={ui.showSlideControls} data-show-menu={ui.showMenu} data-show-toolbar={ui.showToolbar} className="kn-board fixed inset-0 flex flex-col bg-base" style={{'--control-panel':controlPalette(profile.theme??BUILTIN_THEMES[0],background).panel,'--control-ink':controlPalette(profile.theme??BUILTIN_THEMES[0],background).ink,'--control-line':controlPalette(profile.theme??BUILTIN_THEMES[0],background).line,'--guide-ink':(parseInt(background.slice(1,3),16)*.299+parseInt(background.slice(3,5),16)*.587+parseInt(background.slice(5,7),16)*.114)<125?'#e5f3fa':'#153848'} as React.CSSProperties}>
+    <div data-menu-edge={ui.menuEdge} data-slides-edge={ui.slidesEdge} data-toolbar-layout={toolbarLayout} data-slides-side={slidesSide} data-flip-tools={ui.flipToolsOnSwap} data-show-fullscreen={ui.showFullscreen} data-show-customize={ui.showCustomize} data-show-time={ui.showTime} data-show-slides={ui.showSlideControls} data-show-menu={ui.showMenu} data-show-toolbar={ui.showToolbar} className="kn-board fixed inset-0 flex flex-col bg-base" style={{'--control-panel':controlPalette(profile.theme??BUILTIN_THEMES[0],background).panel,'--control-ink':controlPalette(profile.theme??BUILTIN_THEMES[0],background).ink,'--control-line':controlPalette(profile.theme??BUILTIN_THEMES[0],background).line,'--guide-ink':(parseInt(background.slice(1,3),16)*.299+parseInt(background.slice(3,5),16)*.587+parseInt(background.slice(5,7),16)*.114)<125?'#e5f3fa':'#153848'} as React.CSSProperties}>
       {operation&&<LoadingOverlay detail={operation}/>}
       {/* ---------------------------- Top bar ---------------------------- */}
       {!presenting && (
@@ -607,6 +623,7 @@ export default function BoardPage() {
         {/* Selection actions */}
         {wb.selection && (
           <SelectionBar
+            children={isSolid(selectedObject)&&wb.selectedIds.length===1?<SolidControls object={selectedObject} onChange={wb.changeObjects}/>:isEquipment(selectedObject)&&wb.selectedIds.length===1?<EquipmentControls key={selectedObject.id} object={selectedObject} objects={wb.objects} onChange={wb.changeObjects} onAdd={addEquipment} dose={chemistryDose} onDose={setChemistryDose}/>:undefined}
             anchor={wb.selectionBounds?{...wb.worldToScreen(wb.selectionBounds.x,wb.selectionBounds.y),width:wb.selectionBounds.w*wb.view.scale,height:wb.selectionBounds.h*wb.view.scale}:{x:12,y:100,width:0,height:0}}
             count={wb.selectedIds.length}
             onResize={wb.resizeSelected}
@@ -620,7 +637,7 @@ export default function BoardPage() {
             onRecolor={wb.recolorSelected}
             onShapeProperties={wb.updateShapeSelected}
             onMediaProperties={wb.updateMediaSelected}
-            onPlaceMedia={(align,fit)=>{const center=centerWorld();const frame=frameRef.current??{x:center.x-640,y:center.y-360,width:1280,height:720};wb.placeSelectedMedia(frame,align,fit);if(fit)wb.fitToBounds(frame);}}
+            onPlaceMedia={(align,fit)=>{const center=centerWorld();const frame=frameRef.current??{x:center.x-640,y:center.y-360,width:1280,height:720};wb.placeSelectedMedia(frame,align,fit);if(fit)wb.centerBounds(frame);}}
             onPdfPage={(delta) => {
               if (selectedMedia?.kind === "pdf") {
                 void wb.setPdfPage(selectedMedia.id, selectedMedia.pageNumber + delta).catch(()=>push('Could not open this PDF page.','error'));
@@ -631,6 +648,7 @@ export default function BoardPage() {
           />
         )}
 
+        <BoardChemistryLayer objects={wb.objects} selected={isEquipment(selectedObject)?selectedObject:undefined} worldToScreen={wb.worldToScreen} screenToWorld={wb.screenToWorld} scale={wb.view.scale} onChange={wb.changeObjects} dose={chemistryDose}/>
         {wb.selection && !selectedMedia?.locked && wb.selectionBounds && <ResizeHandles bounds={wb.selectionBounds} screen={wb.worldToScreen} resize={wb.resizeSelected}/>}
         {/* Text editor overlay */}
         {wb.editingText && (
@@ -676,7 +694,7 @@ export default function BoardPage() {
         {profile.ai?.enabled&&<button className="local-assistant-launch" onClick={()=>setAssistantOpen(value=>!value)} aria-label="Local assistant">AI assistant</button>}
         {assistantOpen&&<LocalAssistant onClose={()=>setAssistantOpen(false)} onInsert={text=>{const center=centerWorld();wb.addObjects([{id:uid(),kind:'text',x:center.x-220,y:center.y,text,color:wb.pen.color,fontSize:24,fontFamily:'Arial',bold:false}]);}}/>}
         <div hidden={!showRecorder&&!recording}><ClassRecorder canvas={() => wb.canvasRef.current} title={notebook.title} onActive={setRecording}/></div>
-        {subjectTool && <SubjectTools onInsertText={text=>{const center=centerWorld();wb.addObjects([{id:uid(),kind:'text',x:center.x-220,y:center.y,text,color:wb.pen.color,fontSize:24,fontFamily:'Arial',bold:false}]);}} tool={subjectTool} onClose={() => setSubjectTool(null)} onInsert={async (url,width,height) => {
+        {subjectTool && <SubjectTools onAddEquipment={addEquipment} onInsertText={text=>{const center=centerWorld();wb.addObjects([{id:uid(),kind:'text',x:center.x-220,y:center.y,text,color:wb.pen.color,fontSize:24,fontFamily:'Arial',bold:false}]);}} tool={subjectTool} onClose={() => setSubjectTool(null)} onInsert={async (url,width,height) => {
           const blob = await (await fetch(url)).blob();
           const response = await localRequest('/api/assets', {method:'POST',body:JSON.stringify({notebookId:id,name:'Teaching diagram',mimeType:blob.type,dataBase64:await fileToBase64(blob)})});
           if (!response.ok) { push('Could not insert this diagram.', 'error'); return; }
@@ -734,18 +752,18 @@ export default function BoardPage() {
               )}
             </div>
             {panel === "treasure" && (
-              <TreasureBox onSubjectTool={tool=>{setSubjectTool(tool);if(tool==='curtain')setPanel(null);}} openTools={openTools} onToggle={toggleTool} onClose={() => setPanel(null)} />
+              <TreasureBox onOpenBackgrounds={()=>{setPanel(null);setModal("backgrounds");}} onSubjectTool={tool=>{setSubjectTool(tool);if(tool==='curtain')setPanel(null);}} openTools={openTools} onToggle={toggleTool} onClose={() => setPanel(null)} />
             )}
           </>
         )}
 
-        {thumbsOpen && <SlidesPanel pages={pages} activePageId={currentPage?.id??''}
+        {thumbsOpen && <SlidesPanel previewFrames={previewFrames} pages={pages} activePageId={currentPage?.id??''}
           onGo={i=>{void goTo(i).catch(()=>push('Could not save your edits. Keep this slide open.','error'));}}
           onReorder={reorderPages} onClose={()=>setThumbsOpen(false)} onAdd={addPage} onDuplicate={duplicatePage} onDelete={deletePage} onSwap={()=>setSlidesSide(side=>side==='left'?'right':'left')}/>}
 
         {/* Bottom toolbar + page bar */}
         <div className="board-toolbar" data-layout={toolbarLayout}>
-          <Toolbar
+          <Toolbar selectionSettings={wb.selectionSettings} onSelectionSettings={wb.setSelectionSettings} onAddSolid={addSolid}
             tool={wb.tool}
             setTool={wb.setTool}
             pen={wb.pen}
@@ -805,7 +823,7 @@ export default function BoardPage() {
       )}
       {(slowSave||wb.processing)&&<LoadingOverlay detail="Processing and saving your edits..."/>}
       {(recoveryEdits.length>0||lastActivity)&&<Dialog title="Interrupted work" onClose={()=>{setRecoveryEdits([]);setLastActivity(undefined);}} width={460}><p className="mb-4 text-sm">{lastActivity&&<span className="mb-2 block">Last operation: {lastActivity}. Open the saved lesson to review it; an interrupted import or export can be started again.</span>}{recoveryEdits.length>0?'An unfinished edit was saved before this lesson closed. Restore it, or keep the last saved pages.':'Your saved pages are ready to open.'}</p><div className="flex gap-3">{recoveryEdits.length>0&&<button className="kn-focus rounded-lg bg-brand p-3 text-white" onClick={()=>{void recoverWork().then(()=>{setLastActivity(undefined);void setWorkActivity(id,undefined);});}}>Restore unfinished work</button>}<button className="kn-focus rounded-lg border border-line p-3" onClick={()=>{const entries=recoveryEdits;void Promise.all(entries.map(e=>acknowledge(e.pageId,e.revision))).then(()=>{setRecoveryEdits([]);setLastActivity(undefined);void setWorkActivity(id,undefined);});}}>Keep saved pages</button></div></Dialog>}
-      {modal === "themes"&&<Dialog title="Themes & page presets" onClose={()=>setModal(null)} width={650}><ThemeSettings value={profile} onChange={patch=>{void updateProfile(patch).catch(e=>push(e.message,'error'));}}/><div className="my-5 border-t border-line"/><BoardPresets value={{...profile,boardBg:background,boardPattern:pattern,boardImage:pageImage}} onChange={patch=>{if(patch.boardBg){setBackground(patch.boardBg);bgRef.current=patch.boardBg;}if(patch.boardPattern){setPattern(patch.boardPattern);patternRef.current=patch.boardPattern;}if('boardImage' in patch){pageImageRef.current=patch.boardImage;setPageImage(patch.boardImage);}if(patch.defaultPenColor)wb.setPen({...wb.pen,color:patch.defaultPenColor});if(patch.boardPresets)void updateProfile({boardPresets:patch.boardPresets});void saveNow(wb.objects,wb.media,bgRef.current,patternRef.current).catch(e=>push(e.message,'error'));}}/></Dialog>}
+      {(modal === "themes"||modal === "backgrounds")&&<Dialog title={modal==="themes"?"Themes & page presets":"Subject backgrounds"} onClose={()=>setModal(null)} width={650}>{modal==="themes"&&<><ThemeSettings value={profile} onChange={patch=>{void updateProfile(patch).catch(e=>push(e.message,'error'));}}/><div className="my-5 border-t border-line"/></>}<BoardPresets onlyGallery={modal==="backgrounds"} value={{...profile,boardBg:background,boardPattern:pattern,boardImage:pageImage}} onChange={patch=>{if(patch.boardBg){setBackground(patch.boardBg);bgRef.current=patch.boardBg;}if(patch.boardPattern){setPattern(patch.boardPattern);patternRef.current=patch.boardPattern;}if('boardImage' in patch){pageImageRef.current=patch.boardImage;setPageImage(patch.boardImage);}if(patch.defaultPenColor)wb.setPen({...wb.pen,color:patch.defaultPenColor});if(patch.boardPresets)void updateProfile({boardPresets:patch.boardPresets});void saveNow(wb.objects,wb.media,bgRef.current,patternRef.current).catch(e=>push(e.message,'error'));}}/></Dialog>}
       {modal === "help" && <HelpPanel onClose={() => setModal(null)} />}
       {modal === "about" && <AboutPanel onClose={() => setModal(null)} />}
       {modal === "import" && (

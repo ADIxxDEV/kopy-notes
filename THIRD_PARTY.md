@@ -15,3 +15,11 @@ Exact dependency versions are recorded in package-lock.json. Inspect each resolv
 ### org-note3 theme artwork
 
 The image assets in public/themes/org-note3.kopy-theme originate from ShiRui Note3 and are not covered by the Kopy Notes MIT license. They are included on the project owner's stated authorization for noncommercial use. No independent license verification is claimed. Commercial users must obtain the appropriate permission from the rights holder. Kopy Notes is an independent project.
+
+### Note3 background gallery
+
+`public/backgrounds/note3` contains resized WebP copies and thumbnails of installed ShiRui Note3 background artwork. Source collections: `D721BAZEZTBJ/A9DESUBBJ`, `D721BAZEZTBJ/*Bg.png`, and `Converter/V0/BgImages/GrainImages`. The same separate, owner-stated noncommercial authorization as the org-note3 theme applies; these images are not MIT licensed. Chemistry calculations and diagrams are Kopy Notes implementations. No vendor executable code is included.
+
+## Fluid Paint lighting adaptation
+
+The paint-lighting equations in `src/lib/paint-lighting.ts` are adapted from David Li's [Fluid Paint](https://github.com/dli/paint), `shaders/painting.frag`, under MIT (copyright 2017 David Li). The complete notice is in [docs/licenses/fluid-paint-MIT.txt](docs/licenses/fluid-paint-MIT.txt), and packaged in web/native builds as `licenses/fluid-paint-MIT.txt`. Kopy uses these equations with its own Canvas 2D bristle geometry; the WebGL fluid simulator is not included. No upstream logo or branding is used.

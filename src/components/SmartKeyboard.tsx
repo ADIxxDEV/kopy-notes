@@ -48,7 +48,22 @@ export function SmartKeyboard(){
  useEffect(()=>{keyboard.current?.setOptions({layoutName:layout});},[layout]);
  useEffect(()=>{if(!active)return;const observer=new MutationObserver(()=>{if(!active.isConnected)close();});observer.observe(document.body,{subtree:true,childList:true});return()=>observer.disconnect();},[active]);
  useEffect(()=>{document.documentElement.style.setProperty('--keyboard-height',active&&mode==='bottom'?'310px':'0px');return()=>{document.documentElement.style.removeProperty('--keyboard-height');};},[active,mode]);
- useEffect(()=>{if(!active)return;const clamp=()=>{const element=host.current?.parentElement;if(!element)return;const r=element.getBoundingClientRect();document.documentElement.style.setProperty('--keyboard-height',mode==='bottom'?`${Math.ceil(r.height)}px`:'0px');if(mode==='floating')setPosition((p:{x:number;y:number})=>({x:Math.max(8,Math.min(innerWidth-r.width-8,p.x)),y:Math.max(8,Math.min(innerHeight-r.height-8,p.y))}));if(mode==='bottom'&&!active.hasAttribute('data-board-text'))active.scrollIntoView({block:'nearest'});if(mode==='bottom'&&active.hasAttribute('data-board-text'))active.style.top=`${Math.max(12,Math.min(active.getBoundingClientRect().top,innerHeight-r.height-active.offsetHeight-12))}px`;};const observer=new ResizeObserver(clamp);if(host.current?.parentElement)observer.observe(host.current.parentElement);const frame=requestAnimationFrame(clamp);window.addEventListener('resize',clamp);return()=>{observer.disconnect();cancelAnimationFrame(frame);window.removeEventListener('resize',clamp);};},[active,mode]);
+ useEffect(()=>{
+  if(!active)return;let frame=0;
+  const clamp=()=>{
+   const element=host.current?.parentElement;if(!element||!active.isConnected)return;
+   const r=element.getBoundingClientRect(),height=mode==='bottom'?`${Math.ceil(r.height)}px`:'0px';
+   if(document.documentElement.style.getPropertyValue('--keyboard-height')!==height)document.documentElement.style.setProperty('--keyboard-height',height);
+   if(mode==='floating')setPosition((p:{x:number;y:number})=>{const next={x:Math.max(8,Math.min(innerWidth-r.width-8,p.x)),y:Math.max(8,Math.min(innerHeight-r.height-8,p.y))};return p.x===next.x&&p.y===next.y?p:next;});
+   if(mode==='bottom'&&!active.hasAttribute('data-board-text'))active.scrollIntoView({block:'nearest'});
+   if(mode==='bottom'&&active.hasAttribute('data-board-text')){const top=`${Math.max(12,Math.min(active.getBoundingClientRect().top,innerHeight-r.height-active.offsetHeight-12))}px`;if(active.style.top!==top)active.style.top=top;}
+  };
+  const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(clamp);};
+  const observer=new ResizeObserver(schedule);if(host.current?.parentElement)observer.observe(host.current.parentElement);
+  schedule();window.addEventListener('resize',schedule);
+  return()=>{observer.disconnect();cancelAnimationFrame(frame);window.removeEventListener('resize',schedule);};
+ },[active,mode]);
+
  const move=(event:PointerEvent<HTMLElement>)=>{const d=drag.current;if(!d||d.id!==event.pointerId)return;const r=event.currentTarget.parentElement!.getBoundingClientRect();setPosition({x:Math.max(8,Math.min(innerWidth-r.width-8,event.clientX-d.dx)),y:Math.max(8,Math.min(innerHeight-r.height-8,event.clientY-d.dy))});};
  return active?createPortal(<section data-toolbar-surface className={`kn-smart-keyboard is-${mode}`} role="region" aria-label="On-screen keyboard" onPointerDownCapture={event=>event.preventDefault()} style={mode==='floating'?{left:position.x,top:position.y}:undefined}>
   <header onPointerDown={event=>{if(mode!=='floating'||(event.target as Element).closest('button'))return;drag.current={id:event.pointerId,dx:event.clientX-position.x,dy:event.clientY-position.y};event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={move} onPointerUp={()=>{drag.current=null;try{localStorage.setItem('kopy-keyboard-position',JSON.stringify(positionRef.current));}catch{}}} onPointerCancel={()=>{drag.current=null;}}>

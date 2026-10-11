@@ -56,3 +56,13 @@ export function controlPalette(theme:ThemePack,background:string){
  if(theme.autoContrast&&panel[0]*.299+panel[1]*.587+panel[2]*.114>=128)return controlContrast(background);
  return{panel:theme.colors.panel,ink:theme.colors.ink,line:theme.colors.line};
 }
+
+/** Older local Note3 packs accidentally used the drawing arrow as Select. */
+export function themeIconSource(theme:ThemePack|undefined,id:ThemeIconId):string|undefined{
+ const source=theme?.icons[id];
+ if(id==='select'&&theme?.appearance==='org-note3'&&source?.length===3254){
+  let hash=2166136261;for(let i=0;i<source.length;i++)hash=Math.imul(hash^source.charCodeAt(i),16777619)>>>0;
+  if(hash===413514880)return undefined;
+ }
+ return source;
+}

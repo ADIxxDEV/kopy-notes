@@ -9,6 +9,8 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  security-checks:
+    uses: ./.github/workflows/security.yml
   device-checks:
     uses: ./.github/workflows/device-checks.yml
   prepare:
@@ -42,7 +44,7 @@ jobs:
       - run: node scripts/check-privacy.mjs
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
-      - run: zip -r kopy-notes-${{ needs.prepare.outputs.version }}-web.zip dist docs LICENSE README.md THIRD_PARTY.md
+      - run: zip -r kopy-notes-${{ needs.prepare.outputs.version }}-web.zip dist docs LICENSE README.md THIRD_PARTY.md CODE_OF_CONDUCT.md CONTRIBUTING.md
       - uses: actions/upload-artifact@v4
         with:
           name: release-web
@@ -131,7 +133,7 @@ jobs:
           path: release/*.apk
           if-no-files-found: error
   publish:
-    needs: [prepare, web, windows, android, device-checks]
+    needs: [prepare, web, windows, android, device-checks, security-checks]
     runs-on: ubuntu-latest
     permissions:
       contents: write

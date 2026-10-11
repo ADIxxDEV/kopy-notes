@@ -21,8 +21,8 @@ export function ToolPopover({anchor,children,selector}:{anchor:string;children:R
     };
     const schedule=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(place);};
     const observer=new ResizeObserver(schedule);if(panel.current)observer.observe(panel.current);const dock=document.querySelector('.board-toolbar');if(dock)observer.observe(dock);
-    window.addEventListener('resize',schedule);window.addEventListener('scroll',schedule,true);window.addEventListener('kopy-layout-updated',schedule);window.addEventListener('kopy-popup-layout',schedule);schedule();
-    return()=>{cancelAnimationFrame(frame);observer.disconnect();window.removeEventListener('resize',schedule);window.removeEventListener('scroll',schedule,true);window.removeEventListener('kopy-layout-updated',schedule);window.removeEventListener('kopy-popup-layout',schedule);};
+    window.visualViewport?.addEventListener('resize',schedule);window.visualViewport?.addEventListener('scroll',schedule);window.addEventListener('resize',schedule);window.addEventListener('scroll',schedule,true);window.addEventListener('kopy-layout-updated',schedule);window.addEventListener('kopy-popup-layout',schedule);schedule();
+    return()=>{cancelAnimationFrame(frame);observer.disconnect();window.visualViewport?.removeEventListener('resize',schedule);window.visualViewport?.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);window.removeEventListener('scroll',schedule,true);window.removeEventListener('kopy-layout-updated',schedule);window.removeEventListener('kopy-popup-layout',schedule);};
   },[anchor,selector]);
   const root=document.querySelector('.kn-board');if(!root)return null;
   return createPortal(<div ref={panel} data-toolbar-surface className="kn-anchored-popover" style={{position:'fixed',zIndex:70,left:position?.x??8,top:position?.y??8,visibility:position?'visible':'hidden',maxWidth:position?.maxWidth??'calc(100vw - 16px)',maxHeight:position?.maxHeight??'calc(100dvh - 16px)'}}>{children}</div>,root);

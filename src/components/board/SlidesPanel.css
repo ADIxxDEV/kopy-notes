@@ -9,3 +9,6 @@
 
 
 .kn-page-navigation .kn-page-side{position:fixed;top:45dvh;min-width:48px;min-height:60px;border:1px solid #aab4be;background:#f2f4f6;box-shadow:0 3px 15px #0002}.kn-page-side-next{right:12px}.kn-page-navigation .kn-page-side svg{width:26px;height:26px}@media(max-width:600px){.kn-page-navigation .kn-page-side{min-width:38px;min-height:48px}}
+
+/* Match the board frame rather than stretching every page into a 16:9 tile. */
+.kn-slide-preview canvas{height:auto!important;max-height:none;object-fit:contain}
