@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+## 0.2.0-dev.12 (2026-10-15)
+
+- Added automatic and manual 2 GB / 4 GB / 8 GB performance budgets for board resolution, PDF rendering, decoded images, thumbnails and undo history.
+- Reuse static board rendering during handwriting, reduce background timers, release hidden media and respond to Android memory pressure.
+- Throttle draft snapshots before cloning, encode device backups in a worker, defer automatic backups while writing and avoid write locks for database reads.
+- Load editor routes and settings sections on demand; add an Add-ons coming-soon page without loading extensions.
+- Retain persistence, import, touch and rendering regressions; remove the private local-presentation test from the shared suite.
+- Physical Android smartboard verification remains required; browser memory-budget tests do not certify hardware performance.
+
+- Fixed PPTX artwork lost from image-filled custom shapes and scaled groups; preserve solid slide backgrounds and colored text-box fills, Office boolean bold/italic styles and Arimo-compatible font fallback.
+
+- Added theme/background stores with creator and added-by credits that survive theme exports.
+- Added portable board audio/video, YouTube links, safe web links and editable CSV/Excel worksheets, with worksheet formula support. PDF exports show a static object preview; `.kopy` preserves interactive objects.
+- Detect embedded PPTX audio/video, linked YouTube and embedded `.xlsx`/CSV worksheets as interactive board objects. Legacy OLE formats retain previews with warnings; flattened imports keep static previews.
+- Fixed PPTX text positioning with measured wrapping, run font/color styles, insets, alignment, paragraph spacing, vertical anchoring and layout/master inheritance.
+- Added Android smartboard display preferences, larger interactive-object controls and stable board centering during resizing. Native APK compilation/device verification remains pending.
+
+
+- Added three crawlable teaching guides, a guide hub, metadata, sitemap entries and original editable lesson templates.
+
+- Refined the lesson library with search, subject filters, sorting, touch-friendly deletion and remembered grid/list layouts.
+- Organized setup and in-lesson settings into consistent categories with responsive columns and preserved edits when switching sections.
+
+
+- Android smartboard display annotation with native floating tools, touch-through, stylus pressure, overlay permission flow, shared annotation recovery and consent-based screenshots.
+
+- Native device-folder storage for Windows and Android, with three verified recovery generations, editable attachments and settings.
+- Windows display annotation overlay, draggable mouse/drawing controls, shapes, undo/redo, screenshots and return to the same lesson.
+- Device storage setup, explicit uninstall/cleanup guidance and native build documentation.
+
 ## 0.2.0-dev.11 (2026-10-11)
 
 - Keep floating subject tools above the docked on-screen keyboard, with reachable scrolling controls.
@@ -175,7 +205,9 @@ Validation: 28 data tests, 2 release metadata tests and 25 Edge browser checks p
 - Native installers and physical smartboard/stylus verification remain pending.
 
 
-## Unreleased — classroom tools, imports and recovery
+## Unreleased
+
+- Fixed PPTX artwork lost from image-filled custom shapes and scaled groups; preserve solid slide backgrounds and colored text-box fills, Office boolean bold/italic styles and Arimo-compatible font fallback. — classroom tools, imports and recovery
 
 Validation on 2026-10-02: production build and TypeScript check passed, eight data/geometry tests passed, seven Edge browser checks passed, and the production app reopened offline after cache activation. Native builds, physical stylus/palm behavior and successful encoded-video validation remain pending.
 

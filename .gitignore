@@ -24,3 +24,9 @@ desktop.ini
 
 # Locally licensed reference artwork; never part of an open-source release.
 .local-themes/
+
+# Private local artwork; excluded from project uploads.
+branding/*highest res.png
+
+# Original editable examples distributed with the teaching guides.
+!public/samples/*.kopy

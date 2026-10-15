@@ -1,3 +1,4 @@
+import {initializeDisplay} from './smartboard';
 import {interfaceSettings} from './interface-settings';
 "use client";
 import {BUILTIN_THEMES,parseThemePack,type ThemePack} from './theme-pack';
@@ -39,6 +40,7 @@ type AppContextValue = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  useEffect(()=>{void initializeDisplay().catch(()=>{});},[]);
   const [storedProfile, setProfile] = useState<AppProfile>(DEFAULT_PROFILE);
   const [previewTheme,setPreviewTheme]=useState<ThemePack|null>(()=>import.meta.env.DEV&&new URLSearchParams(location.search).get('theme')==='org-note3'?BUILTIN_THEMES.find(theme=>theme.id==='org-note3')!:null);
   const profile=previewTheme?{...storedProfile,theme:previewTheme,accent:previewTheme.colors.accent}:storedProfile;

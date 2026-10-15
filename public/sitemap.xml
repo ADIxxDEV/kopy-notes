@@ -1,1 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://kopy-notes.netlify.app/</loc></url></urlset>
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://kopy-notes.netlify.app/</loc></url>
+  <url><loc>https://kopy-notes.netlify.app/guides/</loc></url>
+  <url><loc>https://kopy-notes.netlify.app/guides/online-whiteboard-for-free/</loc></url>
+  <url><loc>https://kopy-notes.netlify.app/guides/smart-board-for-teaching/</loc></url>
+  <url><loc>https://kopy-notes.netlify.app/guides/digital-board-for-teaching/</loc></url>
+</urlset>

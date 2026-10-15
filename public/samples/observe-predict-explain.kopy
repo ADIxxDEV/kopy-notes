@@ -1,0 +1,112 @@
+{
+  "format": "kopy-notes",
+  "version": 2,
+  "notebook": {
+    "id": "observe-predict-explain",
+    "title": "Observe, predict, explain",
+    "subject": "Science",
+    "coverColor": "#526677",
+    "pageCount": 2,
+    "createdAt": "2026-10-11T00:00:00.000Z",
+    "updatedAt": "2026-10-11T00:00:00.000Z"
+  },
+  "pages": [
+    {
+      "id": "page-0",
+      "notebookId": "observe-predict-explain",
+      "position": 0,
+      "background": "#f7f6ef",
+      "pattern": "dots",
+      "objects": [
+        {
+          "id": "title-0",
+          "kind": "text",
+          "x": 70,
+          "y": 60,
+          "text": "Predict",
+          "color": "#183c36",
+          "fontSize": 36,
+          "fontFamily": "Arial",
+          "bold": true
+        },
+        {
+          "id": "prompt-0",
+          "kind": "text",
+          "x": 70,
+          "y": 130,
+          "text": "Sketch your model. What do you expect to happen?\nWrite one reason before revealing the demonstration.",
+          "color": "#183c36",
+          "fontSize": 24,
+          "fontFamily": "Arial",
+          "bold": false
+        },
+        {
+          "id": "box-0",
+          "kind": "shape",
+          "shape": "rect",
+          "x": 70,
+          "y": 240,
+          "w": 1060,
+          "h": 340,
+          "color": "#526677",
+          "width": 2,
+          "filled": false,
+          "rotation": 0,
+          "dash": "dashed"
+        }
+      ],
+      "media": [],
+      "createdAt": "2026-10-11T00:00:00.000Z",
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "id": "page-1",
+      "notebookId": "observe-predict-explain",
+      "position": 1,
+      "background": "#f7f6ef",
+      "pattern": "dots",
+      "objects": [
+        {
+          "id": "title-1",
+          "kind": "text",
+          "x": 70,
+          "y": 60,
+          "text": "Explain",
+          "color": "#183c36",
+          "fontSize": 36,
+          "fontFamily": "Arial",
+          "bold": true
+        },
+        {
+          "id": "prompt-1",
+          "kind": "text",
+          "x": 70,
+          "y": 130,
+          "text": "Record the observation. Does it support your prediction?\nWrite a revised explanation and one question.",
+          "color": "#183c36",
+          "fontSize": 24,
+          "fontFamily": "Arial",
+          "bold": false
+        },
+        {
+          "id": "box-1",
+          "kind": "shape",
+          "shape": "rect",
+          "x": 70,
+          "y": 240,
+          "w": 1060,
+          "h": 340,
+          "color": "#526677",
+          "width": 2,
+          "filled": false,
+          "rotation": 0,
+          "dash": "dashed"
+        }
+      ],
+      "media": [],
+      "createdAt": "2026-10-11T00:00:00.000Z",
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    }
+  ],
+  "assets": []
+}

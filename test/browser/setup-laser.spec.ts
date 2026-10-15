@@ -2,7 +2,7 @@ import {selectOption} from '../helpers/custom-select';
 import {test,expect} from '@playwright/test';
 test('teaching defaults and watermark persist; assistant sends only on explicit request',async({page})=>{
   let calls=0;await page.route('http://127.0.0.1:11434/api/generate',async route=>{calls++;expect(route.request().postDataJSON().prompt).toBe('Explain fractions');await route.fulfill({json:{response:'A fraction represents part of a whole.'}});});
-  await page.goto('/#/app');await page.getByLabel('Default pen color').fill('#aa2200');
+  await page.goto('/#/app');await page.getByRole('navigation',{name:'Settings categories'}).getByRole('button',{name:'Board & tools',exact:true}).click();await page.getByLabel('Default pen color').fill('#aa2200');
   await page.getByLabel('Default background White').click();await selectOption(page.getByLabel('Default board pattern'),'grid');
   await page.getByText('Watermark, screen calibration & local AI',{exact:true}).click();
   await page.getByLabel('Enable teaching watermark').check();await page.getByLabel('Watermark text').fill('CLASSROOM');await selectOption(page.getByLabel('Watermark position'),'bottom-right');

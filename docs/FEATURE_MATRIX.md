@@ -40,3 +40,7 @@ See [format limits and setup](NOTE3_COMPATIBILITY.md).
 - Independent menu and slide-control edge settings; drawing tools can dock at the top, bottom, left or right. Existing custom layouts remain available.
 - Shapes: swipeable 2D/3D groups; cube, cuboid, pyramid, triangular prism, cylinder, cone and sphere. Native objects support yaw/pitch/roll, wireframe, resize, mirror, undo and editable .kopy persistence.
 - Browser checks simulate stylus/touch events. Physical stylus button support depends on the device and browser exposing standard Pointer Events.
+
+## Offline native devices
+
+Windows and Android can retain complete library copies in a device folder outside private app storage. Three checksummed copies retain attachments and preferences; an empty app library can recover them. Windows additionally supports transparent desktop annotation with a draggable toolbar, click-through mouse mode, drawing, shapes, undo/redo and screenshots. See [device setup and limitations](OFFLINE_DEVICE.md). Android smartboards also support system-wide annotation with a user-granted overlay permission, a foreground service, touch-through mode, stylus pressure, shared-folder recovery and consent-based single screenshots.

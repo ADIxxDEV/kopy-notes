@@ -1,45 +1,53 @@
+import {isSpecial,drawSpecialPreview} from '@/lib/special-objects';
 import {loadBackgroundImage} from '@/lib/background-image';
 import {drawBackground} from '@/lib/render';
 "use client";
-import {useEffect,useRef,useState,type PointerEvent} from "react";
+import {memo,useEffect,useRef,useState,type PointerEvent} from "react";
 import type {Page} from "@/db/schema";
 import {drawObject} from "@/lib/render";
 import {loadImage,peekDocx,peekPdfPage,renderPdfPage,renderDocxToCanvas} from "@/lib/media";
+import {getPerformanceProfile} from '@/lib/performance';
 import {Icon} from "@/components/Icon";
 import "./SlidesPanel.css";
 
 export type PreviewFrame={x:number;y:number;width:number;height:number;zoom?:number};
-function SlideThumbnail({page,frame}:{page:Page;frame:PreviewFrame}) {
+let thumbnailQueue:Promise<unknown>=Promise.resolve();
+const SlideThumbnail=memo(function SlideThumbnail({page,frame}:{page:Page;frame:PreviewFrame}) {
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
-    const target=ref.current;if(!target)return;let cancelled=false;
-    const paint=async()=>{
+    const target=ref.current;if(!target)return;let cancelled=false;let generation=0;
+    const paint=async(token:number)=>{
+      if(cancelled||token!==generation)return;
       const canvas=document.createElement('canvas');
       const {x,y,width,height}=frame;
-      canvas.width=320;canvas.height=Math.max(1,Math.round(320*height/width));
+      const previewWidth=getPerformanceProfile().thumbnailWidth;canvas.width=previewWidth;canvas.height=Math.max(1,Math.min(768,Math.round(previewWidth*height/width)));
       const ctx=canvas.getContext('2d');if(!ctx)return;
       const scale=canvas.width/width;
-      const backgroundImage=page.backgroundImage?await loadBackgroundImage(page.backgroundImage).catch(()=>undefined):undefined;if(cancelled)return;const zoom=frame.zoom??1;drawBackground(ctx,width*zoom,height*zoom,page.background,page.pattern,scale/zoom,backgroundImage);ctx.save();ctx.scale(scale,scale);ctx.translate(-x,-y);
+      const backgroundImage=page.backgroundImage?await loadBackgroundImage(page.backgroundImage).catch(()=>undefined):undefined;if(cancelled||token!==generation){canvas.width=canvas.height=0;return;}const zoom=frame.zoom??1;drawBackground(ctx,width*zoom,height*zoom,page.background,page.pattern,scale/zoom,backgroundImage);ctx.save();ctx.scale(scale,scale);ctx.translate(-x,-y);
       for(const media of page.media){
+        if(isSpecial(media)){drawSpecialPreview(ctx,media);continue;}
         try{
-          const image=media.kind==='image'?await loadImage(media.assetId):media.kind==='pdf'?(peekPdfPage(media.assetId,media.pageNumber)||await renderPdfPage(media.assetId,media.pageNumber,320)):peekDocx(media.assetId)??await renderDocxToCanvas(media.assetId,900);
-          if(cancelled)return;
+          const image=media.kind==='image'?await loadImage(media.assetId):media.kind==='pdf'?(peekPdfPage(media.assetId,media.pageNumber)||await renderPdfPage(media.assetId,media.pageNumber,previewWidth)):peekDocx(media.assetId)??await renderDocxToCanvas(media.assetId,900);
+          if(cancelled||token!==generation){canvas.width=canvas.height=0;return;}
           ctx.save();ctx.translate(media.x+media.width/2,media.y+media.height/2);ctx.rotate(media.rotation||0);ctx.scale(media.mirrorX?-1:1,media.mirrorY?-1:1);
           if(image)ctx.drawImage(image,-media.width/2,-media.height/2,media.width,media.height);
           else{ctx.fillStyle='#fff';ctx.fillRect(-media.width/2,-media.height/2,media.width,media.height);ctx.fillStyle='#334155';ctx.font='32px sans-serif';ctx.fillText('Document',-media.width/2+12,0);}
           ctx.restore();
         }catch{/* Missing files must not block navigation. */}
       }
-      for(const object of page.objects)drawObject(ctx,object);ctx.restore();if(cancelled)return;target.width=canvas.width;target.height=canvas.height;target.getContext('2d')?.drawImage(canvas,0,0);
+      for(const object of page.objects)drawObject(ctx,object);ctx.restore();if(cancelled||token!==generation){canvas.width=canvas.height=0;return;}target.width=canvas.width;target.height=canvas.height;target.getContext('2d')?.drawImage(canvas,0,0);canvas.width=canvas.height=0;
     };
-    const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer.disconnect();void paint();}},{rootMargin:'120px'});
-    observer.observe(target);return()=>{cancelled=true;observer.disconnect();};
+    // Keep only visible thumbnail backing stores. Scrolling a large deck must
+    // not permanently allocate a canvas (and decode a PDF) for every slide.
+    const observer=new IntersectionObserver(entries=>{for(const entry of entries){const token=++generation;if(entry.isIntersecting){const next=thumbnailQueue.then(()=>paint(token));thumbnailQueue=next.catch(()=>{});}else{target.width=target.height=1;}}},{rootMargin:'40px'});
+    observer.observe(target);return()=>{cancelled=true;generation++;observer.disconnect();target.width=target.height=1;};
   },[page,frame.x,frame.y,frame.width,frame.height,frame.zoom]);
-  return <canvas ref={ref} width={320} height={Math.max(1,Math.round(320*frame.height/frame.width))} style={{aspectRatio:`${frame.width}/${frame.height}`}} aria-hidden="true"/>;
-}
+  return <canvas ref={ref} width={1} height={1} style={{aspectRatio:`${frame.width}/${frame.height}`}} aria-hidden="true"/>;
+});
 
 export function SlidesPanel({previewFrames,pages,activePageId,onGo,onReorder,onClose,onAdd,onDuplicate,onDelete,onSwap}:{previewFrames?:Record<string,PreviewFrame>;pages:Page[];activePageId:string;onGo:(index:number)=>void;onReorder:(ids:string[])=>Promise<void>;onClose:()=>void;onAdd:()=>void;onDuplicate?:(index:number)=>void;onDelete:(index:number)=>Promise<void>;onSwap:()=>void}){
   const [menuOpen,setMenuOpen]=useState(false);
+  const pageById=new Map(pages.map(page=>[page.id,page]));
   const activeIndex=Math.max(0,pages.findIndex(page=>page.id===activePageId));
   const [compact,setCompact]=useState(()=>{try{return localStorage.getItem('kopy-slides-compact')==='true';}catch{return false;}});
   useEffect(()=>{try{localStorage.setItem('kopy-slides-compact',String(compact));}catch{}},[compact]);
@@ -95,7 +103,7 @@ export function SlidesPanel({previewFrames,pages,activePageId,onGo,onReorder,onC
     </header>
     {menuOpen&&<div className="kn-slides-actions"><button className="kn-focus" aria-label="Compact slide list" title="Compact slide list" aria-pressed={compact} onClick={()=>setCompact(value=>!value)}><Icon name="layers"/></button><button className="kn-focus" onClick={()=>setLarge(value=>!value)} aria-pressed={large} aria-label="Larger slide previews" title="Larger previews"><Icon name="zoomIn"/></button><button className="kn-focus" onClick={onSwap} aria-label="Swap slide panel side" title="Swap sides"><Icon name="flipHorizontal"/></button></div>}
     <div className="kn-slides-list" aria-busy={busy}>
-      {order.map((id,index)=>{const page=pages.find(page=>page.id===id);if(!page)return null;return <div key={id} data-slide-id={id} className={`kn-slide-row ${id===activePageId?'is-active':''} ${id===dragId?'is-dragging':''}`} onContextMenu={event=>event.preventDefault()} onPointerDown={event=>begin(event,id)} onPointerMove={move} onPointerUp={event=>finish(event)} onPointerCancel={event=>finish(event,true)}>
+      {order.map((id,index)=>{const page=pageById.get(id);if(!page)return null;return <div key={id} data-slide-id={id} className={`kn-slide-row ${id===activePageId?'is-active':''} ${id===dragId?'is-dragging':''}`} onContextMenu={event=>event.preventDefault()} onPointerDown={event=>begin(event,id)} onPointerMove={move} onPointerUp={event=>finish(event)} onPointerCancel={event=>finish(event,true)}>
         <button className="kn-slide-handle kn-focus" aria-label={`Reorder slide ${index+1}`} title="Drag to reorder. Arrow keys move this slide." disabled={busy} onPointerDown={event=>{event.stopPropagation();begin(event,id,true);}} onPointerMove={event=>{event.stopPropagation();move(event);}} onPointerUp={event=>{event.stopPropagation();finish(event);}} onPointerCancel={event=>{event.stopPropagation();finish(event,true);}} onKeyDown={event=>{
           if(!['ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const to=index+(event.key==='ArrowUp'?-1:1);if(to<0||to>=order.length)return;const ids=[...order];ids.splice(index,1);ids.splice(to,0,id);orderRef.current=ids;setOrder(ids);void commit(ids);
         }}><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor">{[6,12,18].flatMap(y=>[8,16].map(x=><circle key={`${x}-${y}`} cx={x} cy={y} r={1.6}/>))}</g></svg></button>

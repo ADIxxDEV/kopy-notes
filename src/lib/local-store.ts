@@ -2,7 +2,7 @@ import {interfaceSettings} from './interface-settings';
 import {newPageStyle} from './new-page-style';
 import {parseThemePack,isRasterData} from './theme-pack';
 import {validateBoardPresets} from './board-presets';
-import { openDB, type DBSchema } from 'idb';
+import { openDB, type IDBPTransaction, type DBSchema } from 'idb';
 import type { AppProfile, Notebook, Page } from '../db/schema';
 
 type Asset = { id: string; notebookId: string; name: string; mimeType: string; blob: Blob };
@@ -38,8 +38,9 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
   const parts = path.split('?')[0].split('/').filter(Boolean);
   const kind = parts[1], id = parts[2];
   const body: Record<string, unknown> = typeof options.body === 'string' ? JSON.parse(options.body) : {};
-  // A shared read/write transaction also serializes edits from other tabs.
-  const tx = db.transaction(['profile', 'notebooks', 'pages', 'assets'], 'readwrite', {durability:'strict'});
+  // GET uses a shared read lock; mutations serialize edits across tabs.
+  // Writes below are guarded by method; the cast exposes them to TypeScript.
+  const tx = db.transaction(['profile', 'notebooks', 'pages', 'assets'], method==='GET'?'readonly':'readwrite', {durability:'strict'}) as IDBPTransaction<Store, ['profile','notebooks','pages','assets'], 'readwrite'>;
   const now = new Date();
   try {
     let result: Response;
@@ -118,7 +119,7 @@ export async function localRequest(path: string, options: RequestInit = {}): Pro
       const asset: Asset={id:crypto.randomUUID(),notebookId,name:text(body.name,'asset',255),mimeType:text(body.mimeType,'application/octet-stream'),blob:new Blob([bytes],{type:text(body.mimeType,'application/octet-stream')})};
       await tx.objectStore('assets').add(asset); result=json({asset:{id:asset.id,name:asset.name,mimeType:asset.mimeType}},201);
     } else result=json({error:'Unsupported local operation'},400);
-    await tx.done; return result;
+    await tx.done;if(method!=='GET'&&result.ok)void import('./device-library').then(({scheduleDeviceSave})=>scheduleDeviceSave()); return result;
   } catch(error) {
     try { tx.abort(); } catch { /* Already closed. */ }
     await tx.done.catch(()=>{});

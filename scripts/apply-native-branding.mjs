@@ -74,3 +74,9 @@ if(!activity.includes('SplashScreen.installSplashScreen')){
   await writeFile(activityFile,activity);
 }
 console.log('Applied Kopy Notes launcher, themed icon and native startup screen.');
+
+await import('./install-android-device-library.mjs');
+
+await import('./install-android-display-annotation.mjs');
+
+await import('./install-android-smartboard.mjs');

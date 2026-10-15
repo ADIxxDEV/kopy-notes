@@ -1,3 +1,5 @@
+import {getPerformanceProfile,subscribePerformance} from './performance';
+import {isSpecial,drawSpecialPreview} from './special-objects';
 import {readSelectionSettings,rectangleRegion,selectRegion,regionContainsBounds,type SelectionSettings} from './selection-region';
 import {readEraserMode,eraseSelection,type EraserMode} from './eraser-modes';
 import {transformObject,transformMedia,type ObjectTransform} from './object-transform';
@@ -22,6 +24,7 @@ import {
   dist,
 } from "@/lib/render";
 import {
+  setMediaWorkingSet,
   DOCX_RENDER_WIDTH,
   PDF_RENDER_WIDTH,
   loadImage,
@@ -145,6 +148,12 @@ export function useWhiteboard(options: {
   const mediaErrors=useRef(new Map<string,{message:string;attempts:number}>());
 
   const rafRef = useRef<number | null>(null);
+  const animationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mediaRevision = useRef(0);
+  const performanceProfile=useRef(getPerformanceProfile());
+  const sceneCache = useRef<{canvas:HTMLCanvasElement;objects:BoardObject[];media:MediaItem[];view:string;background:string;pattern:string;image:HTMLImageElement|null;watermark:unknown;revision:number}|null>(null);
+  const laserObjects = useRef<StrokeObject[]>([]);
+  const scannedObjects = useRef<BoardObject[]|null>(null);
   const spaceHeld = useRef(false);
 
   const setView = useCallback((next: View) => {
@@ -155,7 +164,7 @@ export function useWhiteboard(options: {
   // ------------------------------- render ----------------------------------
 
   const scheduleRender = useCallback(() => {
-    if (rafRef.current != null) return;
+    if (document.hidden || rafRef.current != null) return;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
       renderNow();
@@ -171,8 +180,16 @@ export function useWhiteboard(options: {
     canvasObserver.current = null;
     canvasRef.current = canvas;
     if (!canvas) return;
+    setViewState({...viewRef.current});
     if (typeof ResizeObserver !== "undefined") {
-      canvasObserver.current = new ResizeObserver(() => scheduleRender());
+      let previous={width:canvas.clientWidth,height:canvas.clientHeight};
+      canvasObserver.current = new ResizeObserver(() => {
+        const width=canvas.clientWidth,height=canvas.clientHeight;
+        if(previous.width>0&&previous.height>0&&width>0&&height>0&&(width!==previous.width||height!==previous.height)){
+          const next={...viewRef.current,tx:viewRef.current.tx+(width-previous.width)/2,ty:viewRef.current.ty+(height-previous.height)/2};viewRef.current=next;setViewState(next);
+        }
+        previous={width,height};scheduleRender();
+      });
       canvasObserver.current.observe(canvas);
     }
     scheduleRender();
@@ -180,6 +197,7 @@ export function useWhiteboard(options: {
 
   const drawMediaItem = useCallback(
     (ctx: CanvasRenderingContext2D, m: MediaItem) => {
+      if(isSpecial(m)){drawSpecialPreview(ctx,m);return;}
       const cached=m.kind==='image'?peekImage(m.assetId):m.kind==='pdf'?peekPdfPage(m.assetId,m.pageNumber):peekDocx(m.assetId);
       if(!cached){ctx.save();ctx.fillStyle=backgroundRef.current;ctx.fillRect(m.x,m.y,m.width,m.height);ctx.strokeStyle='#7d8d99';ctx.strokeRect(m.x,m.y,m.width,m.height);ctx.fillStyle=parseInt(backgroundRef.current.slice(1),16)>0x888888?'#263c4b':'#ffffff';ctx.font='16px Arial';ctx.fillText(mediaErrors.current.get(m.id)?.message??'Loading document…',m.x+18,m.y+35,Math.max(100,m.width-36));ctx.restore();}
       const place = (source: CanvasImageSource) => {
@@ -195,10 +213,10 @@ export function useWhiteboard(options: {
         inflight.current.add(key);
         fn()
           .then(() => {
-            inflight.current.delete(key);mediaErrors.current.delete(m.id);
+            inflight.current.delete(key);mediaErrors.current.delete(m.id);mediaRevision.current++;
             scheduleRender();
           })
-          .catch(() => {const attempts=(mediaErrors.current.get(m.id)?.attempts??0)+1;mediaErrors.current.set(m.id,{attempts,message:attempts<3?'Please wait. Retrying document...':'Document unavailable. Reopen this slide to retry; your saved file is unchanged.'});window.setTimeout(()=>{inflight.current.delete(key);scheduleRender();},attempts*700);scheduleRender();});
+          .catch(() => {mediaRevision.current++;const attempts=(mediaErrors.current.get(m.id)?.attempts??0)+1;mediaErrors.current.set(m.id,{attempts,message:attempts<3?'Please wait. Retrying document...':'Document unavailable. Reopen this slide to retry; your saved file is unchanged.'});window.setTimeout(()=>{inflight.current.delete(key);scheduleRender();},attempts*700);scheduleRender();});
       };
 
       if (m.kind === "image") {
@@ -220,7 +238,7 @@ export function useWhiteboard(options: {
   );
 
   const paintScene = useCallback(
-    (ctx: CanvasRenderingContext2D, v: View, cssW: number, cssH: number, dpr: number) => {
+    (ctx: CanvasRenderingContext2D, v: View, cssW: number, cssH: number, dpr: number, excludeLaser = false) => {
       drawBackground(ctx, cssW, cssH, backgroundRef.current, patternRef.current, dpr,backgroundPicture.current);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const watermark=watermarkRef.current;
@@ -228,8 +246,16 @@ export function useWhiteboard(options: {
       ctx.save();
       ctx.translate(v.tx, v.ty);
       ctx.scale(v.scale, v.scale);
-      for (const m of mediaRef.current) drawMediaItem(ctx, m);
-      for (const o of eraseWorking.current ?? objectsRef.current) drawObject(ctx, o);
+      const viewport={x:-v.tx/v.scale,y:-v.ty/v.scale,w:cssW/v.scale,h:cssH/v.scale};
+      const visible=(b:{x:number;y:number;w:number;h:number},padding=32)=>b.x+b.w+padding>=viewport.x&&b.x-padding<=viewport.x+viewport.w&&b.y+b.h+padding>=viewport.y&&b.y-padding<=viewport.y+viewport.h;
+      const visibleMedia=mediaRef.current.filter(m=>visible(mediaBounds(m)));
+      setMediaWorkingSet(visibleMedia);
+      for (const m of visibleMedia) drawMediaItem(ctx, m);
+      for (const o of eraseWorking.current ?? objectsRef.current) {
+        if(excludeLaser&&o.kind==='stroke'&&o.tool==='laser')continue;
+        // Text bounds depend on fonts and imported layout; do not cull using estimates.
+        if(o.kind==='text'||visible(objectBounds(o),Math.max(32,o.width*6)))drawObject(ctx, o);
+      }
       ctx.restore();
     },
     [drawMediaItem],
@@ -241,9 +267,10 @@ export function useWhiteboard(options: {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const profile=performanceProfile.current;
     const cssW = canvas.clientWidth;
     const cssH = canvas.clientHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, profile.canvasDpr, Math.sqrt(profile.maxCanvasPixels / Math.max(1,cssW*cssH)));
     if (cssW === 0 || cssH === 0) return;
     const bw = Math.floor(cssW * dpr);
     const bh = Math.floor(cssH * dpr);
@@ -253,8 +280,29 @@ export function useWhiteboard(options: {
     }
 
     const v = viewRef.current;
-    if(draft.current&&performance.now()-draftCheckpoint.current>750){draftCheckpoint.current=performance.now();draftCallback.current?.([...objectsRef.current,draft.current],mediaRef.current);}
-    paintScene(ctx, v, cssW, cssH, dpr);
+    if(draft.current&&performance.now()-draftCheckpoint.current>=profile.checkpointMs){draftCheckpoint.current=performance.now();draftCallback.current?.([...objectsRef.current,draft.current],mediaRef.current);}
+    if(scannedObjects.current!==objectsRef.current){scannedObjects.current=objectsRef.current;laserObjects.current=objectsRef.current.filter((o):o is StrokeObject=>o.kind==='stroke'&&o.tool==='laser');}
+    // Ink and laser frames reuse the finished board. Large PDFs and old paint
+    // strokes are rasterized once instead of re-rendered for each pen sample.
+    const key=[v.tx,v.ty,v.scale,bw,bh].join(':');
+    const cache=sceneCache.current;
+    const sameScene=cache&&cache.media===mediaRef.current&&cache.view===key&&cache.background===backgroundRef.current&&cache.pattern===patternRef.current&&cache.image===backgroundPicture.current&&cache.watermark===watermarkRef.current&&cache.revision===mediaRevision.current;
+    // A completed stroke only appends ink. Preserve the rasterized old board
+    // rather than rebuilding every previous paint stroke on each pen-up.
+    if(!eraseWorking.current&&sameScene&&cache.objects!==objectsRef.current&&cache.objects.length<=objectsRef.current.length&&cache.objects.every((object,index)=>object===objectsRef.current[index])){
+      const saved=cache.canvas.getContext('2d');
+      if(saved){saved.save();saved.setTransform(dpr,0,0,dpr,0,0);saved.translate(v.tx,v.ty);saved.scale(v.scale,v.scale);for(let index=cache.objects.length;index<objectsRef.current.length;index++){const object=objectsRef.current[index];if(object.kind!=='stroke'||object.tool!=='laser')drawObject(saved,object);}saved.restore();cache.objects=objectsRef.current;}
+    }
+    if(eraseWorking.current){paintScene(ctx,v,cssW,cssH,dpr,true);sceneCache.current=null;}
+    else if(sameScene&&cache.objects===objectsRef.current){
+      ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,bw,bh);ctx.drawImage(cache.canvas,0,0);
+    }else{
+      paintScene(ctx,v,cssW,cssH,dpr,true);
+      const snapshot=cache?.canvas??document.createElement('canvas');
+      if(snapshot.width!==bw||snapshot.height!==bh){snapshot.width=bw;snapshot.height=bh;}
+      const saved=snapshot.getContext('2d');
+      if(saved){saved.setTransform(1,0,0,1,0,0);saved.clearRect(0,0,bw,bh);saved.drawImage(canvas,0,0);sceneCache.current={canvas:snapshot,objects:objectsRef.current,media:mediaRef.current,view:key,background:backgroundRef.current,pattern:patternRef.current,image:backgroundPicture.current,watermark:watermarkRef.current,revision:mediaRevision.current};}
+    }
 
     // in-progress draft
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -262,6 +310,7 @@ export function useWhiteboard(options: {
     ctx.translate(v.tx, v.ty);
     ctx.scale(v.scale, v.scale);
 
+    for(const laser of eraseWorking.current?eraseWorking.current.filter((object):object is StrokeObject=>object.kind==='stroke'&&object.tool==='laser'):laserObjects.current)drawStroke(ctx,laser);
     if (draft.current) {
       if (draft.current.kind === "stroke") drawStroke(ctx, draft.current);
       else if (draft.current.kind === "shape") drawShape(ctx, draft.current);
@@ -316,7 +365,10 @@ export function useWhiteboard(options: {
     ctx.restore();
 
     if(performance.now()-started>100){setProcessing(true);if(processingTimer.current)clearTimeout(processingTimer.current);processingTimer.current=setTimeout(()=>setProcessing(false),700);}
-    if (objectsRef.current.some(o=>o.kind==="stroke"&&o.tool==="laser")||(laserHead.current&&(performance.now()-laserHead.current.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser')))) scheduleRender();
+    if (animationTimer.current===null&&(laserObjects.current.length>0||(laserHead.current&&(performance.now()-laserHead.current.last<1200||(modeRef.current==='draw'&&toolRef.current==='laser'))))) {
+      // Blinking/fading needs only 20fps; pen input still paints at display cadence.
+      animationTimer.current=setTimeout(()=>{animationTimer.current=null;scheduleRender();},50);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paintScene, scheduleRender]);
 
@@ -331,7 +383,7 @@ export function useWhiteboard(options: {
     (nextObjects: BoardObject[], nextMedia: MediaItem[], recordHistory = true) => {
       if (recordHistory) {
         past.current.push({ objects: objectsRef.current, media: mediaRef.current });
-        if (past.current.length > 60) past.current.shift();
+        if (past.current.length > getPerformanceProfile().undoSteps) past.current.splice(0,past.current.length-getPerformanceProfile().undoSteps);
         future.current = [];
         setHistoryVersion((x) => x + 1);
       }
@@ -415,7 +467,7 @@ export function useWhiteboard(options: {
 
   const worldToScreen = useCallback((x: number, y: number): Point => {
     const canvas = canvasRef.current!;
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvas?.getBoundingClientRect()??containerRef.current?.getBoundingClientRect()??{left:0,top:0};
     const v = viewRef.current;
     return { x: x * v.scale + v.tx + rect.left, y: y * v.scale + v.ty + rect.top };
   }, []);
@@ -1027,7 +1079,7 @@ export function useWhiteboard(options: {
       out.height = src.height;
       const ctx = out.getContext("2d");
       if (!ctx) return null;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = src.width / Math.max(1,src.clientWidth);
       paintScene(ctx, viewRef.current, src.clientWidth, src.clientHeight, dpr);
       return out;
     },
@@ -1053,6 +1105,15 @@ export function useWhiteboard(options: {
     };
   }, []);
 
+  useEffect(()=>{
+    const release=()=>{const cache=sceneCache.current;sceneCache.current=null;if(cache){cache.canvas.width=0;cache.canvas.height=0;}};
+    const refresh=()=>{release();performanceProfile.current=getPerformanceProfile();const budget=performanceProfile.current.undoSteps;past.current=past.current.slice(-budget);future.current=future.current.slice(-budget);scheduleRender();};
+    const visibility=()=>{if(document.hidden){if(rafRef.current!==null){cancelAnimationFrame(rafRef.current);rafRef.current=null;}if(animationTimer.current!==null){clearTimeout(animationTimer.current);animationTimer.current=null;}release();}else scheduleRender();};
+    const unsubscribe=subscribePerformance(refresh);
+    document.addEventListener('visibilitychange',visibility);window.addEventListener('kopy-memory-pressure',refresh);document.fonts?.addEventListener('loadingdone',refresh);
+    return()=>{unsubscribe();document.removeEventListener('visibilitychange',visibility);window.removeEventListener('kopy-memory-pressure',refresh);document.fonts?.removeEventListener('loadingdone',refresh);canvasObserver.current?.disconnect();if(rafRef.current!==null)cancelAnimationFrame(rafRef.current);if(animationTimer.current!==null)clearTimeout(animationTimer.current);release();};
+  },[scheduleRender]);
+
   // initial paint + on resize + non-passive wheel zoom
   useEffect(() => {
     scheduleRender();
@@ -1077,7 +1138,7 @@ export function useWhiteboard(options: {
   useEffect(()=>{if(tool!=='select')setSelection(null);scheduleRender();},[tool]);
   useEffect(()=>{scheduleRender();},[selectedIds]);
   useEffect(()=>{let cancelled=false;backgroundPicture.current=null;scheduleRender();if(options.backgroundImage)void loadBackgroundImage(options.backgroundImage).then(image=>{if(!cancelled){backgroundPicture.current=image;scheduleRender();}}).catch(()=>{});return()=>{cancelled=true;};},[options.backgroundImage,scheduleRender]);
-  useEffect(()=>{const timer=window.setInterval(()=>{const now=performance.now();const next=objectsRef.current.filter(o=>{if(o.kind!=='stroke'||o.tool!=='laser')return true;if(selectedIdsRef.current.includes(o.id)&&now<(o.laserCreatedAt??now)+14000)o.laserExpiresAt=now+1200;return (o.laserExpiresAt??0)>now;});if(next.length!==objectsRef.current.length){objectsRef.current=next;setObjectsState(next);if(selectionRef.current&&!next.some(o=>o.id===selectionRef.current!.id))setSelection(null);scheduleRender();}},200);return()=>clearInterval(timer);},[scheduleRender]);
+  useEffect(()=>{const timer=window.setInterval(()=>{if(document.hidden||!laserObjects.current.length)return;const now=performance.now();const next=objectsRef.current.filter(o=>{if(o.kind!=='stroke'||o.tool!=='laser')return true;if(selectedIdsRef.current.includes(o.id)&&now<(o.laserCreatedAt??now)+14000)o.laserExpiresAt=now+1200;return (o.laserExpiresAt??0)>now;});if(next.length!==objectsRef.current.length){objectsRef.current=next;setObjectsState(next);if(selectionRef.current&&!next.some(o=>o.id===selectionRef.current!.id))setSelection(null);scheduleRender();}},200);return()=>clearInterval(timer);},[scheduleRender]);
   const brushProfiles=useRef<Record<string,Pen>>({});
   const previousBrush=useRef(tool);
   useEffect(()=>{try{const stored=JSON.parse(localStorage.getItem('kopy-brush-profiles')??'{}');for(const [key,value] of Object.entries(stored)){const brush=value as Pen;if(/^#[0-9a-f]{6}$/i.test(brush.color)&&Number.isFinite(brush.size)&&brush.size>=1&&brush.size<=100)brushProfiles.current[key]=brush;}if(brushProfiles.current.pen)setPen(brushProfiles.current.pen);}catch{}},[]);
@@ -1147,6 +1208,7 @@ export function useWhiteboard(options: {
     restoreView:setView,
     hasVisibleContent:()=>{const canvas=canvasRef.current;if(!canvas)return false;const v=viewRef.current;return [...objectsRef.current.map(o=>objectBounds(o)),...mediaRef.current.map(mediaBounds)].some(b=>b.x*v.scale+v.tx<canvas.clientWidth&&(b.x+b.w)*v.scale+v.tx>0&&b.y*v.scale+v.ty<canvas.clientHeight&&(b.y+b.h)*v.scale+v.ty>0);},
     addMedia,
+    changeMedia:(id:string,patch:Partial<MediaItem>,history=true)=>{if(!mediaRef.current.some(m=>m.id===id))return;commit(objectsRef.current,mediaRef.current.map(m=>m.id===id?{...m,...patch,id:m.id}:m),history);},
     setGuideEdges: (id:string, edges:GuideEdge[]) => { if(edges.length)guideEdges.current.set(id,edges);else guideEdges.current.delete(id); },
     addObjects: (items: BoardObject[]) => commit([...objectsRef.current, ...items], mediaRef.current),
     changeObjects: (change:(objects:BoardObject[])=>BoardObject[]) => commit(change(objectsRef.current),mediaRef.current),

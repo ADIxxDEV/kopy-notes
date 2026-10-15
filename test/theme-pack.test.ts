@@ -25,3 +25,9 @@ test('small raster keeps original lossless format and dimensions',()=>{
  const canvas={width:0,height:0,toDataURL:()=> 'data:image/png;base64,aGVsbG8='};let draws=0;
  fitThemeRaster(canvas,()=>draws++,240,120);assert.equal(draws,1);assert.equal(canvas.width,240);assert.equal(canvas.height,120);
 });
+
+test('store author and added-by credits survive portable themes',()=>{
+ const theme={...BUILTIN_THEMES[0],credits:{author:'Teacher creator',addedBy:'School maintainer',source:'https://example.com/art',license:'CC BY',origin:'Original classroom art'}};
+ assert.deepEqual(parseThemePack(JSON.parse(JSON.stringify(theme))).credits,theme.credits);
+ assert.throws(()=>parseThemePack({...theme,credits:{...theme.credits,source:'javascript:alert(1)'}}));
+});

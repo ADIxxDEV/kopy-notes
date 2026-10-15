@@ -1,3 +1,4 @@
+import {isSpecial,drawSpecialPreview} from './special-objects';
 import {loadBackgroundImage} from './background-image';
 import type {MediaItem, Page, Watermark} from '@/db/schema';
 import {drawBackground, drawObject, isColorDark, objectBounds, type Bounds} from './render';
@@ -74,6 +75,7 @@ async function loadExportImage(assetId: string): Promise<HTMLImageElement> {
 }
 
 async function drawExportMedia(ctx: CanvasRenderingContext2D, item: MediaItem, scale: number) {
+  if(isSpecial(item)){drawSpecialPreview(ctx,item);return;}
   let source: HTMLCanvasElement | HTMLImageElement | undefined;
   try {
     const media = await import('./media');

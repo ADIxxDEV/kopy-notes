@@ -1,0 +1,2 @@
+import type {StoreCredits as Credits} from '@/lib/store-credits';
+export function StoreCredits({credits,compact=false}:{credits?:Credits;compact?:boolean}){return <span className="kn-store-credits"><span>By {credits?.author??'Author not provided'}</span><span>Added by {credits?.addedBy??'Not provided'}</span>{!compact&&credits?.license&&<span>{credits.license}</span>}{!compact&&credits?.origin&&<span>{credits.origin}</span>}{!compact&&credits?.source&&<a href={credits.source} target="_blank" rel="noopener noreferrer">Source and creator</a>}</span>;}

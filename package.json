@@ -1,6 +1,6 @@
 {
   "name": "kopy-notes",
-  "version": "0.2.0-dev.11",
+  "version": "0.2.0-dev.12",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -23,6 +23,7 @@
     "@capacitor/android": "8.5.2",
     "@capacitor/core": "8.5.2",
     "dompurify": "3.4.16",
+    "exceljs": "^4.4.0",
     "html2canvas": "1.4.1",
     "idb": "8.0.3",
     "jspdf": "4.2.1",
@@ -75,7 +76,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
     }
   },
   "overrides": {

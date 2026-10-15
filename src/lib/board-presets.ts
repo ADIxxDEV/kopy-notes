@@ -1,4 +1,5 @@
-export type BoardPreset = {id:string;name:string;background:string;pattern:string;ink:string;image?:string};
+import {parseStoreCredits,type StoreCredits} from './store-credits';
+export type BoardPreset = {id:string;name:string;background:string;pattern:string;ink:string;credits?:StoreCredits;image?:string};
 export const BOARD_PRESETS:BoardPreset[]=[
   {id:'chalk',name:'Classic chalkboard',background:'#163d30',pattern:'none',ink:'#f8f4df'},
   {id:'paper',name:'Paper notebook',background:'#fffdf5',pattern:'lines',ink:'#253649'},
@@ -17,6 +18,7 @@ export function validateBoardPresets(value:unknown):BoardPreset[]{
   const ids=new Set<string>();
   return value.filter((p):p is BoardPreset=>{
     if(!p||typeof p!=='object'||typeof p.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(p.id)||ids.has(p.id)||typeof p.name!=='string'||!p.name.trim()||p.name.length>48||!['none','grid','dots','lines','staff','handwriting','isometric'].includes(p.pattern)||![p.background,p.ink].every(c=>typeof c==='string'&&/^#[a-f0-9]{6}$/i.test(c))||(p.image!==undefined&&(typeof p.image!=='string'||p.image.length>750000||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(p.image))))return false;
+    try{parseStoreCredits(p.credits);}catch{return false;}
     ids.add(p.id);return true;
-  }).slice(0,24).map(p=>({id:p.id,name:p.name.trim(),background:p.background,pattern:p.pattern,ink:p.ink,...(p.image?{image:p.image}:{})}));
+  }).slice(0,24).map(p=>({id:p.id,name:p.name.trim(),background:p.background,pattern:p.pattern,ink:p.ink,...(p.credits?{credits:parseStoreCredits(p.credits)}:{}),...(p.image?{image:p.image}:{})}));
 }

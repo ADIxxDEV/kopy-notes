@@ -208,7 +208,7 @@ export function drawText(ctx: CanvasRenderingContext2D, item: TextObject) {
   if(item.rotation||item.mirrorX||item.mirrorY){const b=rawObjectBounds(item,ctx),cx=b.x+b.w/2,cy=b.y+b.h/2;ctx.translate(cx,cy);ctx.rotate(item.rotation??0);ctx.scale(item.mirrorX?-1:1,item.mirrorY?-1:1);ctx.translate(-cx,-cy);}
   ctx.globalAlpha = 1;
   ctx.fillStyle = item.color;
-  const font = `${item.bold ? "700 " : ""}${item.fontSize}px ${item.fontFamily}`;
+  const font = `${item.italic ? "italic " : ""}${item.bold ? "700 " : ""}${item.fontSize}px ${item.fontFamily}`;
   ctx.font = font;
   ctx.textBaseline = "top";
   const lines = wrapLines(ctx, item.text, 1200);
@@ -333,10 +333,13 @@ export function objectBounds(obj:BoardObject,ctx?:CanvasRenderingContext2D):Boun
   const pts=[[b.x,b.y],[b.x+b.w,b.y],[b.x+b.w,b.y+b.h],[b.x,b.y+b.h]].map(([x,y])=>({x:cx+(x-cx)*c-(y-cy)*s,y:cy+(x-cx)*s+(y-cy)*c}));
   const x=Math.min(...pts.map(p=>p.x)),y=Math.min(...pts.map(p=>p.y));return{x,y,w:Math.max(...pts.map(p=>p.x))-x,h:Math.max(...pts.map(p=>p.y))-y};
 }
+const strokeBoundsCache=new WeakMap<StrokeObject,{points:Point[];count:number;lastX:number;lastY:number;width:number;bounds:Bounds}>();
 function rawObjectBounds(obj: BoardObject, ctx?: CanvasRenderingContext2D): Bounds {
   if (obj.kind === "stroke") {
     const pts = obj.points;
     if (pts.length === 0) return { x: 0, y: 0, w: 0, h: 0 };
+    const last=pts[pts.length-1],cached=strokeBoundsCache.get(obj);
+    if(cached&&cached.points===pts&&cached.count===pts.length&&cached.lastX===last.x&&cached.lastY===last.y&&cached.width===obj.width)return cached.bounds;
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -348,7 +351,8 @@ function rawObjectBounds(obj: BoardObject, ctx?: CanvasRenderingContext2D): Boun
       maxY = Math.max(maxY, p.y);
     }
     const pad = obj.width / 2;
-    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
+    const bounds={ x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
+    strokeBoundsCache.set(obj,{points:pts,count:pts.length,lastX:last.x,lastY:last.y,width:obj.width,bounds});return bounds;
   }
   if (obj.kind === "shape") {
     const cx = obj.x + obj.w / 2, cy = obj.y + obj.h / 2;
@@ -361,7 +365,7 @@ function rawObjectBounds(obj: BoardObject, ctx?: CanvasRenderingContext2D): Boun
   // text
   if (ctx) {
     ctx.save();
-    ctx.font = `${obj.bold ? "700 " : ""}${obj.fontSize}px ${obj.fontFamily}`;
+    ctx.font = `${obj.italic ? "italic " : ""}${obj.bold ? "700 " : ""}${obj.fontSize}px ${obj.fontFamily}`;
     const lines = wrapLines(ctx, obj.text, 1200);
     let maxW = 0;
     for (const l of lines) maxW = Math.max(maxW, ctx.measureText(l).width);

@@ -6,7 +6,7 @@
 
 [**Try the web preview**](https://kopy-notes.netlify.app) | [MIT license](LICENSE) · [Setup](docs/SETUP.md) · [Features](docs/FEATURE_MATRIX.md) · [Builds and releases](docs/RELEASE.md) · [Changelog](CHANGELOG.md)
 
-Version **0.2.0-dev.6 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
+Version **0.2.0-dev.12 — development preview**. Contributions and bug reports are welcome; this is not a stable production release. Web workflows are tested; native installers and physical smartboard behavior still need device validation. Familiar classroom workflows are independently implemented, without redistributing Note3 or Excalidraw source/artwork.
 
 PDF imports retain your selected page background and warm nearby pages. Interrupted drawings are offered for recovery before changing saved pages.
 
@@ -33,6 +33,10 @@ Actual application screens with synthetic teaching examples:
 | ![Import settings and placement preview](docs/screenshots/import-panel.png) | ![Interactive periodic table](docs/screenshots/periodic-table.png) |
 
 ![Board defaults and saved presets](docs/screenshots/board-presets.png)
+
+## Teaching guides
+
+The web build includes guides for free online whiteboards, smartboard setup and digital teaching workflows, with three original editable .kopy templates. [Guide source](public/guides/index.html).
 
 ## Start teaching
 
@@ -121,3 +125,9 @@ The org-note3 theme and its artwork are included in web and native builds and ca
 <a href="https://www.buymeacoffee.com/adixdev"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="200"></a>
 
 Community participation follows our [Code of Conduct](CODE_OF_CONDUCT.md). Read the [contribution guide](CONTRIBUTING.md) to help improve Kopy Notes.
+
+See [offline device storage and display annotation](docs/OFFLINE_DEVICE.md) for folder access, uninstall-safe copies, recovery and desktop annotation controls.
+
+## Smartboard performance
+
+Choose Auto, 2 GB, 4 GB or 8 GB+ in Device performance. Rendering, PDF previews, image caches and undo history use device-aware budgets; saved lesson originals remain intact. Add-ons are coming soon and do not load extension code today. See [smartboard testing and configuration](docs/SMARTBOARD.md) for hardware validation and troubleshooting.

@@ -23,3 +23,7 @@ The image assets in public/themes/org-note3.kopy-theme originate from ShiRui Not
 ## Fluid Paint lighting adaptation
 
 The paint-lighting equations in `src/lib/paint-lighting.ts` are adapted from David Li's [Fluid Paint](https://github.com/dli/paint), `shaders/painting.frag`, under MIT (copyright 2017 David Li). The complete notice is in [docs/licenses/fluid-paint-MIT.txt](docs/licenses/fluid-paint-MIT.txt), and packaged in web/native builds as `licenses/fluid-paint-MIT.txt`. Kopy uses these equations with its own Canvas 2D bristle geometry; the WebGL fluid simulator is not included. No upstream logo or branding is used.
+
+### ExcelJS
+
+Editable Excel workbook import/export uses [ExcelJS](https://github.com/exceljs/exceljs), licensed under the [MIT license](https://github.com/exceljs/exceljs/blob/master/LICENSE), copyright Guyon Roche. The license is included in `public/licenses/exceljs-MIT.txt`. Workbook charts, macros and advanced formatting are not preserved.

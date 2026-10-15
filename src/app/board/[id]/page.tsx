@@ -1,3 +1,5 @@
+import {getPerformanceProfile} from '@/lib/performance';
+import {InsertSpecialObject,SpecialObjectsLayer} from '@/components/board/SpecialObjects';
 import {createSolid,isSolid,type SolidKind} from '@/lib/solid-shapes';
 import {SolidControls} from '@/components/board/SolidControls';
 import {BoardChemistryLayer,EquipmentControls} from '@/components/board/BoardChemistry';
@@ -29,7 +31,7 @@ import { exportLesson } from "@/lib/lesson-bundle";
 import { fileToBase64, uid } from "@/lib/constants";
 import { localRequest } from "@/lib/local-store";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "@/lib/navigation";
 import { useApp } from "@/lib/app-context";
 import { useToast } from "@/lib/toast";
@@ -58,7 +60,7 @@ import {
 import {FLOATING_TOOLS, type FloatingToolId, type MediaItem } from "@/lib/constants";
 import type { Notebook, Page } from "@/db/schema";
 
-type Modal = "backgrounds" | "themes" | "settings" | "help" | "about" | "import" | "export" | null;
+type Modal = "special" | "backgrounds" | "themes" | "settings" | "help" | "about" | "import" | "export" | null;
 
 export default function BoardPage() {
   const params = useParams();
@@ -66,7 +68,6 @@ export default function BoardPage() {
   const id = String(params.id);
   const { profile,updateProfile } = useApp();
   const { push } = useToast();
-  const clock = useNow();
 
   const [notebook, setNotebook] = useState<Notebook | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
@@ -123,7 +124,7 @@ export default function BoardPage() {
   },[id]);
   const saveNow = useCallback((objects:Page['objects'],media:MediaItem[],bg:string,pat:string,entry?:EditCheckpoint)=>{
     const snapshot=entry??captureEdit(objects,media,bg,pat);if(!snapshot)return Promise.resolve();
-    const staged=entry?Promise.resolve():checkpoint(snapshot);
+    const staged=entry?Promise.resolve():checkpoint(snapshot,{detached:true});
     setSaveState('saving');
     const run=saveQueue.current.catch(()=>{}).then(async()=>{
       await staged.catch(()=>{});
@@ -146,12 +147,14 @@ export default function BoardPage() {
   },[saveNow]);
   const handleContentChange=useCallback((objects:Page['objects'],media:MediaItem[])=>{
     const entry=captureEdit(objects,media,bgRef.current,patternRef.current);if(!entry)return;
-    pendingRef.current=entry;void checkpoint(entry).catch(()=>push('Recovery checkpoint could not be saved. Free storage and keep this lesson open.','error'));
+    pendingRef.current=entry;void checkpoint(entry,{detached:true}).catch(()=>push('Recovery checkpoint could not be saved. Free storage and keep this lesson open.','error'));
     setSaveState('dirty');if(saveTimer.current)clearTimeout(saveTimer.current);
-    saveTimer.current=window.setTimeout(()=>{void flushSave().catch(()=>push('Autosave failed. Your edits remain in the recovery journal.','error'));},100);
+    saveTimer.current=window.setTimeout(()=>{void flushSave().catch(()=>push('Autosave failed. Your edits remain in the recovery journal.','error'));},getPerformanceProfile().autosaveMs);
   },[captureEdit,flushSave,push]);
+  const lastDraftCheckpoint=useRef(0);
   const handleDraftChange=useCallback((objects:Page['objects'],media:MediaItem[])=>{
-    const entry=captureEdit(objects,media,bgRef.current,patternRef.current);if(entry)void checkpoint({...entry,partial:true}).catch(()=>{});
+    const now=Date.now();if(now-lastDraftCheckpoint.current<getPerformanceProfile().checkpointMs)return;lastDraftCheckpoint.current=now;
+    const entry=captureEdit(objects,media,bgRef.current,patternRef.current);if(entry)void checkpoint({...entry,partial:true},{detached:true}).catch(()=>{});
   },[captureEdit]);
 
   const wb = useWhiteboard({
@@ -169,12 +172,13 @@ export default function BoardPage() {
 
   const [previewSize,setPreviewSize]=useState({width:1280,height:720});
   useEffect(()=>{const canvas=wb.canvasRef.current;if(!canvas)return;let frame=0;const update=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const width=canvas.clientWidth,height=canvas.clientHeight;if(width&&height)setPreviewSize(previous=>previous.width===width&&previous.height===height?previous:{width,height});});};const observer=new ResizeObserver(update);observer.observe(canvas);update();return()=>{observer.disconnect();cancelAnimationFrame(frame);};},[loading]);
-  const previewFrames=Object.fromEntries(pages.map(page=>{const view=page.id===currentPage?.id?wb.view:savedPageView(page.id)??{tx:0,ty:0,scale:1};return [page.id,{x:-view.tx/view.scale,y:-view.ty/view.scale,width:previewSize.width/view.scale,height:previewSize.height/view.scale,zoom:view.scale}];}));
+  const previewFrames=useMemo(()=>Object.fromEntries(pages.map(page=>{const view=page.id===currentPage?.id?wb.view:savedPageView(page.id)??{tx:0,ty:0,scale:1};return [page.id,{x:-view.tx/view.scale,y:-view.ty/view.scale,width:previewSize.width/view.scale,height:previewSize.height/view.scale,zoom:view.scale}];})), [pages,currentPage?.id,wb.view,previewSize]);
   const loadPageIntoBoard = useCallback(
     (i: number, list: Page[]) => {
       const pg = list[i];
       if (!pg) return;
       pageIdRef.current = pg.id;
+      lastDraftCheckpoint.current=0;
       frameRef.current=pg.importFrame;
       setIndex(i);
       bgRef.current=pg.background;patternRef.current=pg.pattern;
@@ -238,8 +242,9 @@ export default function BoardPage() {
   useEffect(() => {
     const save = () => { if (document.visibilityState === 'hidden') void flushSave().catch(()=>{}); };
     const exit = (event: BeforeUnloadEvent) => { if (pendingRef.current || recording) { event.preventDefault(); event.returnValue = ''; void flushSave().catch(()=>{}); } };
-    document.addEventListener('visibilitychange', save); window.addEventListener('beforeunload', exit);
-    return () => { document.removeEventListener('visibilitychange', save); window.removeEventListener('beforeunload', exit); void flushSave().catch(()=>{}); };
+    const deviceFlush=(event:Event)=>{(event as CustomEvent<{pending:Promise<unknown>[]}>).detail.pending.push(flushSave());};
+    window.addEventListener('kopy-flush-board',deviceFlush);document.addEventListener('visibilitychange', save); window.addEventListener('beforeunload', exit);
+    return () => { window.removeEventListener('kopy-flush-board',deviceFlush);document.removeEventListener('visibilitychange', save); window.removeEventListener('beforeunload', exit); void flushSave().catch(()=>{}); };
   }, [flushSave, recording]);
 
   // ------------------------------ page actions -----------------------------
@@ -247,6 +252,7 @@ export default function BoardPage() {
   const goTo = useCallback(
     async (i: number) => {
       if (i < 0 || i >= pages.length || i === index) return;
+      window.dispatchEvent(new Event('kopy-pause-media'));
       await flushSave();
       const response = await localRequest(`/api/pages/${pages[i].id}`);
       if (!response.ok) return;
@@ -401,6 +407,9 @@ export default function BoardPage() {
         case "saveas":
           exportJSON();
           break;
+        case "special":
+          setModal("special");
+          break;
         case "import":
           setModal("import");
           break;
@@ -543,7 +552,7 @@ export default function BoardPage() {
       {operation&&<LoadingOverlay detail={operation}/>}
       {/* ---------------------------- Top bar ---------------------------- */}
       {!presenting && (
-        <details className="board-meta"><summary aria-label="Lesson details">{ui.showTime?clock.time:<Icon name="doc"/>}</summary>
+        <details className="board-meta"><summary aria-label="Lesson details">{ui.showTime?<BoardTime/>:<Icon name="doc"/>}</summary>
         <header className="board-header z-30 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-panel px-3">
           <div className="flex items-center gap-2">
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand">
@@ -598,7 +607,7 @@ export default function BoardPage() {
             <div className="mx-1 h-6 w-px bg-line" />
             <div className="hidden items-center gap-2 px-1 text-sm text-muted sm:flex">
               <Icon name="board" className="h-4 w-4" />
-              <span className="tabular-nums">{clock.time}</span>
+              <span className="tabular-nums">{<BoardTime/>}</span>
             </div>
           </div>
         </header>
@@ -648,6 +657,7 @@ export default function BoardPage() {
           />
         )}
 
+        <SpecialObjectsLayer items={wb.media} scale={wb.view.scale} worldToScreen={wb.worldToScreen} onChange={wb.changeMedia} onSelect={id=>{if(!id)setThumbsOpen(false);wb.setTool('select');wb.setSelection(id?{kind:'media',id}:null);}} onRemove={wb.removeMedia}/>
         <BoardChemistryLayer objects={wb.objects} selected={isEquipment(selectedObject)?selectedObject:undefined} worldToScreen={wb.worldToScreen} screenToWorld={wb.screenToWorld} scale={wb.view.scale} onChange={wb.changeObjects} dose={chemistryDose}/>
         {wb.selection && !selectedMedia?.locked && wb.selectionBounds && <ResizeHandles bounds={wb.selectionBounds} screen={wb.worldToScreen} resize={wb.resizeSelected}/>}
         {/* Text editor overlay */}
@@ -823,9 +833,10 @@ export default function BoardPage() {
       )}
       {(slowSave||wb.processing)&&<LoadingOverlay detail="Processing and saving your edits..."/>}
       {(recoveryEdits.length>0||lastActivity)&&<Dialog title="Interrupted work" onClose={()=>{setRecoveryEdits([]);setLastActivity(undefined);}} width={460}><p className="mb-4 text-sm">{lastActivity&&<span className="mb-2 block">Last operation: {lastActivity}. Open the saved lesson to review it; an interrupted import or export can be started again.</span>}{recoveryEdits.length>0?'An unfinished edit was saved before this lesson closed. Restore it, or keep the last saved pages.':'Your saved pages are ready to open.'}</p><div className="flex gap-3">{recoveryEdits.length>0&&<button className="kn-focus rounded-lg bg-brand p-3 text-white" onClick={()=>{void recoverWork().then(()=>{setLastActivity(undefined);void setWorkActivity(id,undefined);});}}>Restore unfinished work</button>}<button className="kn-focus rounded-lg border border-line p-3" onClick={()=>{const entries=recoveryEdits;void Promise.all(entries.map(e=>acknowledge(e.pageId,e.revision))).then(()=>{setRecoveryEdits([]);setLastActivity(undefined);void setWorkActivity(id,undefined);});}}>Keep saved pages</button></div></Dialog>}
-      {(modal === "themes"||modal === "backgrounds")&&<Dialog title={modal==="themes"?"Themes & page presets":"Subject backgrounds"} onClose={()=>setModal(null)} width={650}>{modal==="themes"&&<><ThemeSettings value={profile} onChange={patch=>{void updateProfile(patch).catch(e=>push(e.message,'error'));}}/><div className="my-5 border-t border-line"/></>}<BoardPresets onlyGallery={modal==="backgrounds"} value={{...profile,boardBg:background,boardPattern:pattern,boardImage:pageImage}} onChange={patch=>{if(patch.boardBg){setBackground(patch.boardBg);bgRef.current=patch.boardBg;}if(patch.boardPattern){setPattern(patch.boardPattern);patternRef.current=patch.boardPattern;}if('boardImage' in patch){pageImageRef.current=patch.boardImage;setPageImage(patch.boardImage);}if(patch.defaultPenColor)wb.setPen({...wb.pen,color:patch.defaultPenColor});if(patch.boardPresets)void updateProfile({boardPresets:patch.boardPresets});void saveNow(wb.objects,wb.media,bgRef.current,patternRef.current).catch(e=>push(e.message,'error'));}}/></Dialog>}
+      {(modal === "themes"||modal === "backgrounds")&&<Dialog title={modal==="themes"?"Themes & page presets":"Subject backgrounds"} onClose={()=>setModal(null)} width={650}>{modal==="themes"&&<><ThemeSettings value={profile} onChange={patch=>{void updateProfile(patch).catch(e=>push(e.message,'error'));}}/><div className="my-5 border-t border-line"/></>}<BoardPresets onlyGallery={modal==="backgrounds"} value={{...profile,boardBg:background,boardPattern:pattern,boardImage:pageImage}} onChange={patch=>{if(patch.boardCredits)void updateProfile({boardCredits:patch.boardCredits});if(patch.boardBg){setBackground(patch.boardBg);bgRef.current=patch.boardBg;}if(patch.boardPattern){setPattern(patch.boardPattern);patternRef.current=patch.boardPattern;}if('boardImage' in patch){pageImageRef.current=patch.boardImage;setPageImage(patch.boardImage);}if(patch.defaultPenColor)wb.setPen({...wb.pen,color:patch.defaultPenColor});if(patch.boardPresets)void updateProfile({boardPresets:patch.boardPresets});void saveNow(wb.objects,wb.media,bgRef.current,patternRef.current).catch(e=>push(e.message,'error'));}}/></Dialog>}
       {modal === "help" && <HelpPanel onClose={() => setModal(null)} />}
       {modal === "about" && <AboutPanel onClose={() => setModal(null)} />}
+      {modal === "special" && <InsertSpecialObject notebookId={id} center={centerWorld()} onAdd={wb.addMedia} onClose={()=>setModal(null)}/>}
       {modal === "import" && (
         <ImportPanel
           notebookId={id}
@@ -862,3 +873,5 @@ function SaveBadge({ state }: { state: "saved" | "saving" | "dirty" }) {
   const s = map[state];
   return <span className={`hidden text-xs sm:block ${s.cls}`}>{s.text}</span>;
 }
+
+function BoardTime(){return <>{useNow().time}</>;}

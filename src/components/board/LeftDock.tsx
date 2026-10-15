@@ -1,3 +1,4 @@
+import {useToast} from '@/lib/toast';
 import {BoardFullscreen} from './BoardFullscreen';
 import {ThemeIcon} from './ThemeIcon';
 import {createPortal} from 'react-dom';
@@ -17,10 +18,12 @@ export type DockId =
   | "library";
 
 export function LeftDock({active,onOpen,onSave,onSwap}:{active:DockId|null;onOpen:(id:DockId)=>void;onSave:()=>void;onSwap:()=>void}){
+  const {push}=useToast();const [startingDisplay,setStartingDisplay]=useState(false);
   return <div className="kn-dock pointer-events-auto flex items-center gap-1 rounded-xl border border-line bg-panel p-1 shadow-xl">
     <button type="button" className="kn-side-switch kn-focus" aria-label="Swap menu side" title="Swap sides" onClick={onSwap}><ThemeIcon name="flipHorizontal"/></button>
     <button type="button" data-dock-action="file" aria-label="Menu" title="Menu" aria-expanded={active==='file'} onClick={()=>onOpen('file')} className="kn-focus"><ThemeIcon name="menu"/></button>
     <BoardFullscreen dock/>
+    {window.kopyDisplay&&<button type="button" data-dock-action="display" aria-label="Display annotation" disabled={startingDisplay} onClick={()=>{setStartingDisplay(true);const detail:{pending:Promise<unknown>[]}={pending:[]};window.dispatchEvent(new CustomEvent('kopy-flush-board',{detail}));void Promise.all(detail.pending).then(()=>window.kopyDisplay!.start()).catch(error=>push(error instanceof Error?error.message:'Could not start display annotation.','error')).finally(()=>setStartingDisplay(false));}} className="kn-focus"><Icon name="board"/></button>}
     <button type="button" data-dock-action="treasure" aria-label="Treasure box" title="Treasure box" aria-expanded={active==='treasure'} onClick={()=>onOpen('treasure')} className="kn-focus"><ThemeIcon name="toolbox"/></button>
     <button type="button" data-dock-action="import" aria-label="Import file" title="Import file" onClick={()=>onOpen('import')} className="kn-focus"><ThemeIcon name="import"/></button>
     <button type="button" data-dock-action="save" aria-label="Save lesson" title="Save lesson" onClick={onSave} className="kn-focus"><ThemeIcon name="save"/></button>
@@ -32,6 +35,7 @@ const FILE_ITEMS: { id: string; label: string; icon: IconName }[] = [
   { id: "open", label: "Open…", icon: "folder" },
   { id: "save", label: "Save", icon: "save" },
   { id: "saveas", label: "Save as", icon: "copy" },
+  { id: "special", label: "Insert object", icon: "play" },
   { id: "import", label: "Import", icon: "import" },
   { id: "export", label: "Export", icon: "export" },
   { id: "print", label: "Print", icon: "print" },
@@ -44,7 +48,7 @@ const FILE_ITEMS: { id: string; label: string; icon: IconName }[] = [
 
 const FILE_GROUPS=[
   {label:'Lesson',ids:['new','open','save','saveas']},
-  {label:'Import & share',ids:['import','export','print']},
+  {label:'Import & share',ids:['special','import','export','print']},
   {label:'Application',ids:['settings','themes','help','about','exit']},
 ];
 
@@ -104,7 +108,7 @@ export function FileMenu({
             style={{display:'flex',width:'100%',height:'auto',minHeight:44}}
             onClick={() => {
               onAction(item.id);
-              if(!['import','export','settings','themes','help','about'].includes(item.id))onClose();
+              if(!['special','import','export','settings','themes','help','about'].includes(item.id))onClose();
             }}
             className="kn-focus flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-elevated"
           >

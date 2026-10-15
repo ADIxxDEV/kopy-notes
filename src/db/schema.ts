@@ -53,6 +53,7 @@ export type TextObject = {
   fontSize: number;
   fontFamily: string;
   bold: boolean;
+  italic?:boolean;
 };
 
 export type BoardObject = StrokeObject | ShapeObject | TextObject;
@@ -61,7 +62,8 @@ export type MediaItem = {
   mirrorX?:boolean;mirrorY?:boolean;
   locked?:boolean;
   id: string;
-  kind: "image" | "pdf" | "docx";
+  title?:string;sourceUrl?:string;videoId?:string;playback?:number;sheet?:import('../lib/spreadsheet').Spreadsheet;
+  kind: "image" | "pdf" | "docx" | "audio" | "video" | "youtube" | "link" | "spreadsheet";
   assetId: string;
   x: number;
   y: number;
@@ -77,6 +79,6 @@ export type MediaItem = {
 
 export type Watermark = {enabled:boolean;text:string;position:'center'|'top-left'|'top-right'|'bottom-left'|'bottom-right';opacity:number};
 export type ImportFrame = {x:number;y:number;width:number;height:number};
-export type AppProfile = { ui?:import('../lib/interface-settings').InterfaceSettings; theme?:ThemePack; themePacks?:ThemePack[]; boardImage?:string; boardPresets?:BoardPreset[]; id: number; appName: string; teacherName: string; institution: string; accent: string; boardBg: string; boardPattern: string; defaultPenColor: string; onboarded: number; createdAt: Date; updatedAt: Date; iconData?: string; splashText?: string; watermark?:Watermark; calibrationPxPerMm?:number; ai?:{enabled:boolean;endpoint:string;model:string} };
+export type AppProfile = { boardCredits?:import('../lib/store-credits').StoreCredits; ui?:import('../lib/interface-settings').InterfaceSettings; theme?:ThemePack; themePacks?:ThemePack[]; boardImage?:string; boardPresets?:BoardPreset[]; id: number; appName: string; teacherName: string; institution: string; accent: string; boardBg: string; boardPattern: string; defaultPenColor: string; onboarded: number; createdAt: Date; updatedAt: Date; iconData?: string; splashText?: string; watermark?:Watermark; calibrationPxPerMm?:number; ai?:{enabled:boolean;endpoint:string;model:string} };
 export type Notebook = { id: string; title: string; subject: string; coverColor: string; pageCount: number; createdAt: Date; updatedAt: Date };
 export type Page = { backgroundImage?:string; importFrame?:ImportFrame; id: string; notebookId: string; position: number; background: string; pattern: string; objects: BoardObject[]; media: MediaItem[]; createdAt: Date; updatedAt: Date };

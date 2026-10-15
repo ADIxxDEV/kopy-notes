@@ -1,2 +1,5 @@
 const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('kopyStartup',{retry:()=>ipcRenderer.send('kopy-startup-retry'),ready:()=>ipcRenderer.send('kopy-classroom-ready')});
+
+contextBridge.exposeInMainWorld('kopyDeviceLibrary',{onFlush:callback=>{const listener=()=>callback().finally(()=>ipcRenderer.send('kopy-device-close-ready'));ipcRenderer.on('kopy-device-flush',listener);return()=>ipcRenderer.removeListener('kopy-device-flush',listener);},status:()=>ipcRenderer.invoke('kopy-device-status'),choose:()=>ipcRenderer.invoke('kopy-device-choose'),read:()=>ipcRenderer.invoke('kopy-device-read'),write:data=>ipcRenderer.invoke('kopy-device-write',data)});
+contextBridge.exposeInMainWorld('kopyDisplay',{start:()=>ipcRenderer.invoke('kopy-display-start'),command:(action,value)=>ipcRenderer.invoke('kopy-display-command',action,value),onState:callback=>{const listener=(_event,state)=>callback(state);ipcRenderer.on('kopy-display-state',listener);return()=>ipcRenderer.removeListener('kopy-display-state',listener);}});

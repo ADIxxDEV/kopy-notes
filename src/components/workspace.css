@@ -1,0 +1,52 @@
+.kn-workspace{padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));}
+.kn-workspace-inner{max-width:1200px;margin:auto;min-width:0;}
+.kn-workspace-header{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-bottom:24px;border-bottom:1px solid var(--color-line);margin-bottom:24px;}
+.kn-workspace-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.kn-workspace button{min-height:44px;touch-action:manipulation;}
+.kn-workspace input:not([type=color]):not([type=checkbox]):not([type=range]){min-height:44px;}
+.kn-workspace button:active{transform:scale(.98);}
+.kn-library-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:24px;}
+.kn-library-summary>div{padding:16px 20px;border:1px solid var(--color-line);border-radius:16px;background:var(--color-panel);}
+.kn-library-summary strong{display:block;font-size:24px;font-weight:650;font-variant-numeric:tabular-nums;}
+.kn-library-summary span{font-size:13px;color:var(--color-muted);}
+.kn-library-filters{display:grid;grid-template-columns:minmax(180px,1fr) 180px 180px auto;gap:12px;margin:16px 0 20px;align-items:center;}
+.kn-library-filters input{width:100%;padding:12px 40px 12px 14px;background:var(--color-panel);border:1px solid var(--color-line);border-radius:12px;}
+.kn-lesson-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+.kn-lesson-card{min-width:0;border-radius:18px;border:1px solid var(--color-line);background:var(--color-panel);overflow:hidden;position:relative;}
+.kn-lesson-card:hover{border-color:var(--color-line-2);}
+.kn-lesson-cover{height:144px;position:relative;overflow:hidden;}
+.kn-lesson-cover:before{content:'';position:absolute;inset:0;background:linear-gradient(140deg,transparent,rgba(0,0,0,.3));}
+.kn-lesson-cover:after{content:'';position:absolute;inset:20px 30px;border:1px solid #ffffff30;border-radius:6px;transform:rotate(-7deg);}
+.kn-lesson-delete{position:absolute;right:12px;bottom:12px;min-width:44px;color:var(--color-muted);border-radius:10px;}
+.kn-lesson-delete:hover{background:var(--color-elevated);color:var(--color-ink);}
+.kn-lesson-list{display:grid;gap:10px;}
+.kn-lesson-list .kn-lesson-card>button:first-child{display:flex;align-items:center;}
+.kn-lesson-list .kn-lesson-cover{height:94px;width:94px;flex-shrink:0;}
+.kn-lesson-list .kn-lesson-cover:after{inset:16px;}
+.kn-lesson-list .kn-lesson-info{flex:1;min-width:0;padding-right:62px;}
+.kn-lesson-list .kn-lesson-info p{margin-top:2px;}
+.kn-lesson-list .kn-lesson-delete{bottom:25px;}
+.kn-settings-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:24px;align-items:start;}
+.kn-settings-nav{display:grid;gap:4px;position:sticky;top:16px;}
+.kn-settings-nav button{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:10px 12px;text-align:left;border-radius:10px;color:var(--color-muted);font-size:14px;}
+.kn-settings-nav button:hover{background:var(--color-elevated);color:var(--color-ink);}
+.kn-settings-nav button[aria-current]{background:var(--color-brand);color:white;font-weight:600;}
+.kn-settings-content{min-width:0;}
+.kn-settings-content :is(input,button,summary){touch-action:manipulation;}
+.kn-settings-content :is(input:not([type=checkbox]):not([type=range]):not([type=color]),summary){min-height:44px;}
+.kn-settings-content summary{display:flex;align-items:center;gap:8px;}
+.kn-settings-content summary:before{content:'+';color:var(--color-muted);font-size:18px;}
+.kn-settings-content details[open]>summary:before{content:'\2212';}
+.kn-settings-footer{display:flex;justify-content:flex-end;align-items:center;gap:12px;border-top:1px solid var(--color-line);padding-top:20px;margin-top:24px;}
+.kn-settings-preview{border:1px solid var(--color-line);border-radius:16px;overflow:hidden;margin-bottom:20px;}
+@media(min-width:1600px){.kn-workspace-inner{max-width:1440px}.kn-lesson-grid{grid-template-columns:repeat(4,minmax(0,1fr));}}
+@media(max-width:800px){.kn-library-filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.kn-library-filters>label{grid-column:1/-1}.kn-library-filters>div:last-child{grid-column:1/-1;justify-self:end}.kn-settings-layout{grid-template-columns:1fr;gap:20px}.kn-settings-nav{display:flex;flex-wrap:wrap;position:static;gap:6px;padding-bottom:16px;border-bottom:1px solid var(--color-line)}.kn-settings-nav button{border:1px solid var(--color-line)}.kn-settings-nav svg{display:none}.kn-library-summary>div{padding:12px}.kn-workspace-header{gap:16px}.kn-settings-footer{flex-wrap:wrap}}
+@media(max-width:480px){.kn-workspace{padding-left:16px;padding-right:16px}.kn-workspace-actions{width:100%}.kn-workspace-actions>button{flex:1;justify-content:center}.kn-library-summary{gap:8px}.kn-library-summary strong{font-size:20px}.kn-library-summary span{font-size:12px}.kn-lesson-grid{grid-template-columns:1fr}.kn-settings-nav button{font-size:13px;padding:8px 10px}}
+
+.kn-lesson-info{color:var(--color-ink);}
+.kn-settings-layout [hidden]{display:none!important;}
+
+/* The base color token overlaps Tailwind text-base; headings need an explicit ink color. */
+.kn-lesson-info h3,.kn-modal-card h2,.kn-menu-screen>header h2{color:var(--color-ink);}
+
+@media(min-width:700px){html[data-smartboard] .kn-settings-nav button,html[data-smartboard] .kn-sheet button,html[data-smartboard] .kn-special-object button,html[data-smartboard] .kn-modal-body button{min-height:48px;min-width:48px;}html[data-smartboard] .kn-sheet input{min-height:48px;font-size:18px;}}

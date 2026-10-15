@@ -1,3 +1,4 @@
+import {validateSpecial} from './special-objects';
 import {validSolidData} from './solid-shapes';
 import {isBrushKind,validBrushSettings} from './brush-presets';
 import {validEquipmentData} from './chemistry-equipment';
@@ -55,11 +56,11 @@ export async function importLesson(file: Blob): Promise<string> {
       if(object.kind==='stroke'&&((object.brush!==undefined&&!isBrushKind(object.brush))||(object.brushSettings!==undefined&&!validBrushSettings(object.brushSettings))||(object.opacity!==undefined&&(!Number.isFinite(object.opacity)||object.opacity<0||object.opacity>1))))throw new Error('Invalid brush settings');
       if(object.kind==='stroke'&&(!Array.isArray(object.points)||object.points.length>100000||object.points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y))))throw new Error('Invalid pen stroke');
     }
-    return {...page,id:crypto.randomUUID(),notebookId,position:index,createdAt:now,updatedAt:now,objects:page.objects.map(object=>({...object,id:crypto.randomUUID()})),media:page.media.map(item=>{const assetId=assetIds.get(item.assetId);if(!assetId||!['image','pdf','docx'].includes(item.kind)||![item.x,item.y,item.width,item.height].every(Number.isFinite))throw new Error('Invalid page attachment');return {...item,id:crypto.randomUUID(),assetId};})};
+    return {...page,id:crypto.randomUUID(),notebookId,position:index,createdAt:now,updatedAt:now,objects:page.objects.map(object=>({...object,id:crypto.randomUUID()})),media:page.media.map(item=>{const assetId=assetIds.get(item.assetId);if(!assetId||!['image','pdf','docx','audio','video','youtube','link','spreadsheet'].includes(item.kind)||![item.x,item.y,item.width,item.height].every(Number.isFinite))throw new Error('Invalid page attachment');validateSpecial(item);return {...item,id:crypto.randomUUID(),assetId};})};
   });
   const db=await database();try{
     const tx=db.transaction(['notebooks','pages','assets'],'readwrite');
     await tx.objectStore('notebooks').add({id:notebookId,title:data.notebook.title.slice(0,120),subject:String(data.notebook.subject||'General').slice(0,60),coverColor:/^#[\da-f]{6}$/i.test(data.notebook.coverColor)?data.notebook.coverColor:'#526677',pageCount:pages.length,createdAt:now,updatedAt:now});
-    for(const page of pages)await tx.objectStore('pages').add(page);for(const asset of assets)await tx.objectStore('assets').add(asset);await tx.done;return notebookId;
+    for(const page of pages)await tx.objectStore('pages').add(page);for(const asset of assets)await tx.objectStore('assets').add(asset);await tx.done;void import('./device-library').then(({scheduleDeviceSave})=>scheduleDeviceSave());return notebookId;
   }finally{db.close();}
 }

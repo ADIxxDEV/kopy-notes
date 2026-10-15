@@ -1,0 +1,112 @@
+{
+  "format": "kopy-notes",
+  "version": 2,
+  "notebook": {
+    "id": "graph-investigation",
+    "title": "Graph investigation",
+    "subject": "Mathematics",
+    "coverColor": "#526677",
+    "pageCount": 2,
+    "createdAt": "2026-10-11T00:00:00.000Z",
+    "updatedAt": "2026-10-11T00:00:00.000Z"
+  },
+  "pages": [
+    {
+      "id": "page-0",
+      "notebookId": "graph-investigation",
+      "position": 0,
+      "background": "#f7f6ef",
+      "pattern": "dots",
+      "objects": [
+        {
+          "id": "title-0",
+          "kind": "text",
+          "x": 70,
+          "y": 60,
+          "text": "Predict the graph",
+          "color": "#183c36",
+          "fontSize": 36,
+          "fontFamily": "Arial",
+          "bold": true
+        },
+        {
+          "id": "prompt-0",
+          "kind": "text",
+          "x": 70,
+          "y": 130,
+          "text": "Sketch y = sin(x). Mark an intercept and a maximum.",
+          "color": "#183c36",
+          "fontSize": 24,
+          "fontFamily": "Arial",
+          "bold": false
+        },
+        {
+          "id": "box-0",
+          "kind": "shape",
+          "shape": "rect",
+          "x": 70,
+          "y": 240,
+          "w": 1060,
+          "h": 340,
+          "color": "#526677",
+          "width": 2,
+          "filled": false,
+          "rotation": 0,
+          "dash": "dashed"
+        }
+      ],
+      "media": [],
+      "createdAt": "2026-10-11T00:00:00.000Z",
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    },
+    {
+      "id": "page-1",
+      "notebookId": "graph-investigation",
+      "position": 1,
+      "background": "#f7f6ef",
+      "pattern": "dots",
+      "objects": [
+        {
+          "id": "title-1",
+          "kind": "text",
+          "x": 70,
+          "y": 60,
+          "text": "Compare and explain",
+          "color": "#183c36",
+          "fontSize": 36,
+          "fontFamily": "Arial",
+          "bold": true
+        },
+        {
+          "id": "prompt-1",
+          "kind": "text",
+          "x": 70,
+          "y": 130,
+          "text": "Use the Graph tool. Compare y = sin(x) and y = cos(x).\nWhat changes? What stays the same?",
+          "color": "#183c36",
+          "fontSize": 24,
+          "fontFamily": "Arial",
+          "bold": false
+        },
+        {
+          "id": "box-1",
+          "kind": "shape",
+          "shape": "rect",
+          "x": 70,
+          "y": 240,
+          "w": 1060,
+          "h": 340,
+          "color": "#526677",
+          "width": 2,
+          "filled": false,
+          "rotation": 0,
+          "dash": "dashed"
+        }
+      ],
+      "media": [],
+      "createdAt": "2026-10-11T00:00:00.000Z",
+      "updatedAt": "2026-10-11T00:00:00.000Z"
+    }
+  ],
+  "assets": []
+}

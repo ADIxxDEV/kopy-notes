@@ -1,0 +1,42 @@
+export type SheetTab={name:string;cells:string[][];cached?:Record<string,string>};
+export type Spreadsheet={version:1;tabs:SheetTab[]};
+export const SHEET_ROWS=200,SHEET_COLS=40,SHEET_TABS=12;
+export function validateSpreadsheet(value:unknown):Spreadsheet{
+ const v=value as Spreadsheet;if(!v||v.version!==1||!Array.isArray(v.tabs)||!v.tabs.length||v.tabs.length>SHEET_TABS||JSON.stringify(v).length>2_000_000)throw new Error('This worksheet exceeds the supported size.');
+ for(const tab of v.tabs){if(typeof tab.name!=='string'||tab.name.length>31||!Array.isArray(tab.cells)||tab.cells.length>SHEET_ROWS)throw new Error('Invalid worksheet.');for(const row of tab.cells)if(!Array.isArray(row)||row.length>SHEET_COLS||row.some(c=>typeof c!=='string'||c.length>4096))throw new Error('Invalid worksheet cells.');if(tab.cached&&(typeof tab.cached!=='object'||Array.isArray(tab.cached)||Object.entries(tab.cached).some(([k,c])=>!/^\d+:\d+$/.test(k)||typeof c!=='string'||c.length>4096)))throw new Error('Invalid cached formula values.');}return v;
+}
+export function columnName(index:number){let s='';for(let n=index+1;n>0;n=Math.floor((n-1)/26))s=String.fromCharCode(65+(n-1)%26)+s;return s;}
+function address(text:string){const m=/^([A-Z]+)([1-9]\d*)$/.exec(text.toUpperCase());if(!m)throw new Error('#REF!');let col=0;for(const ch of m[1])col=col*26+ch.charCodeAt(0)-64;const row=Number(m[2])-1;if(row>=SHEET_ROWS||col>SHEET_COLS)throw new Error('#REF!');return {row,col:col-1};}
+export function cellResult(tab:SheetTab,row:number,col:number,seen=new Set<string>()):string{
+ const raw=tab.cells[row]?.[col]??'';if(!raw.startsWith('='))return raw;const key=`${row}:${col}`;if(seen.has(key))return '#CYCLE!';if(seen.size>100)return '#DEPTH!';const next=new Set(seen).add(key);
+ try{return String(calculate(raw.slice(1),ref=>{const a=address(ref);const result=cellResult(tab,a.row,a.col,next);if(result.startsWith('#'))throw new Error(result);if(result.trim()==='')return undefined;const number=Number(result);return Number.isFinite(number)?number:undefined;}));}catch(e){const message=e instanceof Error?e.message:'#FORMULA!';return message==='#UNSUPPORTED!'&&tab.cached?.[key]!==undefined?tab.cached[key]:message;}
+}
+/** A small arithmetic grammar. No eval, scripts, network functions or macros. */
+export function calculate(formula:string,read:(address:string)=>number|undefined):number{
+ const input=formula.replace(/\$/g,'').replace(/\s+/g,'').toUpperCase();if(input.length>2048)throw new Error('#FORMULA!');const tokens=input.match(/(?:\d+(?:\.\d*)?|\.\d+)(?:E[+-]?\d+)?|[A-Z]+[1-9]\d*|[A-Z]+|[()+*\/\^,:%-]/g)??[];if(tokens.join('')!==input)throw new Error('#UNSUPPORTED!');let i=0,budget=0;
+ function tick(){if(++budget>10000)throw new Error('#LIMIT!');}
+ function atom():number{tick();const token=tokens[i++];if(token==='+'||token==='-')return (token==='-'?-1:1)*atom();if(token==='('){const value=expression();if(tokens[i++]!==')')throw new Error('#FORMULA!');return value;}
+ if(/^[A-Z]+[1-9]\d*$/.test(token??''))return read(token)??0;if(/^[A-Z]+$/.test(token??'')){if(tokens[i++]!=='(')throw new Error('#UNSUPPORTED!');const values:number[]=[];if(tokens[i]!==')')do{if(/^[A-Z]+[1-9]\d*$/.test(tokens[i]??'')&&tokens[i+1]===':'){const a=address(tokens[i]),b=address(tokens[i+2]);i+=3;for(let r=Math.min(a.row,b.row);r<=Math.max(a.row,b.row);r++)for(let c=Math.min(a.col,b.col);c<=Math.max(a.col,b.col);c++){tick();const value=read(columnName(c)+(r+1));if(value!==undefined)values.push(value);}}else if(/^[A-Z]+[1-9]\d*$/.test(tokens[i]??'')&&[',',')'].includes(tokens[i+1])){const value=read(tokens[i++]);if(value!==undefined)values.push(value);}else values.push(expression());if(tokens[i]!==',')break;i++;}while(true);if(tokens[i++]!==')')throw new Error('#FORMULA!');
+ switch(token){case 'SUM':return values.reduce((a,b)=>a+b,0);case 'AVERAGE':if(!values.length)throw new Error('#DIV/0!');return values.reduce((a,b)=>a+b,0)/values.length;case 'MIN':return values.length?Math.min(...values):0;case 'MAX':return values.length?Math.max(...values):0;case 'COUNT':return values.length;case 'ABS':if(values.length!==1)throw new Error('#FORMULA!');return Math.abs(values[0]);case 'ROUND':if(values.length!==2||Math.abs(values[1])>15)throw new Error('#FORMULA!');return Math.sign(values[0])*Math.round(Math.abs(values[0])*10**values[1])/10**values[1];default:throw new Error('#UNSUPPORTED!');}}
+ if(token===undefined||!Number.isFinite(Number(token)))throw new Error('#FORMULA!');return Number(token);}
+ function power(){let a=atom();if(tokens[i]==='^'){i++;a=a**power();}if(tokens[i]==='%'){i++;a/=100;}return a;}
+ function product(){let a=power();while(tokens[i]==='*'||tokens[i]==='/'){const op=tokens[i++],b=power();if(op==='/'&&b===0)throw new Error('#DIV/0!');a=op==='*'?a*b:a/b;}return a;}
+ function expression(){let a=product();while(tokens[i]==='+'||tokens[i]==='-'){const op=tokens[i++],b=product();a=op==='+'?a+b:a-b;}return a;}
+ const result=expression();if(i!==tokens.length||!Number.isFinite(result))throw new Error('#FORMULA!');return Number(result.toPrecision(12));
+}
+export function parseCSV(text:string):Spreadsheet{
+ if(text.length>2_000_000)throw new Error('CSV files must be under 2 MB.');const rows:string[][]=[];let row:string[]=[],cell='',quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){cell+='"';i++;}else quoted=!quoted;}else if(!quoted&&(c===','||c==='\n'||c==='\r')){row.push(cell);cell='';if(c!==','){rows.push(row);row=[];if(c==='\r'&&text[i+1]==='\n')i++;}}else cell+=c;if(row.length>SHEET_COLS||rows.length>SHEET_ROWS)throw new Error('Use at most 200 rows and 40 columns.');}
+ if(quoted)throw new Error('The CSV contains an unclosed quote.');if(cell||row.length||!rows.length){row.push(cell);rows.push(row);}return validateSpreadsheet({version:1,tabs:[{name:'Sheet 1',cells:rows}]});
+}
+export function exportCSV(tab:SheetTab){return tab.cells.map(row=>row.map(value=>'"'+value.replace(/"/g,'""')+'"').join(',')).join('\r\n');}
+export function blankSpreadsheet():Spreadsheet{return {version:1,tabs:[{name:'Sheet 1',cells:Array.from({length:12},()=>Array(6).fill(''))}]};}
+export async function importXLSX(file:Blob):Promise<Spreadsheet>{
+ if(file.size>10*1024*1024)throw new Error('Excel files must be under 10 MB.');const bytes=await file.arrayBuffer();const {default:JSZip}=await import('jszip');const zip=await JSZip.loadAsync(bytes);let size=0;
+ for(const entry of Object.values(zip.files)){const declared=(entry as unknown as {_data?:{uncompressedSize?:number}})._data?.uncompressedSize;if(typeof declared==='number')size+=declared;if(size>25*1024*1024)throw new Error('The expanded workbook is too large for this board.');}
+ const {default:ExcelJS}=await import('exceljs');const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(bytes as Parameters<typeof workbook.xlsx.load>[0]);if(workbook.worksheets.length>SHEET_TABS)throw new Error('Use at most 12 worksheets.');const tabs:SheetTab[]=[];
+ for(const sheet of workbook.worksheets){if(sheet.rowCount>SHEET_ROWS||sheet.columnCount>SHEET_COLS)throw new Error('Use at most 200 rows and 40 columns per worksheet.');const cells:string[][]=[],cached:Record<string,string>={};for(let r=1;r<=sheet.rowCount;r++){const row:string[]=[];for(let c=1;c<=sheet.columnCount;c++){const cell=sheet.getCell(r,c),value=cell.value;if(value&&typeof value==='object'&&('formula'in value||'sharedFormula'in value)){row.push('='+cell.formula);if('result'in value&&value.result!==undefined)cached[`${r-1}:${c-1}`]=String(value.result);}else row.push(cell.text??'');}cells.push(row);}tabs.push({name:sheet.name,cells:cells.length?cells:[['']],cached});}return validateSpreadsheet({version:1,tabs});
+}
+export async function exportXLSX(data:Spreadsheet):Promise<Blob>{
+ validateSpreadsheet(data);const {default:ExcelJS}=await import('exceljs');const workbook=new ExcelJS.Workbook();for(const tab of data.tabs){const sheet=workbook.addWorksheet(tab.name);tab.cells.forEach((row,r)=>row.forEach((raw,c)=>{const cell=sheet.getCell(r+1,c+1);if(raw.startsWith('=')){const result=cellResult(tab,r,c);cell.value={formula:raw.slice(1),...(Number.isFinite(Number(result))?{result:Number(result)}:{})};}else cell.value=raw.trim()!==''&&/^-?\d+(\.\d+)?$/.test(raw)?Number(raw):raw;}));sheet.columns.forEach(column=>column.width=18);}const bytes=await workbook.xlsx.writeBuffer();return new Blob([Uint8Array.from(bytes as unknown as Uint8Array)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}

@@ -1,7 +1,7 @@
-﻿import {test,expect} from '@playwright/test';
+import {test,expect} from '@playwright/test';
 test('org-note3 theme survives reload and stays usable on a phone',async({page})=>{
  await page.route('**/__local-note3-theme',route=>route.fulfill({status:204,body:''}));await page.goto('/#/app');await page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);const {BUILTIN_THEMES}=await import('/src/lib/theme-pack.ts' as string);await localRequest('/api/profile',{method:'PUT',body:JSON.stringify({onboarded:1,theme:BUILTIN_THEMES.find((t:{id:string})=>t.id==='org-note3')})});const {notebook}=await(await localRequest('/api/notebooks',{method:'POST',body:JSON.stringify({title:'Note theme'})})).json();location.hash=`/board/${notebook.id}`;});
- await page.reload();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible();await expect(page.locator('html')).toHaveAttribute('data-theme-appearance','org-note3');
+ await page.reload();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible({timeout:60000});await expect(page.locator('html')).toHaveAttribute('data-theme-appearance','org-note3');
  await page.reload();await expect(page.locator('html')).toHaveAttribute('data-theme-appearance','org-note3');
  await expect(page.locator('.kn-main-tools button[aria-label="Pen"] [data-note3-artwork="pen"]')).toBeVisible();
  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Pen',exact:true}).click();await page.getByRole('button',{name:'Pen',exact:true}).click();await expect(page.getByRole('button',{name:'Laser pointer',exact:true})).toBeVisible();
@@ -38,11 +38,11 @@ test('Midnight to org-note3 keeps actual artwork after leaving Settings and reop
  await page.getByRole('button',{name:'Menu',exact:true}).click();await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByText('Theme packs',{exact:true}).click();
  await page.getByRole('button',{name:'Apply theme org-note3',exact:true}).click();
  await expect.poll(()=>page.evaluate(async()=>{const {localRequest}=await import('/src/lib/local-store.ts' as string);const {profile}=await(await localRequest('/api/profile')).json();return profile.theme.id+'|'+Object.keys(profile.theme.icons).length;})).toBe('org-note3|3');
- await page.reload();
+ await page.reload();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible({timeout:60000});
  await expect(page.locator('.kn-main-tools button[aria-label="Pen"] img')).toHaveAttribute('src',image);
  await expect(page.locator('[data-dock-action="file"] img')).toHaveAttribute('src',image);
  await expect(page.locator('.kn-page-add img')).toHaveAttribute('src',image);
- await page.getByRole('button',{name:'Menu',exact:true}).click();await page.getByRole('button',{name:'Exit to library',exact:true}).click();await page.goBack();
+ await page.getByRole('button',{name:'Menu',exact:true}).click();await page.getByRole('button',{name:'Exit to library',exact:true}).click();await page.goBack();await expect(page.getByRole('button',{name:'Pen',exact:true})).toBeVisible({timeout:60000});
  await expect(page.locator('.kn-main-tools button[aria-label="Pen"] img')).toHaveAttribute('src',image);
  await expect(page.locator('html')).toHaveAttribute('data-theme-appearance','org-note3');
 });

@@ -1,3 +1,7 @@
+import {pptBounds} from './ppt-geometry';
+import {isSpecial,drawSpecialPreview,safeWebLink,youtubeID} from './special-objects';
+import {importXLSX,parseCSV} from './spreadsheet';
+import {pptText} from './ppt-text';
 import JSZip from 'jszip';
 import {database} from './local-store';
 import type {BoardObject,MediaItem,Page} from '../db/schema';
@@ -32,13 +36,62 @@ export async function importOfficeSlides(notebookId:string,file:File,replaceEmpt
     const files=ordered.length?ordered:slideFiles;if(!files.length||files.length>300)throw new Error('Presentation must contain 1 to 300 slides.');
     for(const fileName of files){
       const doc=await read(fileName),slide:Slide={objects:[],media:[],width,height,background:'#ffffff'};const relationFile=path(fileName,`_rels/${fileName.split('/').pop()}.rels`),relEntry=zip.file(relationFile);
-      const mediaRels=new Map(relEntry?children(xml(await relEntry.async('string')),'Relationship').filter(rel=>attr(rel,'TargetMode')!=='External').map(rel=>[attr(rel,'Id'),path(fileName,attr(rel,'Target'))]):[]);
-      const bounds=(node:Element)=>{const transform=first(node,'xfrm'),offset=transform&&first(transform,'off'),extent=transform&&first(transform,'ext');return{x:numeric(attr(offset,'x'))/9525,y:numeric(attr(offset,'y'))/9525,w:numeric(attr(extent,'cx'),1905000)/9525,h:numeric(attr(extent,'cy'),952500)/9525,rotation:numeric(attr(transform,'rot'))/60000*Math.PI/180};};
-      for(const node of children(doc,'sp')){const b=bounds(node),paragraphs=children(node,'p').map(paragraph=>children(paragraph,'t').map(text=>text.textContent||'').join('')),text=paragraphs.join('\n');const colorNode=first(node,'srgbClr'),color=/^[\da-f]{6}$/i.test(attr(colorNode,'val'))?`#${attr(colorNode,'val')}`:'#203344';const preset=attr(first(node,'prstGeom'),'prst'),shape=({rect:'rect',roundRect:'rect',ellipse:'ellipse',triangle:'triangle',line:'line',star5:'star',diamond:'diamond'} as const)[preset as 'rect'];
-        if(shape&&!text)slide.objects.push({id:uid(),kind:'shape',shape,...b,color,width:2,filled:!!first(node,'solidFill'),rotation:b.rotation});
-        if(text){const style=first(node,'rPr');slide.objects.push({id:uid(),kind:'text',x:b.x,y:b.y+Math.min(b.h,32),text,color,fontSize:numeric(attr(style,'sz'),2400)/100*96/72,fontFamily:'Arial',bold:attr(style,'b')==='1'});}
+      const slideRelations=relEntry?children(xml(await relEntry.async('string')),'Relationship'):[];
+      const mediaRels=new Map(slideRelations.filter(rel=>attr(rel,'TargetMode')!=='External').map(rel=>[attr(rel,'Id'),path(fileName,attr(rel,'Target'))]));
+      const relationById=new Map(slideRelations.map(rel=>[attr(rel,'Id'),rel]));
+      const layoutName=[...mediaRels.values()].find(name=>name.includes('/slideLayouts/'));
+      const layoutDoc=layoutName&&zip.file(layoutName)?await read(layoutName):undefined;
+      const layoutRels=layoutName?zip.file(path(layoutName,`_rels/${layoutName.split('/').pop()}.rels`)):undefined;
+      const masterRelation=layoutRels?children(xml(await layoutRels.async('string')),'Relationship').find(rel=>attr(rel,'TargetMode')!=='External'&&attr(rel,'Target').includes('slideMaster')):undefined;
+      const masterName=masterRelation&&layoutName?path(layoutName,attr(masterRelation,'Target')):undefined;
+      const masterDoc=masterName&&zip.file(masterName)?await read(masterName):undefined;
+      const masterStyle=(node:Element)=>masterDoc?first(masterDoc,['title','ctrTitle'].includes(attr(first(node,'ph'),'type'))?'titleStyle':first(node,'ph')?'bodyStyle':'otherStyle'):undefined;
+      const placeholder=(node:Element)=>{const ph=first(node,'ph');if(!ph||!layoutDoc)return undefined;return children(layoutDoc,'sp').find(candidate=>{const target=first(candidate,'ph');return target&&((attr(ph,'idx')||'0')===(attr(target,'idx')||'0'))&&(attr(ph,'type')||'body')===(attr(target,'type')||'body');});};
+      const bounds=(node:Element)=>pptBounds(node,placeholder(node));
+      const direct=(node:Element|Document|undefined,name:string)=>node?Array.from(node.children).find(element=>element.localName===name):undefined;
+      const themeEntry=zip.file('ppt/theme/theme1.xml'),theme=themeEntry?xml(await themeEntry.async('string')):undefined;
+      const color=(fill:Element|undefined,fallback:string)=>{const rgb=fill&&first(fill,'srgbClr');if(/^[a-f0-9]{6}$/i.test(attr(rgb,'val')))return '#'+attr(rgb,'val');const scheme=attr(fill&&first(fill,'schemeClr'),'val'),mapped=({bg1:'lt1',tx1:'dk1',bg2:'lt2',tx2:'dk2'} as Record<string,string>)[scheme]??scheme;const slot=theme&&first(theme,mapped),resolved=slot&&(first(slot,'srgbClr')??first(slot,'sysClr')),value=attr(resolved,'val')==='windowText'||attr(resolved,'val')==='window'?attr(resolved,'lastClr'):attr(resolved,'val');return /^[a-f0-9]{6}$/i.test(value)?'#'+value:fallback;};
+      const background=first(doc,'bg')??(layoutDoc&&first(layoutDoc,'bg'))??(masterDoc&&first(masterDoc,'bg'));
+      slide.background=color(background&&first(background,'solidFill'),'#ffffff');
+      for(const node of children(doc,'sp')){
+        const b=bounds(node),properties=direct(node,'spPr'),fill=direct(properties,'solidFill'),line=direct(properties,'ln'),pictureFill=direct(properties,'blipFill');
+        const paragraphs=children(node,'p').map(paragraph=>children(paragraph,'t').map(text=>text.textContent||'').join('')),text=paragraphs.join('\n');
+        const preset=attr(first(node,'prstGeom'),'prst'),shape=({rect:'rect',roundRect:'rect',ellipse:'ellipse',triangle:'triangle',line:'line',star5:'star',diamond:'diamond'} as const)[preset as 'rect'];
+        if(pictureFill){const name=mediaRels.get(attr(first(pictureFill,'blip'),'embed'));if(name){const assetId=await image(name);if(assetId)slide.media.push({id:uid(),kind:'image',assetId,x:b.x,y:b.y,width:b.w,height:b.h,rotation:b.rotation,mirrorX:b.mirrorX,mirrorY:b.mirrorY,pageNumber:1});}}
+        if(shape&&!pictureFill&&(fill||line||!text))slide.objects.push({id:uid(),kind:'shape',shape,x:b.x,y:b.y,w:b.w,h:b.h,color:color(line&&direct(line,'solidFill'),fill?color(fill,'#203344'):'#203344'),fillColor:fill?color(fill,'#203344'):undefined,width:line?numeric(attr(line,'w'),19050)/9525:fill?0:2,filled:!!fill,rotation:b.rotation,mirrorX:b.mirrorX,mirrorY:b.mirrorY,...(preset==='roundRect'?{roundness:Math.min(b.w,b.h)*.12}:{})});
+        if(text){const runs=pptText(node,{...b,w:b.w/b.scaleX,h:b.h/b.scaleY,rotation:0},placeholder(node),masterStyle(node));for(const run of runs){run.x=b.x+(run.x-b.x)*b.scaleX;run.y=b.y+(run.y-b.y)*b.scaleY;run.fontSize*=b.scaleX;run.rotation=b.rotation;}slide.objects.push(...runs);}
       }
-      for(const picture of children(doc,'pic')){const b=bounds(picture),reference=attr(first(picture,'blip'),'embed'),name=mediaRels.get(reference);if(!name)continue;const assetId=await image(name);if(assetId)slide.media.push({id:uid(),kind:'image',assetId,x:b.x,y:b.y,width:b.w,height:b.h,rotation:b.rotation,pageNumber:1});}
+      const detected=new Set<Element>();
+      const special=async(node:Element,reference:string,expected?:'audio'|'video')=>{
+        const relation=relationById.get(reference);if(!relation)return false;
+        const target=attr(relation,'Target'),external=attr(relation,'TargetMode')==='External',name=external?target:mediaRels.get(reference)!;
+        const b=bounds(node);let kind:MediaItem['kind']|undefined=expected,sourceUrl:string|undefined,videoId:string|undefined,sheet:MediaItem['sheet'];
+        const suffix=name.split(/[?#]/)[0].split('.').pop()?.toLowerCase()??'';
+        let blob:Blob,title=attr(first(node,'cNvPr'),'name')||name.split('/').pop()||'Slide object';
+        if(external){
+          try{sourceUrl=safeWebLink(target);try{videoId=youtubeID(sourceUrl);kind='youtube';}catch{kind=expected??'link';}}catch{warnings.add('An unsafe or device-local linked object was skipped.');return false;}
+          blob=new Blob([JSON.stringify({sourceUrl,videoId})],{type:'application/json'});
+        }else{
+          const entry=zip.file(name);if(!entry){warnings.add('An embedded slide object is missing; its preview was retained.');return false;}
+          const types:Record<string,string>={mp4:'video/mp4',m4v:'video/mp4',webm:'video/webm',mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',csv:'text/csv'};
+          const mimeType=types[suffix];if(!mimeType){warnings.add('An embedded OLE package or unsupported media format could not become interactive; its slide preview was retained.');return false;}
+          const bytes=await entry.async('uint8array');if(bytes.length>25*1024*1024)throw new Error('An embedded slide object exceeds 25 MB.');blob=new Blob([bytes as Uint8Array<ArrayBuffer>],{type:mimeType});
+          if(suffix==='xlsx'||suffix==='csv'){try{sheet=suffix==='xlsx'?await importXLSX(blob):parseCSV(await blob.text());kind='spreadsheet';}catch{warnings.add('An embedded workbook exceeds supported worksheet limits or is invalid; its preview was retained.');return false;}}
+          else kind=mimeType.startsWith('audio/')?'audio':'video';
+        }
+        const assetId=uid();assets.push({id:assetId,notebookId,name:title,mimeType:blob.type,blob});slide.media.push({id:uid(),kind:kind!,assetId,title:title.slice(0,160),x:b.x,y:b.y,width:Math.max(1,b.w),height:Math.max(1,b.h),rotation:b.rotation,pageNumber:1,...(sourceUrl?{sourceUrl}:{}),...(videoId?{videoId}:{}),...(sheet?{sheet}:{})});detected.add(node);return true;
+      };
+      for(const picture of children(doc,'pic')){
+        const media=first(picture,'media'),video=first(picture,'videoFile'),audio=first(picture,'audioFile'),reference=attr(media,'embed')||attr(media,'link')||attr(video,'link')||attr(audio,'link');
+        if(reference&&await special(picture,reference,audio?'audio':'video'))continue;
+        const b=bounds(picture),imageReference=attr(first(picture,'blip'),'embed'),name=mediaRels.get(imageReference);if(!name)continue;const assetId=await image(name);if(assetId)slide.media.push({id:uid(),kind:'image',assetId,x:b.x,y:b.y,width:b.w,height:b.h,rotation:b.rotation,pageNumber:1});
+      }
+      for(const frame of children(doc,'graphicFrame')){const ole=first(frame,'oleObj');if(!ole)continue;const reference=ole.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id')||attr(ole,'id');if(await special(frame,reference)){
+        // Embedded workbook preview pictures are replaced by the actual worksheet.
+        for(const picture of children(frame,'pic')){const preview=attr(first(picture,'blip'),'embed'),previewId=assetIds.get(mediaRels.get(preview)??'');if(previewId)slide.media=slide.media.filter(item=>item.kind!=='image'||item.assetId!==previewId);}
+      }}
+      if(detected.size)warnings.add(`${detected.size} playable/editable special object(s) detected on slide ${slides.length+1}.`);
+
       slides.push(slide);
     }
   }else{
@@ -63,6 +116,7 @@ export async function importOfficeSlides(notebookId:string,file:File,replaceEmpt
       try{
         ctx.scale(scale,scale);ctx.fillStyle=slide.background;ctx.fillRect(0,0,slide.width,slide.height);
         for(const item of slide.media){
+          if(isSpecial(item)){drawSpecialPreview(ctx,item);warnings.add('Flattened imports show static previews of special objects; choose Editable to retain playback and worksheets.');continue;}
           const asset=assets.find(a=>a.id===item.assetId);if(!asset)throw new Error('Slide image missing.');
           const url=URL.createObjectURL(asset.blob);
           try{const img=new Image();img.src=url;await img.decode();ctx.save();ctx.translate(item.x+item.width/2,item.y+item.height/2);ctx.rotate(item.rotation);ctx.drawImage(img,-item.width/2,-item.height/2,item.width,item.height);ctx.restore();}finally{URL.revokeObjectURL(url);}
